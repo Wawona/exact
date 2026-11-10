@@ -14,6 +14,8 @@ import { resolve, relative, dirname, basename, join, sep, isAbsolute, toNamespac
 import { moduleBinding } from './__exact_binding.mjs';
 // And the settings' reader beside it (resident.rs `ENV`).
 import { inlineSettings, strayReads } from './__exact_env.mjs';
+// And the check of what package code may use (resident.rs `PORTABLE`).
+import { bare, lineColumn, packageRefusals, propertyName } from './__exact_portable.mjs';
 
 export { moduleBinding };
 
@@ -665,134 +667,6 @@ export function replayCaptured(stage, allowed=[]) {
     },
   };
 }
-// What package code, and the app's own JavaScript, may not use: the DOM,
-// which no data module has, Node's globals, and code made from a string.
-// Both executors lack the first two alike (js/src/prelude.js defines none;
-// host/web-js/ts-fetch.js hides the page's), so a test of one (`typeof
-// window`) answers the same everywhere; a use that test does not guard is
-// refused here, by name. This keeps a module portable; it is no security
-// boundary (LLP 1027 D5): on the web the module runs in the page's realm.
-const DOM=['window','frames','parent','top','opener','document','navigator','location','history','localStorage','sessionStorage','indexedDB','HTMLElement','Element','getComputedStyle','customElements','alert'];
-// The global object's names for itself, through which a member reaches the page.
-const HOSTS=['globalThis','self','window','frames','parent','top','opener'];
-// Code from a string: the bundle cannot capture it, and on the page it runs outside the module's bindings.
-const CODE=['Function','eval'];
-const NODE=['process','Buffer','global','__dirname','__filename','require'];
-const SCOPES=['Program','BlockStatement','StaticBlock','SwitchStatement','ForStatement','ForInStatement','ForOfStatement','CatchClause','ClassExpression'];
-const NOT_REFERENCES={MemberExpression:'property',Property:'key',MethodDefinition:'key',PropertyDefinition:'key',LabeledStatement:'label',BreakStatement:'label',ContinueStatement:'label',ImportSpecifier:'imported',ExportSpecifier:'exported',MetaProperty:'property'};
-const FUNCTIONS=['FunctionDeclaration','FunctionExpression','ArrowFunctionExpression'];
-// The names a scope node declares itself: a function's parameters and its
-// hoisted `var`s and functions, a block's lexical declarations, a catch
-// clause's parameter, a named function or class expression's own name.
-function declares(node) {
-  const names=new Set();
-  const pattern=(p)=>{
-    if (!p) return;
-    if (p.type==='Identifier') names.add(p.name);
-    else if (p.type==='ObjectPattern') p.properties.forEach(q=>pattern(q.type==='RestElement' ? q.argument : q.value));
-    else if (p.type==='ArrayPattern') p.elements.forEach(pattern);
-    else if (p.type==='AssignmentPattern') pattern(p.left);
-    else if (p.type==='RestElement') pattern(p.argument);
-  };
-  const lexical=(statements)=>{
-    for (let s of statements ?? []) {
-      if (['ExportNamedDeclaration','ExportDefaultDeclaration'].includes(s.type)) s=s.declaration ?? s;
-      if (s.type==='VariableDeclaration' && s.kind!=='var') s.declarations.forEach(d=>pattern(d.id));
-      if (['FunctionDeclaration','ClassDeclaration'].includes(s.type) && s.id) names.add(s.id.name);
-      if (s.type==='ImportDeclaration') s.specifiers.forEach(x=>names.add(x.local.name));
-    }
-  };
-  const vars=(n)=>{
-    if (!n || typeof n!=='object') return;
-    if (Array.isArray(n)) { n.forEach(vars); return; }
-    if (FUNCTIONS.includes(n.type) || n.type==='ClassExpression' || n.type==='ClassDeclaration') return;
-    if (n.type==='VariableDeclaration' && n.kind==='var') n.declarations.forEach(d=>pattern(d.id));
-    for (const key in n) if (key!=='parent' && n[key] && typeof n[key]==='object') vars(n[key]);
-  };
-  if (node.type==='Program') { lexical(node.body); vars(node.body); }
-  else if (FUNCTIONS.includes(node.type)) {
-    node.params.forEach(pattern);
-    if (node.type==='FunctionExpression' && node.id) names.add(node.id.name);
-    if (node.body?.type==='BlockStatement') { lexical(node.body.body); vars(node.body.body); }
-  }
-  else if (node.type==='ClassExpression' && node.id) names.add(node.id.name);
-  else if (['BlockStatement','StaticBlock'].includes(node.type)) lexical(node.body);
-  else if (node.type==='SwitchStatement') node.cases.forEach(c=>lexical(c.consequent));
-  else if (['ForStatement','ForInStatement','ForOfStatement'].includes(node.type)) { const d=node.init ?? node.left; if (d?.type==='VariableDeclaration' && d.kind!=='var') d.declarations.forEach(x=>pattern(x.id)); }
-  else if (node.type==='CatchClause') pattern(node.param);
-  return names;
-}
-/** The DOM and Node globals a JavaScript file uses, as `label(at)`'s
- * `…: why`: each use of a name no enclosing scope binds, not guarded by a
- * `typeof` test of it that dominates the use (`typeof x !== 'undefined' &&
- * x.y`, its `if` or `?:`, or an earlier `if (typeof x …) return`), and each
- * such member of `globalThis`, `self`, `window` or `global`. Static: a use
- * behind an alias still reaches an executor without the name. */
-export function packageRefusals(code, label, parse) {
-  const ast=parse(code,{lang:'js'}), found=[], at=lineColumn(code);
-  // Whether `node` tests `typeof name` (or `typeof globalThis.name`).
-  const tests=(node,name)=>{
-    if (!node || typeof node!=='object') return false;
-    if (Array.isArray(node)) return node.some(n=>tests(n,name));
-    if (node.type==='UnaryExpression' && node.operator==='typeof') {
-      const a=bare(node.argument);
-      return a?.type==='Identifier' ? a.name===name : propertyName(a)===name;
-    }
-    if (FUNCTIONS.includes(node.type)) return false;
-    for (const key in node) if (key!=='parent' && tests(node[key],name)) return true;
-    return false;
-  };
-  const exits=(s)=>s && (['ReturnStatement','ThrowStatement'].includes(s.type) || (s.type==='BlockStatement' && exits(s.body.at(-1))));
-  // Whether a use of `name`, under the ancestors `path` (outermost first), is guarded.
-  const guarded=(name,path)=>path.some(([node,key,index],i)=>{
-    if (['IfStatement','ConditionalExpression'].includes(node.type) && key!=='test' && tests(node.test,name)) return true;
-    if (node.type==='LogicalExpression' && key==='right' && tests(node.left,name)) return true;
-    // An earlier statement of an enclosing block leaves when the name is absent.
-    const list=key==='body' || key==='consequent' ? node[key] : null;
-    return Array.isArray(list) && list.slice(0,index).some(s=>s.type==='IfStatement' && tests(s.test,name) && exits(s.consequent));
-  });
-  const refuse=(name,node)=>{
-    const where=label(':'+at(node.start));
-    if (CODE.includes(name) || name==='import()') found.push(where+` loads code from a string ('${name}'), which a bundle cannot capture`);
-    else if (HOSTS.includes(name) && !DOM.includes(name)) found.push(where+` uses the page's '${name}' through the global object: a data module has no page`);
-    else if (DOM.includes(name)) found.push(where+` uses the DOM's '${name}': a data module has no DOM`);
-    else if (name==='require') found.push(where+' loads a module by a computed name, which a bundle cannot capture');
-    else found.push(where+` uses Node's '${name}': a data module runs on Hermes and in the browser, which have no Node APIs`);
-  };
-  const scopes=[], path=[];
-  const free=(name)=>!scopes.some(s=>s.has(name));
-  const walk=(node,parent,key)=>{
-    if (!node || typeof node!=='object') return;
-    if (Array.isArray(node)) { node.forEach((n,i)=>{ path.push([parent,key,i]); walk(n,parent,key); path.pop(); }); return; }
-    if (node.type==='UnaryExpression' && node.operator==='typeof') return;
-    const pushed=SCOPES.includes(node.type) || FUNCTIONS.includes(node.type);
-    if (pushed) scopes.push(declares(node));
-    if (node.type==='Identifier' && !(NOT_REFERENCES[parent?.type]===key && !parent.computed) && free(node.name)) {
-      const name=node.name, grand=path.at(-2)?.[0];
-      const constant=name==='process' && parent?.type==='MemberExpression' && key==='object' && propertyName(parent)==='env' && grand?.type==='MemberExpression' && propertyName(grand)==='NODE_ENV';
-      const literal=name==='require' && parent?.type==='CallExpression' && key==='callee'
-        && ['Literal','TemplateLiteral'].includes(parent.arguments[0]?.type) && !parent.arguments[0].expressions?.length;
-      if ((DOM.includes(name) || NODE.includes(name)) && !constant && !literal && !guarded(name,path)) refuse(name,node);
-      // `Function`, and `eval` direct or not, however reached as a name.
-      else if (CODE.includes(name)) refuse(name,node);
-    }
-    if (node.type==='MemberExpression') {
-      const object=bare(node.object), name=propertyName(node);
-      if (object?.type==='Identifier' && HOSTS.includes(object.name) && free(object.name)
-        && (DOM.includes(name) || NODE.includes(name) || HOSTS.includes(name) || CODE.includes(name)) && !guarded(name,path)) refuse(name,node);
-    }
-    // `import(x)` of a computed name, like a computed `require`.
-    if (node.type==='ImportExpression' && !(['Literal','TemplateLiteral'].includes(node.source?.type) && !node.source.expressions?.length)) refuse('import()',node);
-    for (const k in node) if (k!=='parent' && node[k] && typeof node[k]==='object') {
-      if (!Array.isArray(node[k])) path.push([node,k]);
-      walk(node[k],node,k);
-      if (!Array.isArray(node[k])) path.pop();
-    }
-    if (pushed) scopes.pop();
-  };
-  walk(ast,null,null);
-  return found;
-}
 
 // Time and seeds are source arguments (LLP 1027.000): every executor refuses the clock, randomness and every
 // timer but an answer's own `setTimeout` (D1) when they are used, with these words (js/src/prelude.js,
@@ -802,18 +676,6 @@ const ambient=(api)=>api+' is unavailable in data sources; pass time or a random
 const timers=(api)=>api+' is unavailable in data sources: an answer waits with setTimeout; pass time as an argument';
 const TIMERS=['setInterval','requestAnimationFrame','requestIdleCallback'];
 const GLOBALS=['globalThis','self','window','global'];
-// `x!`, `(x)` and `x?.y` as written, down to the expression they wrap.
-const bare=(node)=>{ while (node && ['TSNonNullExpression','ParenthesizedExpression','ChainExpression','TSAsExpression','TSSatisfiesExpression','TSTypeAssertion'].includes(node.type)) node=node.expression; return node; };
-// A literal bracket key names the same property as dot access. Dynamic
-// keys and aliases stay with the runtime guard; do not evaluate them here.
-const propertyName=(node)=>{
-  if (node?.type!=='MemberExpression') return null;
-  const property=bare(node.property);
-  if (!node.computed) return property?.type==='Identifier' ? property.name : null;
-  if (property?.type==='Literal' && typeof property.value==='string') return property.value;
-  if (property?.type==='TemplateLiteral' && !property.expressions.length) return property.quasis[0].value.cooked;
-  return null;
-};
 // The global `name`: the bare identifier, or a global object's property.
 const ambientGlobal=(node,name,local)=>{
   node=bare(node);
@@ -881,16 +743,6 @@ function bound(ast) {
   };
   walk(ast,false);
   return names;
-}
-// `line:column` of an offset in `code`, by ECMAScript's line terminators:
-// LF, CR (CRLF is one), U+2028, U+2029.
-function lineColumn(code) {
-  const starts=[0];
-  for (let i=0;i<code.length;i++) {
-    const c=code.charCodeAt(i);
-    if (c===10 || c===0x2028 || c===0x2029 || (c===13 && code.charCodeAt(i+1)!==10)) starts.push(i+1);
-  }
-  return (offset)=>{ let lo=0, hi=starts.length; while (lo+1<hi) { const mid=(lo+hi)>>1; if (starts[mid]<=offset) lo=mid; else hi=mid; } return (lo+1)+':'+(offset-starts[lo]+1); };
 }
 /** The direct uses of the clock, randomness and timers in the captured
  * module `file`, as `path:line:col: why` with its path in the app: `parse`

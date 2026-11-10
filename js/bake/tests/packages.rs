@@ -395,8 +395,34 @@ fn package_code_no_executor_runs_is_refused_by_package_and_file() {
             "bad@3.1.0 (index.js:2:18) loads code from a string ('Function')",
         ),
         (
+            "module.exports = new Function('return 1');\n",
+            "bad@3.1.0 (index.js:2:22) loads code from a string ('Function')",
+        ),
+        (
+            "module.exports = Function.prototype.constructor('return 1');\n",
+            "bad@3.1.0 (index.js:2:18) loads code from a string ('Function')",
+        ),
+        (
             "module.exports = (0, eval)('1');\n",
             "bad@3.1.0 (index.js:2:22) loads code from a string ('eval')",
+        ),
+        // Node's `process` read where its absence throws: bare (`?.` does not
+        // catch a name that is not there), or a member of an absent value.
+        (
+            "module.exports = () => process.env.API;\n",
+            "bad@3.1.0 (index.js:2:24) uses Node's 'process'",
+        ),
+        (
+            "module.exports = () => process?.env;\n",
+            "bad@3.1.0 (index.js:2:24) uses Node's 'process'",
+        ),
+        (
+            "module.exports = () => globalThis.process.env.API;\n",
+            "bad@3.1.0 (index.js:2:24) uses Node's 'process'",
+        ),
+        (
+            "const node = globalThis.process;\nmodule.exports = () => node.env.API;\n",
+            "bad@3.1.0 (index.js:3:24) uses Node's 'process'",
         ),
         (
             "module.exports = (name) => import(name);\n",
@@ -413,8 +439,67 @@ fn package_code_no_executor_runs_is_refused_by_package_and_file() {
         r#"{"name":"bad","version":"3.1.0"}"#,
     );
     app.put("node_modules/bad/build/Release/bad.node", "not JavaScript");
+    app.put(
+        "node_modules/bad/fn.js",
+        "export const twice = (n) => n * 2;\n",
+    );
     let ran = app.0.join("ran");
     app.answer("import bad from 'bad';", "bad + count");
+    // What reaches the constructor or a global the check cannot follow, one per line: `Function.prototype` held
+    // or destructured; a `const` holding `globalThis.process` (a `for` head's, one whose `globalThis` a later
+    // scope shadows, one holding an optional chain from it or from another such `const`) used unguarded; that chain
+    // as a parameter's default;
+    // a test the check cannot read as `process` being there (a property beside one, `||`, `!`); `Function`
+    // beside `export * as Function`, which binds no name in its own module; and a global held through `??`.
+    let unfollowed = [
+        "const proto = Function.prototype; proto.constructor('return 1');",
+        "const { constructor: make } = Function.prototype; make('return 1');",
+        "for (const process = globalThis.process; ; ) { process.env.HOME; break; }",
+        "const node = globalThis.process; function hide(globalThis) { return node.env.HOME; }",
+        "const env = globalThis.process?.env; env.API;",
+        "const host = globalThis.process; const vars = host?.env; export const home = () => vars.HOME;",
+        "function read(env = globalThis.process?.env) { return env.API; }",
+        "const features = { node: typeof process !== 'undefined', enabled: true }; features.enabled ? process.cwd() : '/';",
+        "const ok = typeof Object !== 'undefined' || typeof process !== 'undefined'; if (ok) process.env.HOME;",
+        "function absent() { const no = typeof process === 'undefined'; if (!no) return; return process.env.HOME; }",
+        "export * as Function from './fn.js';",
+        "export const made = Function('return 1');",
+        "const Kind = globalThis.document?.defaultView?.Element ?? globalThis.Element; Kind.prototype;",
+        "export default [make, hide, read, absent];",
+    ];
+    app.put(
+        "node_modules/bad/index.js",
+        &format!("{}{}\n", sentinel(&ran), unfollowed.join("\n")),
+    );
+    let refusals = [
+        "2:15) loads code from a string ('Function')",
+        "3:31) loads code from a string ('Function')",
+        "4:48) uses Node's 'process'",
+        "5:69) uses Node's 'process'",
+        "6:38) uses Node's 'process'",
+        "7:84) uses Node's 'process'",
+        "8:21) uses Node's 'process'",
+        "9:94) uses Node's 'process'",
+        "10:85) uses Node's 'process'",
+        "11:88) uses Node's 'process'",
+        "13:21) loads code from a string ('Function')",
+        "14:59) uses the DOM's 'Element'",
+    ];
+    for result in every(&app) {
+        let error = result.expect_err("unfollowed");
+        for why in refusals {
+            assert!(
+                error.contains(&format!("bad@3.1.0 (index.js:{why}")),
+                "{why}: {error}"
+            );
+        }
+        assert_eq!(
+            error.matches("bad@3.1.0 (index.js:").count(),
+            refusals.len(),
+            "{error}"
+        );
+    }
+    assert!(!ran.exists(), "a refused package's code never runs");
     for (code, why) in cases {
         app.put(
             "node_modules/bad/index.js",
@@ -477,6 +562,71 @@ fn package_code_no_executor_runs_is_refused_by_package_and_file() {
         );
     }
     assert!(!std::env::temp_dir().join("escaped").exists() && !app.0.join("escaped").exists());
+}
+
+/// What builds no code and throws nothing without Node is not refused, as
+/// Effect's package index reaches it: a module export named `Function`,
+/// `Function.prototype`'s named members, `typeof globalThis.Function` and
+/// `typeof globalThis.eval`, and a read of `globalThis.process` through `?.`
+/// that is tested, spread, returned or held whole by a `const` whose uses a
+/// `typeof` test guards. On Hermes the guarded paths answer
+/// as without Node.
+#[test]
+fn feature_tests_and_names_that_build_no_code_are_not_refused() {
+    let app = App::new("feature-tests");
+    app.put(
+        "node_modules/fine/package.json",
+        r#"{"name":"fine","version":"1.0.0","type":"module","types":"./index.d.ts"}"#,
+    );
+    app.put(
+        "node_modules/fine/index.js",
+        "export * as Function from './fn.js';\n\
+         export { Function as Fn } from './fn.js';\n\
+         export { probe } from './probe.js';\n",
+    );
+    app.put(
+        "node_modules/fine/fn.js",
+        "export const Function = { twice: (n) => n * 2 };\n",
+    );
+    app.put(
+        "node_modules/fine/probe.js",
+        "const bound = (f) => Function.prototype.bind.call(f, undefined);\n\
+         const clock = globalThis.process?.hrtime;\n\
+         const resource = (() => { try { return globalThis.process?.getBuiltinModule?.('node:async_hooks')?.AsyncResource; } catch { return undefined; } })();\n\
+         const cwd = () => {\n\
+         \x20 const process = globalThis.process;\n\
+         \x20 if (typeof process === 'object' && process !== null && typeof process.cwd === 'function') return process.cwd();\n\
+         \x20 return '/';\n\
+         };\n\
+         const tty = () => {\n\
+         \x20 const process = globalThis.process;\n\
+         \x20 const stdout = typeof process?.stdout === 'object' && process.stdout !== null;\n\
+         \x20 return stdout && process.stdout.isTTY === true;\n\
+         };\n\
+         const time = () => (typeof clock?.bigint === 'function' ? String(clock.bigint()) : 'none');\n\
+         const host = globalThis.process;\n\
+         const vars = host?.env;\n\
+         const home = () => (typeof vars === 'object' ? vars.HOME : vars?.HOME);\n\
+         export const probe = (n) => [Object.keys({ ...globalThis.process?.env }).length, typeof clock, typeof resource, time(), cwd(), tty(),\n\
+         \x20 bound(() => n)(), bound instanceof Function, typeof globalThis.Function, typeof globalThis.eval, typeof home()].join(' ');\n",
+    );
+    app.put(
+        "node_modules/fine/index.d.ts",
+        "export declare const probe: (n: number) => string;\nexport declare const Fn: { twice: (n: number) => number };\n",
+    );
+    app.answer(
+        "import { probe, Fn } from 'fine';",
+        "probe(count) + ' ' + Fn.twice(count + 1)",
+    );
+    for result in every(&app) {
+        result.unwrap();
+    }
+    if exact_js::ENGINE_LINKED {
+        assert_eq!(
+            message(&app),
+            Value::str("0 undefined undefined none / false 0 true function function undefined 2")
+        );
+    }
 }
 
 /// A use the static check cannot see (an alias of the global object) finds

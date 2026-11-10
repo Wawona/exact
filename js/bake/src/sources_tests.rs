@@ -219,6 +219,11 @@ fn captured_module_guard_uses_real_files_and_path_components() {
     std::fs::write(stage.join("__exact_config.mjs"), super::resident::CONFIG).unwrap();
     std::fs::write(stage.join("__exact_binding.mjs"), super::resident::BINDING).unwrap();
     std::fs::write(stage.join("__exact_env.mjs"), super::resident::ENV).unwrap();
+    std::fs::write(
+        stage.join("__exact_portable.mjs"),
+        super::resident::PORTABLE,
+    )
+    .unwrap();
     let checked = exact_bake::bun()
         .args([
             "--input-type=module",

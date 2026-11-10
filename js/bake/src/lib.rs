@@ -986,6 +986,7 @@ fn bake_in(
         "__exact_config.mjs",
         "__exact_binding.mjs",
         "__exact_env.mjs",
+        "__exact_portable.mjs",
         "__exact_env.json",
         "__exact_paths.json",
         "__exact_declarations.json",
