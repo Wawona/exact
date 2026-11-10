@@ -170,16 +170,17 @@ export function inlineSettings(code, app, parse, env = process.env) {
   return { code, record };
 }
 
-/** Each `import.meta.env` in the captured module `file`, the app's or a package's: once `inlineSettings` has run,
- * app.ts has none left, so any is a read where none is allowed. `where(':line:col')` names the place, as the capture
- * names it (`path:line:col`, or `name@version (path:line:col)` in a package). */
-export function strayReads(file, code, parse, where, inPackage = false) {
+/** Each `import.meta.env` in the captured module `file`, the app's or a package's, as `{ start, end, why }`: once
+ * `inlineSettings` has run, app.ts has none left, so any is a read where none is allowed. `where(':line:col')` names
+ * the place, as the capture names it (`path:line:col`, or `name@version (path:line:col)` in a package). */
+export function envReads(file, code, parse, where, inPackage = false) {
   if (!/\bimport\b/.test(code) || /\.d\.[cm]?ts$/.test(file) || !/\.[cm]?[jt]sx?$/.test(file)) return [];
   const lang = /\.[cm]?tsx?$/.test(file) ? (file.endsWith('x') ? 'tsx' : 'ts') : 'js', at = lineColumn(code);
-  return metaEnvs(parse(code, { lang })).map(node => inPackage
+  return metaEnvs(parse(code, { lang })).map(node => ({ start: node.start, end: node.end, why: inPackage
     ? `${where(`:${at(node.start)}`)} reads import.meta.env, which only app.ts may: app.ts reads the setting (const API = import.meta.env.API_BASE_URL) and passes it in`
-    : `${where(`:${at(node.start)}`)}: ${READ}`);
+    : `${where(`:${at(node.start)}`)}: ${READ}` }));
 }
+export const strayReads = (...args) => envReads(...args).map(read => read.why);
 
 /** Each setting of `record` (name to the value and source a build inlined) whose value its sources give otherwise
  * now, as `{ name, built, now }` (a setting, or null where none is set). With `app`, the app's directory beside the

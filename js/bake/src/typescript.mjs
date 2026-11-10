@@ -13,7 +13,7 @@ import { resolve, relative, dirname, basename, join, sep, isAbsolute, toNamespac
 // The bake writes the binding's generator beside this file in its stage (js/bake/src/resident.rs `BINDING`).
 import { moduleBinding } from './__exact_binding.mjs';
 // And the settings' reader beside it (resident.rs `ENV`).
-import { inlineSettings, strayReads } from './__exact_env.mjs';
+import { envReads, inlineSettings } from './__exact_env.mjs';
 // And the check of what package code may use (resident.rs `PORTABLE`).
 import { bare, lineColumn, packageRefusals, propertyName } from './__exact_portable.mjs';
 
@@ -519,7 +519,7 @@ export const dataBundle=(stage)=>({...bundleOptions, transform:{...bundleOptions
  * is refused by file and line, into `refusals` when given, else thrown. */
 export function capturedSources(stage, refusals=null) {
   stage=realpathSync.native(stage);
-  const files=new Map(), roots=new Map(), edges=new Map(), area=join(stage,'node_modules','.packages');
+  const files=new Map(), roots=new Map(), edges=new Map(), stray=new Map(), area=join(stage,'node_modules','.packages');
   let total=0;
   // Staged declarations and captured package code sit under a `node_modules` in the stage.
   const staged=(id)=>within(id,stage) && relative(stage,id).split(sep).includes('node_modules');
@@ -620,9 +620,23 @@ export function capturedSources(stage, refusals=null) {
     },
     transform(code, id) {
       id=physicalId(id);
-      const parse=(c,o)=>this.parse(c,o), js=/\.[cm]?js$/.test(id) && within(id,stage);
+      const parse=(c,o)=>this.parse(c,o), js=/\.[cm]?js$/.test(id) && within(id,stage), inPackage=files.has(id);
+      const reads=envReads(id,code,parse,(at)=>label(id,at),inPackage);
       // The app's own JavaScript is checked as package code is, and for the clock as the app's TypeScript is.
-      report([...(files.has(id) ? [] : ambientRefusals(stage,id,code,parse)), ...strayReads(id,code,parse,(at)=>label(id,at),files.has(id)), ...(js ? packageRefusals(code,(at)=>label(id,at),parse) : [])]);
+      report([...(inPackage ? [] : ambientRefusals(stage,id,code,parse)), ...(inPackage ? [] : reads.map(r=>r.why)), ...(js ? packageRefusals(code,(at)=>label(id,at),parse) : [])]);
+      if (!inPackage || !reads.length) return null;
+      // A package's read of a setting is a read only if the bundle keeps it: each becomes a global of the same length,
+      // which tree-shaking drops with the code around it, and `renderChunk` refuses any the output still holds. A
+      // global's read may throw, so the bundle keeps at least the code the read would have kept.
+      for (const {start,end,why} of reads) {
+        const marker=`__exact_env${stray.size.toString(36)}`;
+        stray.set(marker,why);
+        code=code.slice(0,start)+marker.padEnd(end-start)+code.slice(end);
+      }
+      return {code,map:null};
+    },
+    renderChunk(code) {
+      report([...stray].filter(([marker])=>new RegExp(`\\b${marker}\\b`).test(code)).map(([,why])=>why));
       return null;
     },
     buildEnd() {

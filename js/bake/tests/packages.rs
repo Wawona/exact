@@ -428,10 +428,15 @@ fn package_code_no_executor_runs_is_refused_by_package_and_file() {
             "module.exports = (name) => import(name);\n",
             "bad@3.1.0 (index.js:2:28) loads code from a string ('import()')",
         ),
-        // A setting is app.ts's to read (LLP 1153 D4), not a package function's.
+        // A setting is app.ts's to read (LLP 1153 D4), not a package function's: a read the bundle keeps,
+        // `?.` or not, is refused by its place in the package.
         (
-            "export default () => import.meta.env.API_BASE_URL;\n",
-            "bad@3.1.0 (index.js:2:22) reads import.meta.env, which only app.ts may",
+            "export default (() => import.meta.env.API_BASE_URL)();\n",
+            "bad@3.1.0 (index.js:2:23) reads import.meta.env, which only app.ts may",
+        ),
+        (
+            "export default (() => String(import.meta?.env))();\n",
+            "bad@3.1.0 (index.js:2:30) reads import.meta.env, which only app.ts may",
         ),
     ];
     app.put(
@@ -567,9 +572,10 @@ fn package_code_no_executor_runs_is_refused_by_package_and_file() {
 /// What builds no code and throws nothing without Node is not refused, as
 /// Effect's package index reaches it: a module export named `Function`,
 /// `Function.prototype`'s named members, `typeof globalThis.Function` and
-/// `typeof globalThis.eval`, and a read of `globalThis.process` through `?.`
-/// that is tested, spread, returned or held whole by a `const` whose uses a
-/// `typeof` test guards. A package's `/// <reference lib>` to an ES library the
+/// `typeof globalThis.eval`, a read of `globalThis.process` through `?.` that
+/// is tested, spread, returned or held whole by a `const` whose uses a `typeof`
+/// test guards, and a never-called function's `import.meta?.env`, which the
+/// bundle drops. A package's `/// <reference lib>` to an ES library the
 /// configuration leaves out loads nothing, however it is spelled, so the app
 /// cannot name what that library declares. On Hermes the guarded paths answer
 /// as without Node.
@@ -584,11 +590,16 @@ fn feature_tests_and_names_that_build_no_code_are_not_refused() {
         "node_modules/fine/index.js",
         "export * as Function from './fn.js';\n\
          export { Function as Fn } from './fn.js';\n\
+         export * as Config from './config.js';\n\
          export { probe } from './probe.js';\n",
     );
     app.put(
         "node_modules/fine/fn.js",
         "export const Function = { twice: (n) => n * 2 };\n",
+    );
+    app.put(
+        "node_modules/fine/config.js",
+        "export const fromEnv = () => ({ ...globalThis.process?.env, ...import.meta?.env });\n",
     );
     app.put(
         "node_modules/fine/probe.js",
