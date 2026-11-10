@@ -569,7 +569,9 @@ fn package_code_no_executor_runs_is_refused_by_package_and_file() {
 /// `Function.prototype`'s named members, `typeof globalThis.Function` and
 /// `typeof globalThis.eval`, and a read of `globalThis.process` through `?.`
 /// that is tested, spread, returned or held whole by a `const` whose uses a
-/// `typeof` test guards. On Hermes the guarded paths answer
+/// `typeof` test guards. A package's `/// <reference lib>` to an ES library the
+/// configuration leaves out loads nothing, however it is spelled, so the app
+/// cannot name what that library declares. On Hermes the guarded paths answer
 /// as without Node.
 #[test]
 fn feature_tests_and_names_that_build_no_code_are_not_refused() {
@@ -610,9 +612,38 @@ fn feature_tests_and_names_that_build_no_code_are_not_refused() {
          export const probe = (n) => [Object.keys({ ...globalThis.process?.env }).length, typeof clock, typeof resource, time(), cwd(), tty(),\n\
          \x20 bound(() => n)(), bound instanceof Function, typeof globalThis.Function, typeof globalThis.eval, typeof home()].join(' ');\n",
     );
+    // TypeScript reads a directive in the comments before the first token, its attributes in any order, a
+    // comment ending at any line terminator (a file written with CR alone, the last).
+    let spellings = [
+        (
+            "/// <reference lib=\"esnext.disposable\" preserve=\"true\" />",
+            "\n",
+        ),
+        ("   /// <reference lib=\"esnext.disposable\" />", "\n"),
+        ("/// <reference lib = 'esnext.disposable' />", "\n"),
+        (
+            "/* a licence */\n/// <reference preserve=\"true\" lib=\"ESNext.Disposable\"/>",
+            "\n",
+        ),
+        ("///<reference lib=\"esnext.disposable\"/>", "\n"),
+        (
+            "// a licence\r/// <reference lib=\"esnext.disposable\" />",
+            "\r",
+        ),
+    ];
+    let mut index = String::new();
+    for (i, (spelling, end)) in spellings.iter().enumerate() {
+        app.put(
+            &format!("node_modules/fine/spelling{i}.d.ts"),
+            &format!(
+                "{spelling}{end}export declare const release{i}: <A extends Disposable>(a: A) => A;{end}"
+            ),
+        );
+        index += &format!("export * from './spelling{i}';\n");
+    }
     app.put(
         "node_modules/fine/index.d.ts",
-        "export declare const probe: (n: number) => string;\nexport declare const Fn: { twice: (n: number) => number };\n",
+        &format!("{index}export declare const probe: (n: number) => string;\nexport declare const Fn: {{ twice: (n: number) => number }};\n"),
     );
     app.answer(
         "import { probe, Fn } from 'fine';",
@@ -625,6 +656,18 @@ fn feature_tests_and_names_that_build_no_code_are_not_refused() {
         assert_eq!(
             message(&app),
             Value::str("0 undefined undefined none / false 0 true function function undefined 2")
+        );
+    }
+    // The library stays unloaded for the app's own code.
+    app.answer(
+        "import { probe } from 'fine';",
+        "probe(count) + String(Symbol.dispose)",
+    );
+    for result in every(&app) {
+        let error = result.expect_err("Symbol.dispose");
+        assert!(
+            error.contains("Property 'dispose' does not exist"),
+            "{error}"
         );
     }
 }

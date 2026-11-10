@@ -1106,7 +1106,8 @@ fn type_only_package_imports_check_alike_and_package_code_never_runs() {
     refused(&mut every, "Cannot find name 'process'");
     put("logic.ts", &logic("2"));
     // A declaration that reaches outside the capture, or loads a library the
-    // configuration does not, is refused by every producer's graph check.
+    // configuration does not (the DOM's), is refused by every producer's graph
+    // check; one naming an ES library it leaves out loads nothing (packages.rs).
     let outside = Fixture(f.0.with_extension("outside"));
     std::fs::create_dir(&outside.0).unwrap();
     outside.write("outside.d.ts", "type Outside = string;\n");
@@ -1120,9 +1121,9 @@ fn type_only_package_imports_check_alike_and_package_code_never_runs() {
     refused(&mut every, "module outside captured app: ");
     put(
         "node_modules/rows/dist/index.d.ts",
-        &format!("/// <reference lib=\"es2024.arraybuffer\" />\n{index}"),
+        &format!("/// <reference lib=\"dom\" />\n{index}"),
     );
-    refused(&mut every, "lib.es2024.arraybuffer.d.ts");
+    refused(&mut every, "lib.dom.d.ts");
 }
 
 /// One TypeScript configuration (`js/bake/src/typescript.mjs`) in both

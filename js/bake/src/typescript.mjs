@@ -268,6 +268,30 @@ const DECLARATION=/\.d\.[cm]?ts$/;
 // import costs at most a package's declarations, staged and unread.
 const SPECIFIER=/(?:\bfrom|\bimport|\brequire|\bmodule|\btypes\s*=)(?:\s|\(|\/\*[\s\S]*?\*\/|\/\/[^\n]*)*(['"])([^'"\r\n]+)\1/g;
 const PACKAGES='__exact_declarations.json';
+// A package's `/// <reference lib="esnext.disposable" />` to an ES library the
+// configuration leaves out is staged as a plain comment, so it loads nothing:
+// what that library declares (`Symbol.dispose`) no executor is known to have,
+// so the app's code still cannot name it, and the package's declarations that
+// do resolve it to nothing (`skipLibCheck`). Any other library a package
+// names, the DOM's, is still loaded and refused (`check`). TypeScript reads a
+// directive from a `///` comment in the comments before the file's first token,
+// its attributes in any order.
+const unreferenced=(bytes)=>{
+  const text=bytes.toString('utf8');
+  let out=text, at=text.charCodeAt(0)===0xFEFF ? 1 : 0;
+  for (;;) {
+    at+=/^\s*/.exec(text.slice(at))[0].length;
+    if (text.startsWith('/*',at)) { const end=text.indexOf('*/',at+2); if (end<0) break; at=end+2; continue; }
+    if (!text.startsWith('//',at)) break;
+    // A `//` comment ends at ECMAScript's first line terminator: LF, CR, U+2028 or U+2029.
+    const ends=text.slice(at).search(/[\n\r\u2028\u2029]/), end=ends<0 ? -1 : at+ends, line=text.slice(at,end<0 ? undefined : end);
+    const lib=/^\/\/\/\s*<reference\s(?:[^>]*?\s)?lib\s*=\s*(["'])([^"']*)\1/i.exec(line)?.[2];
+    if (lib && /^es(?:next|\d{4})(?:\.|$)/i.test(lib) && !configuredLibrary(`lib.${lib.toLowerCase()}.d.ts`)) out=out.slice(0,at)+'// '+out.slice(at+3);
+    if (end<0) break;
+    at=end+1;
+  }
+  return out===text ? bytes : Buffer.from(out);
+};
 // The package a specifier names, or null: relative, absolute, `#` subpath and
 // scheme (`node:`, `exact:`) specifiers name none.
 export function packageName(spec) {
@@ -347,7 +371,7 @@ export function stagePackages(stage) {
       const kind=entry.isSymbolicLink() ? statSync(path,{throwIfNoEntry:false}) : entry;
       if (kind?.isDirectory()) copy(path,join(place,name),owner);
       else if (kind?.isFile() && (name==='package.json' || DECLARATION.test(name))) {
-        const bytes=readFileSync(path);
+        const bytes=DECLARATION.test(name) ? unreferenced(readFileSync(path)) : readFileSync(path);
         total+=bytes.length;
         if (total>64<<20) throw new Error('package declarations exceed 64 MiB');
         // Recorded where it is installed: a link retargeted is a change there.
