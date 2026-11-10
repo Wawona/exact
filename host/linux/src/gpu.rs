@@ -660,11 +660,13 @@ impl Backend for Gpu {
         };
         let a = self.affine(ts);
         // Vello samples the ramp at integer device coordinates; CSS uses
-        // pixel centres. Shift the repeating brush, not its clipped shape.
-        let placed = if g.repeat {
-            Some(a.inverse() * Affine::translate((-0.5, -0.5)) * a)
-        } else {
-            placed
+        // pixel centres. Shift the repeating or radial brush, not its
+        // clipped shape.
+        let centre = a.inverse() * Affine::translate((-0.5, -0.5)) * a;
+        let placed = match (g.repeat, g.geometry) {
+            (true, _) => Some(centre),
+            (false, Geometry::Radial { .. }) => placed.map(|p| centre * p),
+            _ => placed,
         };
         self.scene.fill(
             Fill::NonZero,

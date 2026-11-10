@@ -152,7 +152,7 @@ pub(crate) fn held_to_chrome(
     held_to_chrome_with_band(p, reference, painter, cases, 2.0)
 }
 
-fn held_to_chrome_with_band(
+pub(crate) fn held_to_chrome_with_band(
     p: &mut Presenter<()>,
     reference: &str,
     painter: &str,

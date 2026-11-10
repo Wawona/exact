@@ -3,7 +3,7 @@
 //! declarations at 1×) are `gradients.web.png` as booted and `gradients.web-dark.png`
 //! after `dark`. Each case's box is compared within the border parity's band.
 
-use crate::borders::{boot, held_to_chrome, view};
+use crate::borders::{boot, held_to_chrome, held_to_chrome_with_band, view};
 
 const CASES: [&str; 18] = [
     "linear",
@@ -26,6 +26,10 @@ const CASES: [&str; 18] = [
     "zero-four",
 ];
 
+/// The radial cases, which every painter samples at pixel centres as CSS
+/// does: within a tighter band than the antialiased edges need.
+const RADIAL: [&str; 3] = ["radial", "circle", "ellipse"];
+
 #[test]
 fn every_gradient_case_matches_chrome_light_then_dark() {
     let choices = crate::paint::painters();
@@ -36,6 +40,13 @@ fn every_gradient_case_matches_chrome_light_then_dark() {
         let mut p = boot(choice, "gradients.contract");
         let _ = p.resize(390.0, 650.0);
         failures.extend(held_to_chrome(&mut p, "gradients.web.png", &name, &cases));
+        failures.extend(held_to_chrome_with_band(
+            &mut p,
+            "gradients.web.png",
+            &name,
+            &RADIAL,
+            0.5,
+        ));
         // `light-dark()` stops follow the scheme, and so does the page
         // under the transparent ones.
         let id = view(&p, "dark");
