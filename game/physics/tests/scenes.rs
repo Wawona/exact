@@ -103,6 +103,47 @@ fn resume_and_replay_every_tick() {
         exact_game::json::from_str(include_str!("pins.json")).unwrap();
     assert_eq!(format!("0x{:016x}", a.world().hash()), pins["pile-600"]);
 }
+// Convex hulls (sharp, rounded and a static rock) and CCD bodies continue
+// identically when replayed, resumed or rebuilt, and every die settles on a face.
+#[test]
+fn dice_settle_on_a_face_and_continue_identically() {
+    let mut a = scene("dice").paranoid(Paranoid::Off);
+    let mut b = scene("dice").paranoid(Paranoid::Save);
+    let mut fresh = scene("dice").paranoid(Paranoid::FreshGame);
+    let mut restored = None;
+    let mut slept = 0;
+    for t in 1..=600 {
+        for s in [&mut a, &mut b, &mut fresh] {
+            tick(s, t);
+        }
+        if t == 30 {
+            let mut r = scene("dice");
+            r.restore(&a.save().unwrap()).unwrap();
+            tick(&mut r, t);
+            restored = Some(r);
+        } else if let Some(r) = &mut restored {
+            tick(r, t);
+        }
+        let hash = a.world().hash();
+        assert_eq!(hash, b.world().hash(), "replay tick {t}");
+        assert_eq!(hash, fresh.world().hash(), "fresh-game tick {t}");
+        if let Some(r) = &restored {
+            assert_eq!(hash, r.world().hash(), "resume tick {t}");
+        }
+        if slept == 0 && physics::quiescent(a.world()) {
+            slept = t;
+        }
+    }
+    assert!(slept > 0, "the dice never slept");
+    let w = a.world();
+    for (i, faces) in [4, 8, 20, 20].into_iter().enumerate() {
+        let e = w.named(&format!("die-{i}")).unwrap();
+        let pose = *w.get::<Transform>(e).unwrap();
+        eprintln!("d{faces} rests at {pose:?} from tick {slept}");
+        assert!(pose.position.y > 0.0, "d{faces} fell through the ground");
+        assert!(on_face(&die(faces, 0.4), pose), "d{faces} rests off a face");
+    }
+}
 #[test]
 fn slopes_box_static_and_sliding() {
     for angle in [20.0, 40.0] {

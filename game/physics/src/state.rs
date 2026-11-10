@@ -381,6 +381,25 @@ mod tests {
                 "invalid mesh",
             ),
             (
+                Some(shape(Shape::ConvexHull {
+                    points: vec![Vec3::X, Vec3::Y, Vec3::Z, Vec3::new(0.5, 0.5, 0.0)],
+                    round: 0.0,
+                })),
+                Transform::default(),
+                "lie in one plane",
+            ),
+            (
+                Some(shape(Shape::ConvexHull {
+                    points: vec![Vec3::ZERO, Vec3::X, Vec3::Y, Vec3::Z],
+                    round: 0.1,
+                })),
+                Transform {
+                    scale: Vec3::new(1.0, 2.0, 1.0),
+                    ..Transform::default()
+                },
+                "uniform scale",
+            ),
+            (
                 Some(shape(Shape::Box {
                     half: Vec3::splat(1e30),
                 })),
@@ -410,6 +429,82 @@ mod tests {
             ..Saved::default()
         };
         saved.decode().unwrap();
+    }
+
+    // Hull input is game data or a save: degenerate, duplicated, nearly flat or
+    // out-of-range points are built or refused by name, never panic in Parry.
+    #[test]
+    fn convex_hulls_are_built_or_refused_by_name() {
+        use crate::Shape;
+        use exact_game::Vec3;
+        let refused = |points: Vec<Vec3>, round: f32, scale: Vec3| {
+            crate::math::try_shape(&Shape::ConvexHull { points, round }, scale).err()
+        };
+        let one = Vec3::ONE;
+        let tetra = vec![Vec3::ZERO, Vec3::X, Vec3::Y, Vec3::Z];
+        // Thick enough for the plane test, but Parry builds it without volume.
+        let sliver = vec![
+            Vec3::new(0.00093715615, 0.00030066163, 5.729107e-8),
+            Vec3::new(0.0007612446, 0.0008923049, 7.49151e-8),
+            Vec3::new(0.0003021846, 0.00058248325, 3.7442636e-9),
+            Vec3::new(0.00066891545, 0.0004720252, 1.1845339e-7),
+        ];
+        assert_eq!(refused(tetra.clone(), 0.0, Vec3::new(1.0, 2.0, 3.0)), None);
+        assert_eq!(refused(tetra.clone(), 0.1, one), None);
+        for (points, round, why) in [
+            (tetra[..3].to_vec(), 0.0, "invalid convex hull"),
+            (vec![Vec3::X; 256], 0.0, "invalid convex hull"),
+            (
+                vec![Vec3::ZERO, Vec3::X, Vec3::Y, Vec3::NAN],
+                0.0,
+                "invalid",
+            ),
+            (tetra.clone(), -0.1, "invalid convex hull"),
+            (tetra.clone(), f32::INFINITY, "invalid convex hull"),
+            (vec![Vec3::X; 8], 0.0, "one plane"),
+            (
+                (0..9).map(|i| Vec3::X * i as f32).collect(),
+                0.0,
+                "one plane",
+            ),
+            (sliver.clone(), 0.0, "one plane"),
+            (sliver, 0.01, "one plane"),
+        ] {
+            let error = refused(points, round, one).expect(why);
+            assert!(error.contains(why), "{why}: {error}");
+        }
+        // A fixed LCG: nearly flat slabs, duplicated corners, integer grids
+        // (many coplanar and collinear subsets) and extreme magnitudes.
+        let mut seed = 0x2545_f491_4f6c_dd1du64;
+        let mut next = move || {
+            seed = seed
+                .wrapping_mul(6364136223846793005)
+                .wrapping_add(1442695040888963407);
+            ((seed >> 40) as f32 / (1u64 << 24) as f32) * 2.0 - 1.0
+        };
+        for case in 0..2000 {
+            let n = 4 + case % 60;
+            let flat = [0.0, 1e-7, 1e-5, 2e-4, 1e-3, 1.0][case % 6];
+            let size = [1e-4, 1.0, 1e4][case / 5 % 3];
+            let points: Vec<Vec3> = (0..n)
+                .map(|i| {
+                    let p = Vec3::new(next(), next(), next() * flat);
+                    let p = if case % 7 == 0 { (p * 3.0).round() } else { p };
+                    if i % 3 == 0 && case % 2 == 0 {
+                        Vec3::new(1.0, 1.0, 0.0) * size
+                    } else {
+                        p * size
+                    }
+                })
+                .collect();
+            match crate::math::try_shape(&Shape::ConvexHull { points, round: 0.0 }, one) {
+                Ok(hull) => {
+                    let mass = hull.mass_properties(1.0).mass();
+                    assert!(mass.is_finite() && mass > 0.0, "case {case}: mass {mass}");
+                }
+                Err(error) => assert!(error.starts_with("physics: "), "{error}"),
+            }
+        }
     }
 
     #[test]

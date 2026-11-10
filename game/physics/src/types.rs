@@ -13,7 +13,7 @@ pub enum BodyKind {
 }
 
 /// A rigid body's controls and observed motion. Bodies must be hierarchy roots.
-#[derive(Clone, Debug, PartialEq, Component)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct Body {
     /// Static, game-controlled, or simulated (the default).
     pub kind: BodyKind,
@@ -36,6 +36,15 @@ pub struct Body {
     /// until its island sleeps. A touch from a moving body wakes it, and writing
     /// false wakes its island.
     pub asleep: bool,
+    /// Continuous collision detection for a fast dynamic body: each step sweeps
+    /// its motion against every other collider, so it cannot pass through a thin
+    /// or small one between steps. Two bodies that both set it are not swept
+    /// against each other. Without it, a fast body is swept only against static
+    /// colliders. Ignored on static and kinematic bodies. Saved, hashed and
+    /// serialized only when true, and a read that omits it keeps the current
+    /// value: reading a serialized body without CCD into one with CCD leaves CCD
+    /// on. To turn it off, write the field.
+    pub ccd: bool,
 }
 impl Default for Body {
     fn default() -> Self {
@@ -48,8 +57,71 @@ impl Default for Body {
             damping: 0.0,
             spin_damping: 0.0,
             asleep: false,
+            ccd: false,
         }
     }
+}
+/// The derive's encoding, except that `ccd` is written only when set: a world
+/// without CCD keeps the saves and hashes it has. Reading keeps the record rule:
+/// an omitted `ccd` keeps its value, which is false when decoding a new body.
+macro_rules! body_record {
+    ($($field:ident),* $(,)?) => {
+        impl Data for Body {
+            const TYPE_ID: &'static str = concat!("table:", module_path!(), "::Body");
+            fn set_field(&mut self, field: &str, text: &str) -> Result<(), exact_game::DataError> {
+                match field {
+                    $(stringify!($field) => exact_game::data::edit_field(&mut self.$field, text),)*
+                    "ccd" => exact_game::data::edit_field(&mut self.ccd, text),
+                    _ => Err(exact_game::DataError::new(format!("unknown field {field}"))),
+                }
+            }
+            fn write(&self, w: &mut dyn exact_game::Writer) {
+                w.begin_struct();
+                $(
+                    w.field(stringify!($field));
+                    Data::write(&self.$field, w);
+                )*
+                if self.ccd {
+                    w.field("ccd");
+                    self.ccd.write(w);
+                }
+                w.end_struct();
+            }
+            fn read(&mut self, r: &mut dyn exact_game::Reader) -> Result<(), exact_game::DataError> {
+                let fields = [$(stringify!($field)),*];
+                let mut seen = [false; [$(stringify!($field)),*].len()];
+                r.begin_struct()?;
+                while let Some(field) = r.field()? {
+                    if let Some(i) = fields.iter().position(|f| *f == field) {
+                        seen[i] = true;
+                    }
+                    match field.as_str() {
+                        $(stringify!($field) => Data::read(&mut self.$field, r)
+                            .map_err(|e| e.at(stringify!($field)))?,)*
+                        "ccd" => self.ccd.read(r).map_err(|e| e.at("ccd"))?,
+                        _ => r.skip().map_err(|e| e.at(&field))?,
+                    }
+                }
+                if let Some(i) = seen.iter().position(|s| !s).filter(|_| r.complete()) {
+                    return Err(exact_game::DataError::new("missing field").at(fields[i]));
+                }
+                Ok(())
+            }
+        }
+    };
+}
+body_record!(
+    kind,
+    velocity,
+    spin,
+    mass,
+    gravity,
+    damping,
+    spin_damping,
+    asleep
+);
+impl Component for Body {
+    const NAME: &'static str = "Body";
 }
 
 /// Geometry in local metres. Curved shapes require uniform positive scale.
@@ -96,6 +168,15 @@ pub enum Shape {
         vertices: Vec<Vec3>,
         /// Triangle vertex indices, counterclockwise from the front.
         indices: Vec<[u32; 3]>,
+    },
+    /// The convex hull of local points, its surface pushed out by `round` metres.
+    /// Any body may use it (dice, rocks). Rounding requires uniform scale.
+    ConvexHull {
+        /// Four to 255 finite local points that do not all lie in one plane.
+        points: Vec<Vec3>,
+        /// Rounding radius in metres, zero or more. Mass derived from volume
+        /// counts the unrounded hull.
+        round: f32,
     },
 }
 impl Default for Shape {

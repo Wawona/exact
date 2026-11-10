@@ -25,8 +25,12 @@ the actual `displacement` and `grounded` state.
 - Density defaults to 1000 kg/m³; explicit mass is kg. Friction combines geometrically,
   restitution by maximum. Contact slop is 0.1 mm; other integration defaults are Rapier's.
 - Shapes: sphere, box, Y capsule/cylinder (total height), static mesh and heightfield
-  (row-major, rows Z/columns X). Curved shapes need uniform positive scale.
+  (row-major, rows Z/columns X), and a convex hull of 4 to 255 points that any body
+  may use, optionally rounded (its mass ignores the rounding). Curved shapes and
+  rounded hulls need uniform positive scale; a flat hull is refused.
   Bodies are roots; parented boxes must not acquire shear. Sweeps translate convex shapes.
+- A fast dynamic body is swept against static colliders each step. `Body::ccd` also
+  sweeps it against kinematic and dynamic bodies, except other `ccd` bodies.
 - `let q = physics::queries(world); q.raycast(..); q.sweep(..);` shares a lazy
   query scene retained in the world's physics executor, outside Data and hashes.
   Drop the scope before structural edits or `step`; the next scope reuses it.

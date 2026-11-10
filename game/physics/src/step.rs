@@ -208,6 +208,7 @@ pub(crate) fn sync(world: &World, live: &mut Live, pending: &Pending) -> bool {
                         .gravity_scale(b.gravity)
                         .linear_damping(b.damping)
                         .angular_damping(b.spin_damping)
+                        .ccd_enabled(b.ccd)
                         .sleeping(b.asleep),
                 );
                 let (i, g) = h.into_raw_parts();
@@ -236,6 +237,7 @@ pub(crate) fn sync(world: &World, live: &mut Live, pending: &Pending) -> bool {
                 rb.set_gravity_scale(b.gravity, true);
                 rb.set_linear_damping(b.damping);
                 rb.set_angular_damping(b.spin_damping);
+                rb.enable_ccd(b.ccd);
                 if entry
                     .body
                     .as_ref()

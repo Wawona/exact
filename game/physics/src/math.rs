@@ -130,6 +130,33 @@ pub(crate) fn try_shape(s: &Shape, scale: Vec3) -> Result<SharedShape, &'static 
             )
             .map_err(|_| "physics: invalid mesh")?
         }
+        Shape::ConvexHull { points, round } => {
+            check(
+                (4..=MAX_HULL_POINTS).contains(&points.len())
+                    && points.iter().all(|p| p.is_finite())
+                    && round.is_finite()
+                    && *round >= 0.0,
+                "physics: invalid convex hull",
+            )?;
+            check(
+                *round == 0.0 || (scale.x == scale.y && scale.y == scale.z),
+                "physics: a rounded convex hull requires uniform scale",
+            )?;
+            let points: Vec<Vector> = points.iter().map(|p| vector(*p * scale)).collect();
+            let flat = "physics: convex hull points lie in one plane";
+            check(solid(&points), flat)?;
+            let hull = if *round > 0.0 {
+                SharedShape::round_convex_hull(&points, round * scale.x)
+            } else {
+                SharedShape::convex_hull(&points)
+            }
+            .ok_or("physics: degenerate convex hull")?;
+            // Parry flattens a hull thinner than its own tolerance into one without
+            // volume, which a dynamic body would carry as infinite mass.
+            let mass = hull.mass_properties(1.0).mass();
+            check(mass.is_finite() && mass > 0.0, flat)?;
+            hull
+        }
     })
     .and_then(|shape| {
         let aabb = shape.compute_local_aabb();
@@ -139,6 +166,32 @@ pub(crate) fn try_shape(s: &Shape, scale: Vec3) -> Result<SharedShape, &'static 
         )?;
         Ok(shape)
     })
+}
+// PhysX's hard limit on a convex mesh's vertices (`PxConvexMeshDesc::vertexLimit`),
+// applied to the input points. Contact queries walk every hull vertex.
+const MAX_HULL_POINTS: usize = 255;
+// Whether the points span a solid: some point stands off the plane through three
+// spread-out points by more than 1e-4 of their spread. Parry's hull builder accepts
+// flat input and returns a hull without volume, hence mass; this refuses most such
+// input before building, and the mass check after building refuses the rest.
+fn solid(points: &[Vector]) -> bool {
+    let a = points[0];
+    let farthest = |key: &dyn Fn(Vector) -> f32| {
+        points.iter().copied().fold((a, 0.0f32), |best, p| {
+            let k = key(p);
+            if k > best.1 {
+                (p, k)
+            } else {
+                best
+            }
+        })
+    };
+    let (b, ab) = farthest(&|p| (p - a).length());
+    let (c, _) = farthest(&|p| (p - a).cross(b - a).length());
+    let n = (b - a).cross(c - a);
+    let (_, height) = farthest(&|p| (p - a).dot(n).abs());
+    let length = n.length();
+    ab > 0.0 && length > 0.0 && height / length > 1e-4 * ab
 }
 // Read current component writes, even before the engine propagates hierarchy.
 pub(crate) fn world_pose(world: &World, entity: Entity) -> Transform {
