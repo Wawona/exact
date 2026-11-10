@@ -193,6 +193,10 @@ test('a missing or stale build is built first, said in one line; a fresh one run
     // No build yet: built first, for either host, by the command `bun exact.mjs ios|mac` runs.
     for (const host of ['ios', 'macos']) assert.equal(buildReason(nativeBuild(host, app), app), 'there is no build yet');
     assert.throws(() => refuseBuild('ios', nativeBuild('ios', app), app), new RegExp(`^Error: run \\(cd '${dir}' && bun exact\\.mjs ios\\) first$`));
+    // An Apple TV drive reads the tvOS simulator bundle, which an iOS build does not make.
+    const tv = nativeBuild('tvos', app);
+    assert.equal(tv.built, appleArtifacts(app, { destination: 'tvos-simulator' }).bundle);
+    assert.throws(() => refuseBuild('tvos', tv, app), /^Error: run bun host\/apple\/build\.mjs --tvos field-log-apple --no-install first$/);
     assert.equal(await drive('ios'), 0);
     // The drive installs, keeping a Release build it replaces: the build installs nothing.
     assert.deepEqual(builds.map(b => b.args), [['--ios', 'field-log-apple', '--no-install']]);

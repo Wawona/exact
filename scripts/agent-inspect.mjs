@@ -562,7 +562,7 @@ export async function perfOp(s, args, line, step) {
     const at = word => { const i = args.indexOf(word); return i < 0 ? undefined : Number(args[i + 1]); };
     const live = at('live'), late = at('late');
     if (live !== undefined && !(Number.isInteger(live) && live > 0 && live <= 120000)) throw new MalformedOperation('perf frames live <ms>: a whole number of milliseconds, 1–120000');
-    if (live !== undefined && ['ios', 'host-ios', 'macos', 'host'].includes(s.host)) {
+    if (live !== undefined && ['ios', 'tvos', 'host-ios', 'macos', 'host'].includes(s.host)) {
       if (live > 30000 || late !== undefined || args.length !== 3 || args[1] !== 'live') throw new MalformedOperation('perf frames live <1–30000 ms> on Apple; use report for hitch detail');
       const before = await s.op({ op: 'perf', frames: true, health: true });
       if (before.error || !before.available) return before;

@@ -15,7 +15,7 @@ export async function heldClock(s, words) {
   const bound = unit ? Number(unit[1]) * (unit[2] === 's' ? 1000 : 1) : 20000;
   if (!Number.isFinite(bound) || bound <= 0 || bound > 3_600_000) throw new MalformedOperation(`clock held: a bound is up to an hour, as 30s or 500ms, not ${last}`);
   // On Apple the driver takes the clock over first (platform timing), as any other clock does, so it stays frozen.
-  if (['ios', 'host-ios', 'macos', 'host'].includes(s.carrier.host)) s.now = (await s.op({ op: 'clock', take: true })).clock;
+  if (['ios', 'tvos', 'host-ios', 'macos', 'host'].includes(s.carrier.host)) s.now = (await s.op({ op: 'clock', take: true })).clock;
   // The host's `held` op (the held asks and the replies landed for them), lighter than `state`, which a host
   // without it answers instead.
   const look = async () => { const r = await s.op({ op: 'held' }).catch(() => null); return r && Array.isArray(r.held) ? r : (st => ({ held: (st.pending ?? []).filter((p) => p.held), heldReplies: st.heldReplies }))(await s.op({ op: 'state' })); };
@@ -73,7 +73,7 @@ export async function untilClock(s, spec) {
     }
     return { value: got, tasks };
   };
-  if (['ios', 'host-ios', 'macos', 'host'].includes(s.carrier.host)) s.now = (await s.op({ op: 'clock', take: true })).clock;
+  if (['ios', 'tvos', 'host-ios', 'macos', 'host'].includes(s.carrier.host)) s.now = (await s.op({ op: 'clock', take: true })).clock;
   // Every look races the bound: one that answers past it counts nothing, so a value is never met late.
   const t0 = performance.now(), end = t0 + bound, met = (r) => r != null && 'value' in r && r.value === want;
   const look = () => {
