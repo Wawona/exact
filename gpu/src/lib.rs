@@ -485,10 +485,9 @@ struct Instance {
     /// An acquired image retained while the surface prepares a complete
     /// frame: it drops before `presentation`, its surface ([`release`]).
     held: Option<wgpu::SurfaceTexture>,
-    /// Where the frames after an incomplete one render, and what copies a
-    /// complete one into `held` (`Module::render`).
+    /// Where the frames after an incomplete one render ([`frame::Scratch`]).
     #[cfg(not(target_arch = "wasm32"))]
-    scratch: Option<(wgpu::Texture, wgpu::util::TextureBlitter)>,
+    scratch: Option<frame::Scratch>,
     presentation: Option<SurfaceRef<wgpu::Surface<'static>>>,
     config: Option<wgpu::SurfaceConfiguration>,
     /// Buffers it renders into instead of a window ([`buffers`]).
@@ -608,6 +607,7 @@ impl Module {
         #[cfg(not(target_arch = "wasm32"))]
         for inst in self.instances.values_mut() {
             inst.readback = None;
+            inst.scratch = None;
         }
         // A frame recorded on another device is never submitted on this one.
         self.open = None;

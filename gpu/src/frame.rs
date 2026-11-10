@@ -189,17 +189,13 @@ impl Module {
         // offscreen and a complete one is copied in, so a drawable takes two
         // submissions at most, whatever a pending surface does.
         #[cfg(not(target_arch = "wasm32"))]
-        let scratch = if retry {
-            Some(scratch(
-                &mut inst.scratch,
-                &gpu.device,
-                format,
-                (config.width, config.height),
-            ))
-        } else {
-            inst.scratch = None;
-            None
-        };
+        let scratch = Scratch::fit(
+            &mut inst.scratch,
+            retry,
+            &gpu.device,
+            format,
+            (config.width, config.height),
+        );
         // The browser shows every frame: none is held.
         #[cfg(target_arch = "wasm32")]
         let scratch: Option<wgpu::TextureView> = {
@@ -222,6 +218,10 @@ impl Module {
                 }),
             canvases: Vec::new(),
         });
+        #[cfg(not(target_arch = "wasm32"))]
+        if let Some(s) = inst.scratch.as_mut().filter(|s| retry && !s.continues) {
+            s.clear(&mut open.encoder);
+        }
         let wants = inst.surface.render(
             &frame,
             &gpu.device,
@@ -234,11 +234,11 @@ impl Module {
         let failure = inst.surface.take_error();
         let ready = cfg!(target_arch = "wasm32") || inst.surface.frame_ready();
         #[cfg(not(target_arch = "wasm32"))]
-        if let (Some(from), Some((_, blitter)), true, None) =
-            (&scratch, &inst.scratch, ready, &failure)
-        {
-            blitter.copy(&gpu.device, &mut open.encoder, from, &view);
-            inst.scratch = None;
+        if let Some(s) = inst.scratch.as_mut().filter(|_| retry) {
+            if ready && failure.is_none() {
+                s.copy(&mut open.encoder, &view);
+            }
+            s.continues = !ready && failure.is_none();
         }
         let (texture, failed) = if failure.is_some() {
             (None, Some(texture))
@@ -494,19 +494,80 @@ impl Module {
     }
 }
 
-/// The view of `slot`'s texture at `format` and `size`, made (with what
-/// copies it into a drawable) when it does not exist or differs.
+/// Renders after which a canvas that has stopped retrying gives back its
+/// [`Scratch`]: about a second of frames. A surface that holds every other
+/// frame never goes this long without a retry.
 #[cfg(not(target_arch = "wasm32"))]
-fn scratch(
-    slot: &mut Option<(wgpu::Texture, wgpu::util::TextureBlitter)>,
-    device: &wgpu::Device,
-    format: wgpu::TextureFormat,
-    (width, height): (u32, u32),
-) -> wgpu::TextureView {
-    if slot
-        .as_ref()
-        .is_none_or(|(t, _)| t.format() != format || (t.width(), t.height()) != (width, height))
-    {
+pub(crate) const SCRATCH_IDLE: u32 = 60;
+
+/// Where the renders after an incomplete frame draw (`Module::render`), and
+/// what copies a complete one into the held drawable.
+///
+/// Everything here is made once for a size and format and kept across retry
+/// sequences, so a surface that alternates incomplete and complete frames
+/// allocates nothing per frame. Made for each complete frame, it would be a
+/// full-screen texture, a pipeline and a descriptor set dozens of times a
+/// second; on a Mali phone's Vulkan driver that ended in a refused
+/// descriptor set, which wgpu-hal answers with a panic (issue #47). The copy
+/// is a pipeline of its own because `wgpu::util::TextureBlitter` makes a
+/// bind group on every copy.
+///
+/// Given back when a render that is not a retry finds it the wrong size or
+/// format, after [`SCRATCH_IDLE`] such renders, and when the canvas lets go
+/// of its presentation (`Instance::release`) or the module takes another
+/// device. A canvas at rest renders nothing and keeps it until one of these.
+#[cfg(not(target_arch = "wasm32"))]
+pub(crate) struct Scratch {
+    pub(crate) texture: wgpu::Texture,
+    view: wgpu::TextureView,
+    pipeline: wgpu::RenderPipeline,
+    bind_group: wgpu::BindGroup,
+    /// The last render was a retry that left the drawable held: the next
+    /// retry continues its frame. Otherwise the next one starts on a cleared
+    /// texture, as on a new one.
+    continues: bool,
+    /// Renders since the last retry.
+    idle: u32,
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+impl Scratch {
+    /// The view a retry renders into, `slot`'s scratch made when it does not
+    /// exist or differs in format or size; `None` when this render is not a
+    /// retry, and then the scratch is dropped if it is stale or idle.
+    fn fit(
+        slot: &mut Option<Scratch>,
+        retry: bool,
+        device: &wgpu::Device,
+        format: wgpu::TextureFormat,
+        size: (u32, u32),
+    ) -> Option<wgpu::TextureView> {
+        let fits = |s: &Scratch| {
+            s.texture.format() == format && (s.texture.width(), s.texture.height()) == size
+        };
+        if !retry {
+            if let Some(s) = slot.as_mut() {
+                s.continues = false;
+                s.idle += 1;
+                if s.idle >= SCRATCH_IDLE || !fits(s) {
+                    *slot = None;
+                }
+            }
+            return None;
+        }
+        if !slot.as_ref().is_some_and(fits) {
+            *slot = Some(Scratch::new(device, format, size));
+        }
+        let s = slot.as_mut()?;
+        s.idle = 0;
+        Some(s.view.clone())
+    }
+
+    fn new(
+        device: &wgpu::Device,
+        format: wgpu::TextureFormat,
+        (width, height): (u32, u32),
+    ) -> Self {
         let texture = device.create_texture(&wgpu::TextureDescriptor {
             label: Some("exact canvas incomplete frame"),
             size: wgpu::Extent3d {
@@ -521,10 +582,124 @@ fn scratch(
             usage: wgpu::TextureUsages::RENDER_ATTACHMENT | wgpu::TextureUsages::TEXTURE_BINDING,
             view_formats: &[],
         });
-        *slot = Some((texture, wgpu::util::TextureBlitter::new(device, format)));
+        let view = texture.create_view(&Default::default());
+        let layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+            label: Some("exact canvas incomplete frame copy"),
+            entries: &[wgpu::BindGroupLayoutEntry {
+                binding: 0,
+                visibility: wgpu::ShaderStages::FRAGMENT,
+                ty: wgpu::BindingType::Texture {
+                    sample_type: wgpu::TextureSampleType::Float { filterable: false },
+                    view_dimension: wgpu::TextureViewDimension::D2,
+                    multisampled: false,
+                },
+                count: None,
+            }],
+        });
+        let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
+            label: Some("exact canvas incomplete frame copy"),
+            layout: &layout,
+            entries: &[wgpu::BindGroupEntry {
+                binding: 0,
+                resource: wgpu::BindingResource::TextureView(&view),
+            }],
+        });
+        let shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
+            label: Some("exact canvas incomplete frame copy"),
+            source: wgpu::ShaderSource::Wgsl(COPY_WGSL.into()),
+        });
+        let pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
+            label: Some("exact canvas incomplete frame copy"),
+            layout: Some(
+                &device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
+                    label: None,
+                    bind_group_layouts: &[Some(&layout)],
+                    immediate_size: 0,
+                }),
+            ),
+            vertex: wgpu::VertexState {
+                module: &shader,
+                entry_point: Some("vs"),
+                compilation_options: Default::default(),
+                buffers: &[],
+            },
+            primitive: Default::default(),
+            depth_stencil: None,
+            multisample: Default::default(),
+            fragment: Some(wgpu::FragmentState {
+                module: &shader,
+                entry_point: Some("fs"),
+                compilation_options: Default::default(),
+                targets: &[Some(format.into())],
+            }),
+            multiview_mask: None,
+            cache: None,
+        });
+        Self {
+            texture,
+            view,
+            pipeline,
+            bind_group,
+            continues: false,
+            idle: 0,
+        }
     }
-    slot.as_ref().unwrap().0.create_view(&Default::default())
+
+    /// Start a retry sequence on a texture of zeros, as a new texture is.
+    fn clear(&self, encoder: &mut wgpu::CommandEncoder) {
+        encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+            label: Some("exact canvas incomplete frame clear"),
+            color_attachments: &[Some(wgpu::RenderPassColorAttachment {
+                view: &self.view,
+                depth_slice: None,
+                resolve_target: None,
+                ops: wgpu::Operations {
+                    load: wgpu::LoadOp::Clear(wgpu::Color::TRANSPARENT),
+                    store: wgpu::StoreOp::Store,
+                },
+            })],
+            ..Default::default()
+        });
+    }
+
+    /// Copy the texture into `target`, a view of its size and format.
+    pub(crate) fn copy(&self, encoder: &mut wgpu::CommandEncoder, target: &wgpu::TextureView) {
+        let mut pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+            label: Some("exact canvas incomplete frame copy"),
+            color_attachments: &[Some(wgpu::RenderPassColorAttachment {
+                view: target,
+                depth_slice: None,
+                resolve_target: None,
+                ops: wgpu::Operations {
+                    load: wgpu::LoadOp::Load,
+                    store: wgpu::StoreOp::Store,
+                },
+            })],
+            ..Default::default()
+        });
+        pass.set_pipeline(&self.pipeline);
+        pass.set_bind_group(0, &self.bind_group, &[]);
+        pass.draw(0..3, 0..1);
+    }
 }
+
+/// One triangle over the target; each fragment loads its own texel, so no
+/// sampler is bound.
+#[cfg(not(target_arch = "wasm32"))]
+const COPY_WGSL: &str = "
+@group(0) @binding(0) var source: texture_2d<f32>;
+
+@vertex
+fn vs(@builtin(vertex_index) i: u32) -> @builtin(position) vec4<f32> {
+    let corner = vec2<f32>(f32((i << 1u) & 2u), f32(i & 2u));
+    return vec4<f32>(corner * 2.0 - 1.0, 0.0, 1.0);
+}
+
+@fragment
+fn fs(@builtin(position) at: vec4<f32>) -> @location(0) vec4<f32> {
+    return textureLoad(source, vec2<i32>(at.xy), 0);
+}
+";
 
 /// The presenter's callback for a canvas's first frame (`gpu_on_presented`),
 /// as an address; 0 when none is registered. On Metal it runs on the thread

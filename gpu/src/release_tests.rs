@@ -61,6 +61,69 @@ impl Surface for Clearing {
     }
 }
 
+/// Each render's number (from 1) and target, for [`Alternating`].
+static ALTERNATING: Mutex<Vec<(u32, wgpu::Texture)>> = Mutex::new(Vec::new());
+
+/// Holds its drawable for one render in every two: render 1 clears it green
+/// and is incomplete; 2, a retry, draws red and is incomplete too; 3 only
+/// loads its target and is complete. 4 is green and incomplete, and 5, the
+/// first retry of a new sequence, only loads and is complete. From 6 on, an
+/// even render is green and incomplete, an odd one a red, complete retry.
+struct Alternating(u32);
+
+impl Alternating {
+    fn ready(n: u32) -> bool {
+        n == 3 || n == 5 || (n >= 6 && n % 2 == 1)
+    }
+}
+
+impl Surface for Alternating {
+    fn bind(&mut self, _: &[Value], _: Option<f64>) -> Result<(), SurfaceError> {
+        Ok(())
+    }
+    fn render(
+        &mut self,
+        _: &Frame,
+        _: &wgpu::Device,
+        _: &wgpu::Queue,
+        encoder: &mut wgpu::CommandEncoder,
+        target: &wgpu::TextureView,
+        _: wgpu::TextureFormat,
+    ) -> bool {
+        self.0 += 1;
+        let n = self.0;
+        ALTERNATING
+            .lock()
+            .unwrap()
+            .push((n, target.texture().clone()));
+        let load = match n {
+            3 | 5 => wgpu::LoadOp::Load,
+            _ if Self::ready(n) || n == 2 => wgpu::LoadOp::Clear(wgpu::Color::RED),
+            _ => wgpu::LoadOp::Clear(wgpu::Color::GREEN),
+        };
+        encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+            label: None,
+            color_attachments: &[Some(wgpu::RenderPassColorAttachment {
+                view: target,
+                resolve_target: None,
+                depth_slice: None,
+                ops: wgpu::Operations {
+                    load,
+                    store: wgpu::StoreOp::Store,
+                },
+            })],
+            depth_stencil_attachment: None,
+            timestamp_writes: None,
+            occlusion_query_set: None,
+            multiview_mask: None,
+        });
+        true
+    }
+    fn frame_ready(&self) -> bool {
+        Self::ready(self.0)
+    }
+}
+
 static REGISTRY: Registry = Registry {
     surfaces: &[
         ("clear", 0, || {
@@ -82,6 +145,14 @@ static REGISTRY: Registry = Registry {
                 ready: LATE,
                 renders: 0,
                 record: true,
+            })
+        }),
+        ("alternating", 0, || Box::new(Alternating(0))),
+        ("once", 0, || {
+            Box::new(Clearing {
+                ready: 1,
+                renders: 0,
+                record: false,
             })
         }),
     ],
@@ -247,7 +318,114 @@ fn retries_of_an_incomplete_frame_leave_its_drawable_alone() {
         "a retry wrote the held drawable"
     );
     let inst = &m.instances[&id];
-    assert!(inst.held.is_none() && inst.scratch.is_none(), "presented");
+    assert!(inst.held.is_none(), "presented");
     within_two_seconds("the complete frame shown", || m.seen(id));
     drop((targets, m, layer));
+}
+
+/// A surface that holds every other drawable renders its retries into one
+/// texture, made once, however many sequences complete; each sequence's
+/// first retry starts on zeros, and a later retry of the sequence sees what
+/// the one before it drew.
+#[test]
+fn alternating_frames_reuse_one_scratch_and_each_sequence_starts_cleared() {
+    let Some(mut m) = module() else {
+        return;
+    };
+    m.set_seekable(true);
+    let (layer, id) = canvas(&mut m, "alternating");
+    let mut seen = Vec::new();
+    for n in 1..=45 {
+        assert_eq!(m.render(id, &frame()), Some(true));
+        assert!(m.flush());
+        if n == 3 || n == 5 {
+            seen.push(scratch_texel(&m, id));
+        }
+    }
+    assert!(seen[0] != [0; 4], "within a sequence, the last retry's red");
+    assert_eq!(seen[1], [0; 4], "a new sequence starts on zeros");
+    let recorded = std::mem::take(&mut *ALTERNATING.lock().unwrap());
+    let retry = |n: u32| [2, 3, 5].contains(&n) || (n >= 7 && n % 2 == 1);
+    let drawables: Vec<_> = recorded.iter().filter(|(n, _)| !retry(*n)).collect();
+    let mut scratches: Vec<&wgpu::Texture> = Vec::new();
+    for (_, t) in recorded.iter().filter(|(n, _)| retry(*n)) {
+        assert!(
+            drawables.iter().all(|(_, d)| d != t),
+            "a retry drew into a drawable"
+        );
+        if !scratches.contains(&t) {
+            scratches.push(t);
+        }
+    }
+    assert_eq!(
+        scratches.len(),
+        1,
+        "22 retry sequences, one scratch texture"
+    );
+    drop((recorded, m, layer));
+}
+
+/// The first texel of canvas `id`'s scratch, as RGBA, copied out through
+/// the scratch's own copy.
+fn scratch_texel(m: &Module, id: u32) -> [u8; 4] {
+    let gpu = m.gpu().unwrap();
+    let s = m.instances[&id].scratch.as_ref().expect("a scratch");
+    let out = gpu.device.create_texture(&wgpu::TextureDescriptor {
+        label: None,
+        size: s.texture.size(),
+        mip_level_count: 1,
+        sample_count: 1,
+        dimension: wgpu::TextureDimension::D2,
+        format: s.texture.format(),
+        usage: wgpu::TextureUsages::RENDER_ATTACHMENT | wgpu::TextureUsages::COPY_SRC,
+        view_formats: &[],
+    });
+    let mut encoder = gpu.device.create_command_encoder(&Default::default());
+    s.copy(&mut encoder, &out.create_view(&Default::default()));
+    gpu.queue.submit([encoder.finish()]);
+    fixture::read(gpu, &out).unwrap().at(0, 0)
+}
+
+/// A canvas keeps its scratch past a complete retry and gives it back when
+/// it is resized, when it has not retried for `SCRATCH_IDLE` renders, when
+/// its window goes, and when the module takes another device.
+#[test]
+fn a_scratch_goes_on_resize_idleness_release_and_a_new_device() {
+    let Some(mut m) = module() else {
+        return;
+    };
+    m.set_seekable(true);
+    let scratch = |m: &Module, id| m.instances[&id].scratch.is_some();
+    // "once": its first render is incomplete, every later one complete.
+    let canvases: Vec<_> = (0..4).map(|_| canvas(&mut m, "once")).collect();
+    for (_, id) in &canvases {
+        for _ in 0..2 {
+            assert!(m.render(*id, &frame()).is_some());
+            assert!(m.flush());
+        }
+        assert!(scratch(&m, *id), "kept after the complete retry");
+    }
+    let [(_, resized), (_, idle), (_, detached), (_, kept)] = canvases[..] else {
+        unreachable!()
+    };
+    let wider = Frame {
+        width: 16.,
+        ..frame()
+    };
+    assert!(m.render(resized, &wider).is_some());
+    assert!(!scratch(&m, resized), "not kept at the old size");
+    for n in 1..=crate::frame::SCRATCH_IDLE {
+        assert!(m.render(idle, &frame()).is_some());
+        assert!(m.flush());
+        assert_eq!(scratch(&m, idle), n < crate::frame::SCRATCH_IDLE);
+    }
+    m.detach(detached);
+    assert!(!scratch(&m, detached), "released with the window");
+    assert!(scratch(&m, kept));
+    m.set_gpu(fixture::device().unwrap());
+    assert!(
+        !scratch(&m, kept),
+        "made on the device the module let go of"
+    );
+    drop((m, canvases));
 }
