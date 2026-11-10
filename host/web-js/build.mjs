@@ -124,7 +124,9 @@ function mountDir(name, path) {
   }
 }
 const tsMounts = Object.entries(manifest.typescript?.sources ?? {}).map(([name, path]) => [name, mountDir(name, path)]);
-if (tsMounts.some(([, dir]) => dir === realpathSync(resolve(root, 'snapback4/ts'))) && !existsSync(resolve(appDir, 'assets/snapback4.wasm'))) {
+// A checkout without the Snapback client has no driver for an app to mount.
+const snapbackDriver = existsSync(resolve(root, 'snapback4/ts')) ? realpathSync(resolve(root, 'snapback4/ts')) : null;
+if (tsMounts.some(([, dir]) => dir === snapbackDriver) && !existsSync(resolve(appDir, 'assets/snapback4.wasm'))) {
   console.error(`warning: the app mounts Snapback's driver, and assets/snapback4.wasm, the device it loads by default, is missing (the page will fail with HTTP 404 for /assets/snapback4.wasm). From the app's directory: node ${resolve(root, 'snapback4/web/build.mjs')} assets/snapback4.wasm`);
 }
 // As the bake refuses them (js/bake/src/lib.rs `mounts`): a file reachable
