@@ -74,12 +74,12 @@ pub enum GradientKind {
         at: [Length; 2],
     },
     /// `radial-gradient()`: a circle or an ellipse sized by an extent
-    /// keyword, centred at a position in the box.
+    /// keyword or explicit radii, centred at a position in the box.
     Radial {
         /// `circle`, else `ellipse`.
         circle: bool,
         /// How far the ending shape reaches.
-        extent: Extent,
+        size: RadialSize,
         /// Its centre: horizontal, vertical.
         at: [Length; 2],
     },
@@ -112,7 +112,16 @@ pub enum Extent {
     FarthestCorner,
 }
 
-/// A `<length-percentage>` of a position.
+/// CSS `<radial-size>` (CSS Images 3 §3.2.1).
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum RadialSize {
+    /// An extent keyword, measured from the centre to the box.
+    Extent(Extent),
+    /// Horizontal and vertical radii; a circle's are one px length twice.
+    Radii([Length; 2]),
+}
+
+/// A `<length-percentage>` of a position or a radius.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum Length {
     /// CSS pixels.
@@ -341,11 +350,11 @@ impl Gradient {
 
     fn text(&self, mode: ColorText) -> String {
         let mut out = String::new();
-        let position = |out: &mut String, at: [Length; 2]| {
+        let position = |out: &mut String, at: &[Length]| {
             for length in at {
                 let _ = match length {
-                    Length::Px(n) => write!(out, " {}px", exact_num::Shortest32(n)),
-                    Length::Percent(n) => write!(out, " {}%", exact_num::Shortest32(n)),
+                    Length::Px(n) => write!(out, " {}px", exact_num::Shortest32(*n)),
+                    Length::Percent(n) => write!(out, " {}%", exact_num::Shortest32(*n)),
                 };
             }
         };
@@ -364,14 +373,20 @@ impl Gradient {
                     if right { "right" } else { "left" }
                 );
             }
-            GradientKind::Radial { circle, extent, at } => {
-                let _ = write!(
-                    out,
-                    "radial-gradient({} {} at",
-                    if circle { "circle" } else { "ellipse" },
-                    EXTENTS[extent as usize].0
-                );
-                position(&mut out, at);
+            GradientKind::Radial { circle, size, at } => {
+                out.push_str("radial-gradient(");
+                out.push_str(if circle { "circle" } else { "ellipse" });
+                match size {
+                    RadialSize::Extent(extent) => {
+                        out.push(' ');
+                        out.push_str(EXTENTS[extent as usize].0);
+                    }
+                    RadialSize::Radii(radii) => {
+                        position(&mut out, if circle { &radii[..1] } else { &radii })
+                    }
+                }
+                out.push_str(" at");
+                position(&mut out, &at);
             }
             GradientKind::Conic { from, at } => {
                 let _ = write!(
@@ -379,7 +394,7 @@ impl Gradient {
                     "conic-gradient(from {}deg at",
                     exact_num::Shortest32(from)
                 );
-                position(&mut out, at);
+                position(&mut out, &at);
             }
         }
         if let Some(how) = self.interpolation {
@@ -559,8 +574,17 @@ impl Gradient {
                 center: (at[0].resolve(w), at[1].resolve(h)),
                 from,
             },
-            GradientKind::Radial { circle, extent, at } => {
+            GradientKind::Radial { circle, size, at } => {
                 let (cx, cy) = (at[0].resolve(w), at[1].resolve(h));
+                let extent = match size {
+                    RadialSize::Extent(extent) => extent,
+                    RadialSize::Radii([x, y]) => {
+                        return Geometry::Radial {
+                            center: (cx, cy),
+                            radii: (x.resolve(w), y.resolve(h)),
+                        }
+                    }
+                };
                 let (dx, dy) = ((cx.abs(), (w - cx).abs()), (cy.abs(), (h - cy).abs()));
                 let near = (dx.0.min(dx.1), dy.0.min(dy.1));
                 let far = (dx.0.max(dx.1), dy.0.max(dy.1));
@@ -862,44 +886,89 @@ fn conic_prelude(first: &str) -> Result<(GradientKind, bool), &'static str> {
     Ok((GradientKind::Conic { from, at }, true))
 }
 
-/// A radial gradient's shape, extent and centre, and whether the first
-/// argument was them.
+/// A radial gradient's shape, size and centre, and whether the first
+/// argument was them: `[<ending-shape> || <radial-size>] [at <position>]`
+/// (CSS Images 3 §3.2.1).
 fn radial_prelude(first: &str) -> Result<(GradientKind, bool), &'static str> {
+    const WHY: &str = "a radial gradient starts with circle or ellipse, an extent keyword or radii, and `at` a position";
     let words = split_top(first, ' ');
+    // A number starts a radius: a sign, then a digit or a `.` and a digit. A
+    // colour may start with `-` (`-exact-system-blue`), never with a number.
+    let radius = |w: &str| {
+        let w = w.strip_prefix(['+', '-']).unwrap_or(w);
+        let w = w.strip_prefix('.').unwrap_or(w);
+        w.starts_with(|c: char| c.is_ascii_digit())
+    };
     let keyword = |w: &str| {
         let w = w.to_ascii_lowercase();
         matches!(w.as_str(), "circle" | "ellipse" | "at") || EXTENTS.iter().any(|(k, _)| *k == w)
     };
     let (mut circle, mut extent, mut at) = (None, None, [Length::Percent(50.0); 2]);
-    if !words.first().is_some_and(|w| keyword(w)) {
+    if !words.first().is_some_and(|w| keyword(w) || radius(w)) {
         let kind = GradientKind::Radial {
             circle: false,
-            extent: Extent::FarthestCorner,
+            size: RadialSize::Extent(Extent::FarthestCorner),
             at,
         };
         return Ok((kind, false));
     }
-    let mut rest = words.iter();
-    while let Some(w) = rest.next() {
+    let mut radii: Vec<Length> = Vec::new();
+    let mut last_radius = None;
+    for (i, w) in words.iter().enumerate() {
         let w = w.to_ascii_lowercase();
         match w.as_str() {
             "circle" | "ellipse" if circle.is_none() => circle = Some(w == "circle"),
             "at" => {
-                at = position(rest.as_slice())?;
+                at = position(&words[i + 1..])?;
                 break;
+            }
+            _ if radius(&w) => {
+                if last_radius.is_some_and(|j| j + 1 != i) {
+                    return Err(WHY);
+                }
+                last_radius = Some(i);
+                radii.push(match position(&[w.as_str(), "center"]) {
+                    Ok([Length::Px(n) | Length::Percent(n), _]) if n < 0.0 => {
+                        return Err("a radial gradient's radius is not negative")
+                    }
+                    Ok([length, _]) => length,
+                    Err(_) => return Err("a radial gradient's radius is px or % (or unitless zero); other lengths are not implemented"),
+                });
             }
             _ => match EXTENTS.iter().find(|(k, _)| *k == w) {
                 Some((_, e)) if extent.is_none() => extent = Some(*e),
-                _ if w.ends_with("px") || w.ends_with('%') => {
-                    return Err("an explicit radial size is not implemented; use circle/ellipse with closest-side, closest-corner, farthest-side or farthest-corner")
-                }
-                _ => return Err("a radial gradient starts with circle or ellipse, an extent keyword, and `at` a position"),
+                _ => return Err(WHY),
             },
         }
     }
+    let size =
+        match (radii.as_slice(), extent, circle) {
+            ([], extent, _) => RadialSize::Extent(extent.unwrap_or(Extent::FarthestCorner)),
+            (_, Some(_), _) => {
+                return Err("a radial gradient's size is an extent keyword or radii, not both")
+            }
+            (&[r @ Length::Px(_)], None, None | Some(true)) => {
+                circle = Some(true);
+                RadialSize::Radii([r, r])
+            }
+            ([Length::Percent(_)], None, None | Some(true)) => {
+                return Err("a circle's radius is a px length, not a percentage")
+            }
+            (&[x, y], None, None | Some(false)) => {
+                circle = Some(false);
+                RadialSize::Radii([x, y])
+            }
+            ([_], None, Some(false)) => return Err(
+                "an ellipse's size is two radii, horizontal then vertical, as `ellipse 120% 90%`",
+            ),
+            ([_, _], None, Some(true)) => {
+                return Err("a circle's size is one radius, as `circle 40px`")
+            }
+            _ => return Err(WHY),
+        };
     let kind = GradientKind::Radial {
         circle: circle.unwrap_or(false),
-        extent: extent.unwrap_or(Extent::FarthestCorner),
+        size,
         at,
     };
     Ok((kind, true))

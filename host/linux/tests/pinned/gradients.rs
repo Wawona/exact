@@ -5,7 +5,7 @@
 
 use crate::borders::{boot, held_to_chrome, held_to_chrome_with_band, view};
 
-const CASES: [&str; 18] = [
+const CASES: [&str; 20] = [
     "linear",
     "angle",
     "corner",
@@ -24,11 +24,13 @@ const CASES: [&str; 18] = [
     "zero-two",
     "zero-three",
     "zero-four",
+    "radii",
+    "radius",
 ];
 
 /// The radial cases, which every painter samples at pixel centres as CSS
 /// does: within a tighter band than the antialiased edges need.
-const RADIAL: [&str; 3] = ["radial", "circle", "ellipse"];
+const RADIAL: [&str; 5] = ["radial", "circle", "ellipse", "radii", "radius"];
 
 #[test]
 fn every_gradient_case_matches_chrome_light_then_dark() {

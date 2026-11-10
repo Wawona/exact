@@ -875,6 +875,8 @@ names: background-image, mask-image, repeating-linear-gradient
 `background-image` takes `none` or up to four layers of `linear-gradient()`,
 `radial-gradient()`, `conic-gradient()` and `repeating-linear-gradient()`.
 `mask-image` takes one gradient. Each takes at most 64 colour stops.
+A radial gradient is sized by an extent keyword or by radii: one px length
+for a circle, two px or % lengths for an ellipse (`radial-gradient(120% 90% at 8% 0%, …)`).
 Linear/radial stops take percentages, px lengths, or unitless zero, with two
 positions allowed per colour. Omitted and mixed-unit stops are fixed up as
 CSS specifies once the box size is known. Conic stops take percentages or angles.
