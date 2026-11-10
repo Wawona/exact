@@ -153,6 +153,7 @@ fn collision_types(sensor: bool) -> ActiveCollisionTypes {
 pub(crate) fn sync(world: &World, live: &mut Live, pending: &Pending) -> bool {
     let mut moved_kinematic = false;
     let mut wake = false;
+    let mut sleeps = Vec::new();
     if pending.full {
         live.parented.clear();
     }
@@ -245,7 +246,7 @@ pub(crate) fn sync(world: &World, live: &mut Live, pending: &Pending) -> bool {
                 }
                 if entry.body.as_ref().is_none_or(|p| p.asleep != b.asleep) {
                     if b.asleep {
-                        rb.sleep();
+                        sleeps.push((entry.bh().unwrap(), math::pose(t)));
                     } else {
                         rb.wake_up(true);
                     }
@@ -350,6 +351,17 @@ pub(crate) fn sync(world: &World, live: &mut Live, pending: &Pending) -> bool {
     live.synced = Some(pending.synced.clone());
     if wake {
         live.rapier.wake_up_all(true);
+    }
+    // Rapier sleeps whole islands. `RigidBody::sleep` would flag one body alone:
+    // the solver then skips its contacts while the awake island still integrates
+    // it. Stop it and count it as at rest where it stands instead, after every
+    // wake above; its island sleeps in the next step if every other member is at
+    // rest too.
+    for (h, pose) in sleeps {
+        let rb = &mut live.rapier.bodies[h];
+        rb.set_linvel(Vector::ZERO, false);
+        rb.set_angvel(AngVector::ZERO, false);
+        rb.activation_mut().request_sleep(pose);
     }
     moved_kinematic
 }

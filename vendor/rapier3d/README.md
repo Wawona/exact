@@ -110,7 +110,10 @@ Vendored from the locally pinned rapier3d 0.35.3 Cargo source; Apache-2.0.
 `src/geometry/broad_phase_bvh/mod.rs` serializes `deferred_optimize_pending`.
 The collision-only pipeline can leave it set between steps; dropping it on load
 changes the next BVH update. The game engine wraps this representation as EXPHYS
-v2 and refuses v1. All other behavior and dependency versions are unchanged.
+v2 and refuses v1. `RigidBodyActivation::request_sleep` (marked Exact2) makes a
+body sleep-eligible at a given pose without flagging it asleep, so the engine can
+ask for sleep and let the island decide. All other behavior and dependency
+versions are unchanged.
 
 Three upstream files over 1,500 lines are split using same-module `include!`:
 `rigid_body`, `rigid_body_components`, and `multibody`, each with a `_more.rs`

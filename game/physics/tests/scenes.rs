@@ -171,6 +171,144 @@ fn wake_supporter_edits_and_despawn() {
     tick(&mut s, 601);
     assert!(!s.world().get::<Body>(e).unwrap().asleep);
 }
+// Writing `asleep` sleeps a body whose whole island is at rest in the next step.
+// A box resting on the floor while another lands on it shares that box's island:
+// written alone, it must stay awake and on the floor until the island sleeps.
+#[test]
+fn forced_sleep_is_honoured_per_island_and_never_sinks() {
+    let mut w = World::new(120, 0);
+    physics::register(&mut w);
+    ground(&mut w);
+    let under = box_at(
+        &mut w,
+        "under",
+        Vec3::new(0.0, 0.5, 0.0),
+        Vec3::splat(0.5),
+        true,
+    );
+    let over = box_at(
+        &mut w,
+        "over",
+        Vec3::new(0.2, 1.6, 0.0),
+        Vec3::splat(0.5),
+        true,
+    );
+    let sleep = |w: &mut World, e: Entity| w.get_mut::<Body>(e).unwrap().asleep = true;
+    let pose = |w: &World, e: Entity| *w.get::<Transform>(e).unwrap();
+    physics::step(&mut w);
+    sleep(&mut w, under);
+    let rest = pose(&w, under);
+    physics::step(&mut w);
+    assert!(
+        w.get::<Body>(under).unwrap().asleep,
+        "alone, it sleeps at once"
+    );
+    assert_eq!(pose(&w, under), rest);
+    while w.get::<Body>(over).unwrap().velocity.y > -0.5 {
+        physics::step(&mut w);
+    }
+    for _ in 0..20 {
+        physics::step(&mut w);
+    }
+    assert!(
+        !w.get::<Body>(under).unwrap().asleep,
+        "the landing wakes it"
+    );
+    assert!(!w.get::<Body>(over).unwrap().asleep);
+    sleep(&mut w, under);
+    for t in 0..240 {
+        let before = w.get::<Transform>(under).unwrap().position;
+        physics::step(&mut w);
+        let b = w.get::<Body>(under).unwrap().clone();
+        let after = w.get::<Transform>(under).unwrap().position;
+        assert!(
+            !b.asleep || (before == after && b.velocity == Vec3::ZERO),
+            "tick {t}: reads asleep while moving {before} -> {after}, {:?}",
+            b.velocity
+        );
+        assert!(after.y > 0.49, "tick {t}: sank to {after}");
+    }
+    let mut ticks = 0;
+    while !physics::quiescent(&w) {
+        physics::step(&mut w);
+        ticks += 1;
+        assert!(ticks < 1200, "never slept");
+    }
+    assert!(w.get::<Transform>(under).unwrap().position.y > 0.49);
+    assert!(w.get::<Transform>(over).unwrap().position.y > 1.49);
+    for e in [under, over] {
+        w.get_mut::<Body>(e).unwrap().asleep = false;
+    }
+    physics::step(&mut w);
+    assert!(!physics::quiescent(&w));
+    let rest = [pose(&w, under), pose(&w, over)];
+    sleep(&mut w, under);
+    sleep(&mut w, over);
+    physics::step(&mut w);
+    assert!(physics::quiescent(&w), "the whole island sleeps at once");
+    assert_eq!([pose(&w, under), pose(&w, over)], rest);
+}
+// A sleep written on every body of an island stops it in that step even while it
+// moves: a lone falling body, two touching bodies sliding together, and a body
+// spawned asleep away from the origin.
+#[test]
+fn forced_sleep_of_a_whole_moving_island_stops_it_at_once() {
+    let mut w = World::new(60, 0);
+    physics::register(&mut w);
+    ground(&mut w);
+    let falling = box_at(
+        &mut w,
+        "falling",
+        Vec3::new(-5.0, 5.0, 0.0),
+        Vec3::splat(0.5),
+        true,
+    );
+    let a = box_at(
+        &mut w,
+        "a",
+        Vec3::new(5.0, 0.5, 0.0),
+        Vec3::splat(0.5),
+        true,
+    );
+    let b = box_at(
+        &mut w,
+        "b",
+        Vec3::new(6.0, 0.5, 0.0),
+        Vec3::splat(0.5),
+        true,
+    );
+    for e in [a, b] {
+        w.get_mut::<Body>(e).unwrap().velocity = Vec3::X * 3.0;
+    }
+    let spawned = w.spawn((
+        Transform::at(0.0, 5.0, 8.0),
+        Body {
+            asleep: true,
+            ..Body::default()
+        },
+        Collider::default(),
+    ));
+    physics::step(&mut w);
+    physics::step(&mut w);
+    let pose = |w: &World, e: Entity| *w.get::<Transform>(e).unwrap();
+    assert_eq!(
+        pose(&w, spawned).position.y,
+        5.0,
+        "spawned asleep, it stays"
+    );
+    assert!(w.get::<Body>(spawned).unwrap().asleep);
+    assert!(w.get::<Body>(falling).unwrap().velocity.y < -0.1);
+    assert!(w.get::<Body>(a).unwrap().velocity.x > 1.0);
+    for e in [falling, a, b] {
+        w.get_mut::<Body>(e).unwrap().asleep = true;
+    }
+    let rest = [falling, a, b, spawned].map(|e| pose(&w, e));
+    for _ in 0..30 {
+        physics::step(&mut w);
+        assert!(physics::quiescent(&w));
+        assert_eq!([falling, a, b, spawned].map(|e| pose(&w, e)), rest);
+    }
+}
 #[test]
 fn sensors_filter_events_and_journal() {
     let mut w = World::new(60, 0);

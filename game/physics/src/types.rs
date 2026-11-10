@@ -29,7 +29,12 @@ pub struct Body {
     pub damping: f32,
     /// Angular drag rate in inverse seconds; defaults to zero.
     pub spin_damping: f32,
-    /// Whether the whole touching island has gone to sleep.
+    /// Whether the whole touching island has gone to sleep. Islands sleep together:
+    /// writing true stops the body and counts it as at rest. It sleeps in the next
+    /// step only if the rest of its island (the bodies it touches, and those they
+    /// touch) is at rest too; otherwise it stays awake, simulated, and reads false
+    /// until its island sleeps. A touch from a moving body wakes it, and writing
+    /// false wakes its island.
     pub asleep: bool,
 }
 impl Default for Body {
