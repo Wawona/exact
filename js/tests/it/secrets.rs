@@ -537,18 +537,27 @@ fn retiring_a_queued_acquire_leaves_the_holder_and_next_caller_live() {
 
 #[test]
 fn validation_never_acquires_the_live_secret_backend() {
-    let disk = backend();
-    let plan = contract::compile("shape Result\n  text: string\ncomponent App\n  mutation output as shape Result\n  action go(name: string)\n    send output = secret(name)\n  view\n    text \"secret\"\n").unwrap();
-    let mut m = Module::new(HBC.to_vec(), "test.context", GRANTS);
-    m.set_budget_ms(f64::INFINITY);
-    m.configure_secrets(Arc::new(disk.clone())).unwrap();
-    m.bind(&plan);
-    m.activate_for_validation().unwrap();
-    let mut s = store();
-    begin(&mut m, &mut s, 0);
-    let failed = land(&mut m, &mut s, 0, response(401, "expired"));
-    assert!(text(failed).contains("validation"));
-    assert_eq!(disk.0.lock().unwrap().acquires, 0);
+    // A painted host loads the validation pass before its boot offers the
+    // session's secrets, so the offer comes after activation too.
+    for offered_after_activation in [false, true] {
+        let disk = backend();
+        let plan = contract::compile("shape Result\n  text: string\ncomponent App\n  mutation output as shape Result\n  action go(name: string)\n    send output = secret(name)\n  view\n    text \"secret\"\n").unwrap();
+        let mut m = Module::new(HBC.to_vec(), "test.context", GRANTS);
+        m.set_budget_ms(f64::INFINITY);
+        if !offered_after_activation {
+            m.configure_secrets(Arc::new(disk.clone())).unwrap();
+        }
+        m.bind(&plan);
+        m.activate_for_validation().unwrap();
+        if offered_after_activation {
+            m.configure_secrets(Arc::new(disk.clone())).unwrap();
+        }
+        let mut s = store();
+        begin(&mut m, &mut s, 0);
+        let failed = land(&mut m, &mut s, 0, response(401, "expired"));
+        assert!(text(failed).contains("validation"));
+        assert_eq!(disk.0.lock().unwrap().acquires, 0);
+    }
 }
 
 #[test]

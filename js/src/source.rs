@@ -114,6 +114,12 @@ impl DataSource for Module {
         &mut self,
         secrets: Arc<dyn exact_runner::SharedSecrets>,
     ) -> Result<(), DataError> {
+        // A validation pass is loaded before its host boots and is offered the
+        // session's secrets like any candidate; it has no capabilities, and
+        // the door refuses its secret ops.
+        if self.host.validating {
+            return Ok(());
+        }
         if self.is_loaded() {
             return Err(DataError::Unavailable(
                 "configure secrets before loading the module".into(),
