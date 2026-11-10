@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { mkdtempSync, readFileSync, readdirSync, realpathSync, rmSync, utimesSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { evictArms, keepRoster, keptRoster, snapshotSources } from './arms.mjs';
+import { evictArms, keepRoster, keptRoster, rosterRoutes, snapshotSources } from './arms.mjs';
 
 test('an arm keeps its three last used copies, another arm whose name ends in it keeps its own, and a day-old half-written copy goes', () => {
   const dir = mkdtempSync(join(tmpdir(), 'exact-arms-'));
@@ -57,4 +57,19 @@ test("a probe's roster is kept beside its copy, read back by the next build, and
     keepRoster(undefined, '{}');
     assert.deepEqual(readdirSync(dir).sort(), ['0000000000000001-probe-roster-simulator', '0000000000000001-probe-roster-simulator.roster']);
   } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test("a device build's roster routes each take the packages compiled for that route, and a route lacks only a missing xcframework slice", () => {
+  const routes = (build) => rosterRoutes({ ...build, packageDir: '/b/packages', missingSlice: () => undefined }).map(r => [r.via, r.lacking, r.packages]);
+  assert.deepEqual(routes({ tv: false, device: true }), [
+    ['Mac Catalyst', undefined, '/b/packages-maccatalyst'],
+    ['iOS Simulator', undefined, '/b/packages-simulator'],
+    ['macOS', undefined, '/b/packages-macos'],
+  ]);
+  // A simulator build's simulator route links the build's own package objects.
+  assert.deepEqual(routes({ tv: false, device: false }).map(r => r[2]), ['/b/packages-maccatalyst', '/b/packages', '/b/packages-macos']);
+  assert.deepEqual(routes({ tv: true, device: true }), [['macOS', undefined, '/b/packages-macos']]);
+  // Only an xcframework without the route's slice makes it lack.
+  const lacking = rosterRoutes({ tv: false, device: true, packageDir: '/b/packages', missingSlice: (v) => v === 'maccatalyst' ? '/app/modules/apple/Map.xcframework' : undefined });
+  assert.deepEqual(lacking.map(r => r.lacking ?? null), ['/app/modules/apple/Map.xcframework', null, null]);
 });

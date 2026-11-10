@@ -32,6 +32,17 @@ export function keepRoster(copy, text) {
   renameSync(making, `${copy}.roster`);
 }
 
+/** The routes an iOS or tvOS build reads its module roster on (LLP 1024 D3, "First-frame tags"), in order: Mac Catalyst,
+ * an iOS simulator, macOS; tvOS has macOS alone. A route lacks only an xcframework slice (`missingSlice(variant)`).
+ * The Swift packages are sources, so each route compiles them for its own target into `packages`: the build's own
+ * directory where the targets are the same (a simulator build's simulator route), else one beside it. */
+export function rosterRoutes({ tv, device, packageDir, missingSlice }) {
+  return [...(tv ? [] : [['Mac Catalyst', 'maccatalyst'], ['iOS Simulator', true]]), ['macOS', false]].map(([via, variant]) => ({
+    via, variant, lacking: missingSlice(variant),
+    packages: variant === true && !device ? packageDir : `${packageDir}-${variant === true ? 'simulator' : variant || 'macos'}`,
+  }));
+}
+
 /** The app's own sources copied into `dir` as they are when the build begins: the
  * arms compile the copies, so an edit made while the build runs lands in the next
  * build instead of failing this one (swiftc: "input file … was modified during the
