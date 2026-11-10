@@ -94,6 +94,22 @@ export function androidHermesDir(env = process.env, local = hermesAndroidBundle(
   return pinned.installed ? pinned.root : null;
 }
 
+/** The API level of the oldest Android the app runs on, from its manifest's `host.android.minimumOS` (Android 12
+ * without one), as host/android/app/build.gradle.kts maps it; undefined for a release it does not name. */
+export const androidMinimumApi = (manifest) =>
+  ({ 10: 29, 11: 30, 12: 31, 13: 33, 14: 34, 15: 35, 16: 36 })[String(manifest?.host?.android?.minimumOS ?? '12')];
+
+/** Why a TypeScript app cannot be built for its minimum Android, or null: the Hermes bundle it links calls bionic at
+ * the API level it was compiled for (`-DANDROID_PLATFORM` in its receipt; the pinned one's is 30, which references
+ * `pthread_cond_clockwait`), and an APK whose minSdk is below that fails to load its library there. */
+export function hermesFloorRefusal(app, hermes) {
+  const minimum = androidMinimumApi(app.manifest);
+  let platform = null;
+  try { platform = Number(/-DANDROID_PLATFORM=android-(\d+)/.exec(readFileSync(resolve(hermes, 'hermes-input-receipt.json'), 'utf8'))?.[1]) || null; } catch { /* no receipt: nothing to compare */ }
+  if (!minimum || !platform || minimum >= platform) return null;
+  return `${app.name}: host.android.minimumOS "${app.manifest.host.android.minimumOS}" is API ${minimum}, but its TypeScript links the Android Hermes bundle at ${hermes}, built for API ${platform}: its library would not load below that. Raise minimumOS, or build a bundle for API ${minimum} from an Ibex checkout (scripts/hermes-android.mjs build, with Ibex's release script's ANDROID_PLATFORM lowered)`;
+}
+
 /** The device a drive uses: ANDROID_SERIAL, else the one adb lists as ready. With several and none named it refuses to
  * choose: another lane's emulator or a person's phone may be among them. */
 export function androidDevice(env = process.env) {
@@ -566,10 +582,13 @@ if (import.meta.main && process.argv[2] === 'relay') {
   const app = resolveApp(name), env = { ...androidToolchainEnv(), ...bakeWatchEnv(app), CARGO_TARGET_DIR: app.target };
   // A TypeScript app's library links the Android Hermes bundle: said before minutes of compiling, not at the link.
   const crateToml = crateManifest(app, apkWanted ? 'android' : 'linux');
-  if (!androidHermesDir() && crateToml && /^exact-js\s*=/m.test(readFileSync(crateToml, 'utf8'))) {
+  const typescript = crateToml && /^exact-js\s*=/m.test(readFileSync(crateToml, 'utf8'));
+  if (!androidHermesDir() && typescript) {
     console.error(`${app.name}'s TypeScript needs the Android Hermes bundle, which is not installed: ${hermesBundle(ANDROID_TARGET).fix} (once; exact setup does it where the Android SDK is)`);
     process.exit(1);
   }
+  const floor = typescript && apkWanted ? hermesFloorRefusal(app, androidHermesDir()) : null;
+  if (floor) { console.error(floor); process.exit(1); }
   if (apkWanted) {
     const started = Date.now();
     const apk = buildApk(app, env, args.includes('--release') ? 'release' : HOST_DEV, args.includes('--write-locks'));

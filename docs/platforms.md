@@ -12,13 +12,16 @@ in the commit that changes it.
 | macOS | shipping | `bun host/apple/build.mjs --run` | `macos` | 14.0 (`host.macos.minimumOS`) | |
 | iOS, iPadOS | shipping | `bun host/apple/build.mjs --ios --run` | `ios` | 17.0 (`host.ios.minimumOS`) | |
 | Linux | shipping | `cargo build --profile host-dev -p <app>-linux` | `linux` | | |
-| tvOS | partial: builds and runs on the iOS presenter | `bun host/apple/build.mjs --tvos --run` | none | 17.0 (the iOS floor) | [1](https://github.com/Wawona/Wawona/issues/239) |
+| tvOS | partial: builds and runs on the iOS presenter; no smoke | `bun host/apple/build.mjs --tvos --run` | `tvos` | 17.0 (the iOS floor) | [1](https://github.com/Wawona/Wawona/issues/239) |
 | Windows | partial: runs; no delivery | `bun host/windows/build.mjs <app> --run` (on Windows) | `windows` | Windows 11 22621, x64 | [1](https://github.com/Wawona/Wawona/issues/240), [4](https://github.com/Wawona/Wawona/issues/244) |
-| Android | early: no store delivery | `host/android` (Kotlin reader over the Linux host's Rust) | `android` | API 31; 29 with `host.android.minimumOS: "10"` | [1](https://github.com/Wawona/Wawona/issues/241), [5](https://github.com/Wawona/Wawona/issues/245) |
+| Android | early: no store delivery | `bun exact.mjs android` (a release APK under `target/android/`) | `android` | API 31; 30 with `host.android.minimumOS: "11"`; 29 with `"10"` for an app whose data is Rust (the pinned Hermes bundle needs 30) | [1](https://github.com/Wawona/Wawona/issues/241), [5](https://github.com/Wawona/Wawona/issues/245) |
 | visionOS | absent: declared in `Package.swift` only | | none | | [2](https://github.com/Wawona/Wawona/issues/242) |
 | watchOS | snapshot only (`ExactWatch`, LLP 1126); no TypeScript apps | `bun host/apple/build.mjs --watchos` | none | 10 | [3](https://github.com/Wawona/Wawona/issues/243) |
 | WearOS | absent: fork goal | | none | | [5](https://github.com/Wawona/Wawona/issues/245) |
 | AsteroidOS | absent: fork goal, a Qt6/QML host | | none | | [6](https://github.com/Wawona/Wawona/issues/246) |
+
+The Apple hosts build with Xcode 27: ExactKit calls the iOS and tvOS 27 SDKs' AVAudioSession life cycle, and
+Xcode 26's Swift does not compile it.
 
 A host is shipping when an app built for it can be driven by `scripts/agent.mjs`, smoked
 by `scripts/smoke.mjs` and delivered by `scripts/deploy.mjs`. Partial lacks one of those;
