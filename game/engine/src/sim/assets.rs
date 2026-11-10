@@ -65,6 +65,9 @@ impl<G: Game> Sim<G> {
             .filter(|(n, s)| {
                 (**s == crate::asset::AssetState::Pending || assets.redelivery.contains(*n))
                     && !assets.requested.contains(*n)
+                    // A generated model has no payload: it is Pending only
+                    // until its textures, requested by their own names, arrive.
+                    && !(n.ends_with(".model") && assets.identities.contains_key(n.as_str()))
             })
             .map(|(n, _)| n.clone())
             .collect();

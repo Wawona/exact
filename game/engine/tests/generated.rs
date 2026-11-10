@@ -288,3 +288,110 @@ fn a_complete_material_record_requires_every_field_but_its_name() {
     trailing.push(0);
     assert!(bin::from_slice::<MaterialData>(&trailing).is_err());
 }
+
+/// A generated model sampling `soil-<theme>.tex`, which `Game::ASSETS` does not
+/// declare: the texture is fetched on first sight, the model never is.
+#[derive(Default, exact_game::Args)]
+struct Theme {
+    theme: u32,
+}
+struct Tiled;
+impl exact_game::Game for Tiled {
+    const ID: &'static str = "textured-generated";
+    type Args = Theme;
+    fn setup(w: &mut World, args: &Theme) {
+        use exact_game::asset::{MaterialData, Model, Node};
+        let mesh = w
+            .generated_model(
+                "tile.model",
+                Model {
+                    bounds: triangle().bounds,
+                    meshes: vec![triangle()],
+                    materials: vec![MaterialData {
+                        base_color_texture: Some(0),
+                        ..Default::default()
+                    }],
+                    textures: vec![format!("soil-{}.tex", args.theme)],
+                    nodes: vec![Node {
+                        mesh: Some(0),
+                        ..Default::default()
+                    }],
+                    ..Default::default()
+                },
+            )
+            .unwrap();
+        w.spawn((Transform::default(), mesh));
+    }
+    fn tick(_: &mut World, _: &exact_game::Input, _: &Theme) {}
+}
+// The bake's tracked golden: a fresh checkout has no baked game art.
+const SOIL: &[u8] = include_bytes!("../../bake/tests/fixtures/crate/0-srgb-straight.tex");
+fn tile_state(sim: &mut exact_game::Sim<Tiled>) -> String {
+    let state = sim.agent(r#"{"op":"state"}"#);
+    let at = state
+        .find(r#""name":"tile.model""#)
+        .expect("tile.model state");
+    state[at..].split('}').next().unwrap().to_owned()
+}
+
+#[test]
+fn a_generated_model_requests_only_its_textures_and_draws_once_they_arrive() {
+    let mut sim = exact_game::Sim::<Tiled>::new(Theme::default()).unwrap();
+    assert_eq!(sim.take_assets(), ["soil-0.tex"]);
+    // A lost device reopens pending names; the model is still not a payload.
+    sim.invalidate_device_assets();
+    assert_eq!(sim.take_assets(), ["soil-0.tex"]);
+    assert!(tile_state(&mut sim).contains("Pending"));
+    sim.asset("soil-0.tex", Some(SOIL)).unwrap();
+    assert!(tile_state(&mut sim).contains("Loaded"));
+    sim.asset_prepared("soil-0.tex", Ok(()));
+    sim.asset_prepared("tile.model", Ok(()));
+    assert!(sim.model_prepared("tile.model"));
+    sim.save().unwrap();
+
+    // A lost device unprepares every name and redelivers the texture; the
+    // model is still never fetched.
+    assert_eq!(sim.invalidate_device_assets(), ["soil-0.tex"]);
+    assert!(!sim.model_prepared("tile.model"));
+    assert_eq!(sim.take_assets(), ["soil-0.tex"]);
+    sim.asset("soil-0.tex", Some(SOIL)).unwrap();
+    sim.asset_prepared("soil-0.tex", Ok(()));
+    sim.asset_prepared("tile.model", Ok(()));
+    assert!(sim.model_prepared("tile.model"));
+
+    // Another theme replaces the model under the same name: only its texture is fetched.
+    sim.bind(&[exact_game::Value::Number(1.)], None).unwrap();
+    assert!(tile_state(&mut sim).contains("Pending"));
+    assert_eq!(sim.take_assets(), ["soil-1.tex"]);
+    sim.asset("soil-1.tex", Some(SOIL)).unwrap();
+    assert!(tile_state(&mut sim).contains("Loaded"));
+    assert!(sim.take_assets().is_empty());
+}
+
+#[test]
+fn a_headless_load_fetches_a_generated_models_textures_and_a_failed_one_names_it() {
+    let mut fetched = Vec::new();
+    let mut sim = exact_game::Sim::<Tiled>::new(Theme::default()).unwrap();
+    sim.load_assets(|name: &str| {
+        fetched.push(name.to_owned());
+        match name {
+            "soil-0.tex" => Ok(SOIL.to_vec()),
+            _ => Err(format!("`{name}` is not a payload")),
+        }
+    })
+    .unwrap();
+    assert_eq!(fetched, ["soil-0.tex"]);
+    assert!(tile_state(&mut sim).contains("Loaded"));
+
+    let mut sim = exact_game::Sim::<Tiled>::new(Theme::default()).unwrap();
+    let error = sim
+        .load_assets(|name: &str| Err::<Vec<u8>, _>(format!("`{name}` is missing")))
+        .unwrap_err()
+        .to_string();
+    let state = tile_state(&mut sim);
+    assert!(
+        state.contains("Failed") && state.contains("asset `soil-0.tex`: `soil-0.tex` is missing"),
+        "{state}"
+    );
+    assert!(!error.contains("`tile.model` is missing"), "{error}");
+}
