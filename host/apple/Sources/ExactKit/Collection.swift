@@ -294,7 +294,7 @@ package final class CollectionHost {
     private var gestureContact: UInt64?
     private var lastVisited: UInt32 = 0
     private var refreshPins = false
-    #if os(iOS) || os(tvOS)
+    #if os(iOS) || os(visionOS) || os(tvOS)
     /// `focusedView()` walks every node; a report asks each frame. UIKit's
     /// responder changes all reach `pinsChanged` (a node's become and
     /// resign, an input's begin and end editing), which forgets it.
@@ -365,7 +365,7 @@ package final class CollectionHost {
     var pendingSerial: [UInt32: Int] = [:]
     var pendingToken: [UInt32: Int] = [:]
     var nextPendingToken = 0
-    #if os(iOS) || os(tvOS)
+    #if os(iOS) || os(visionOS) || os(tvOS)
     var offsetDrivers: [UInt32: OffsetDriver] = [:]
     #endif
     /// The running animation's number, for each animating list only: a
@@ -388,7 +388,7 @@ package final class CollectionHost {
     func reportAgain(_ view: UInt32) { dirty.insert(view); schedule() }
     func stopAnimation(_ view: UInt32) {
         startOwed.remove(view); pendingSerial[view] = nil; pendingToken[view] = nil
-        #if os(iOS) || os(tvOS)
+        #if os(iOS) || os(visionOS) || os(tvOS)
         offsetDrivers.removeValue(forKey: view)?.cancel()
         presenter?.scrollPump.forgetTravel(view)
         #else
@@ -485,7 +485,7 @@ package final class CollectionHost {
         building = nil; retireOwed.removeAll(); fillLimits.removeAll(); fillSent.removeAll()
         budget = CollectionTurnBudget(); rescuing.removeAll()
         refreshPins = false; lastVisited = 0
-        #if os(iOS) || os(tvOS)
+        #if os(iOS) || os(visionOS) || os(tvOS)
         focusFound = nil
         #endif
     }
@@ -760,7 +760,7 @@ package final class CollectionHost {
         schedule()
     }
     func pinsChanged() {
-        #if os(iOS) || os(tvOS)
+        #if os(iOS) || os(visionOS) || os(tvOS)
         focusFound = nil
         #endif
         guard !entries.isEmpty else { return }
@@ -813,7 +813,7 @@ package final class CollectionHost {
             if filling?() == true { return }
             let rescue = !rescuing.isDisjoint(with: dirty)
             guard budget.begin(rescue: rescue) else { return }
-            #if os(iOS) || os(tvOS)
+            #if os(iOS) || os(visionOS) || os(tvOS)
             let focus = focusFound ?? focusedView()
             focusFound = focus
             #else
@@ -889,7 +889,7 @@ package final class CollectionHost {
                     entry.lastSequence = entry.cursor.sequence
                     entry.lastLimit = limit
                     reported = true
-                    #if os(iOS) || os(tvOS)
+                    #if os(iOS) || os(visionOS) || os(tvOS)
                     reportCovered(id, entry)
                     #endif
                     // While its outer list moves, an inner list builds only
@@ -927,7 +927,7 @@ package final class CollectionHost {
             budget.nextTurn()
             if refreshPins {
                 refreshPins = false; dirty.formUnion(entries.keys)
-                #if os(iOS) || os(tvOS)
+                #if os(iOS) || os(visionOS) || os(tvOS)
                 focusFound = nil
                 #endif
             }

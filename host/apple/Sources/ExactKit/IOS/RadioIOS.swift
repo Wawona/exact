@@ -6,7 +6,7 @@
 // it is not drawn at all: the row shows the platform's checkmark
 // (`Accessory::Radio`, GroupedListIOS.swift). tvOS keeps the drawn circle.
 // A tap never moves its own state: the group is Exact's (`Radios.swift`).
-#if os(iOS) || os(tvOS)
+#if os(iOS) || os(visionOS) || os(tvOS)
 import UIKit
 
 final class ExactRadio: ExactCheckbox {

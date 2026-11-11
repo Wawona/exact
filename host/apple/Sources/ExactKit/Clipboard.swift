@@ -141,7 +141,7 @@ extension NodeView {
         if [#selector(copy(_:)), #selector(cut(_:)), #selector(paste(_:))].contains(action) { return clipboardTarget(action) != nil }
         return super.canPerformAction(action, withSender: sender)
     }
-    #if os(iOS)
+    #if os(iOS) || os(visionOS)
     /// A paste listener can receive images or file URLs that a plain editor cannot insert.
     func pastesFiles(_ action: Selector) -> Bool {
         guard [#selector(UIResponderStandardEditActions.paste(_:)), #selector(UIResponderStandardEditActions.pasteAndMatchStyle(_:))].contains(action),
@@ -294,7 +294,7 @@ extension Agent {
             timestamp: ProcessInfo.processInfo.systemUptime, windowNumber: window.windowNumber, context: nil,
             characters: "v", charactersIgnoringModifiers: "v", isARepeat: false, keyCode: 9) else { return false }
         return presenter.shortcuts.perform(down)
-        #elseif os(iOS)
+        #elseif os(iOS) || os(visionOS)
         guard let node = presenter.shortcut(key: "v", held: "Meta+", focus: v) else { return false }
         presenter.press(node.id)
         return true

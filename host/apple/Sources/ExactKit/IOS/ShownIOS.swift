@@ -7,7 +7,7 @@
 // rendered at the previous style change (CSS Transitions 1 §3): a view made,
 // put in a window or shown again since the last frame takes its place at
 // once, and the views that showed move with UIKit's animation.
-#if os(iOS) || os(tvOS)
+#if os(iOS) || os(visionOS) || os(tvOS)
 import UIKit
 
 extension Presenter {

@@ -57,7 +57,7 @@
 // the batch does not destroy (it may be moving elsewhere).
 // While VoiceOver or Switch Control runs nothing parks: its cursor stays on
 // the element it was on, never on a view that is now another row.
-#if os(iOS) || os(tvOS)
+#if os(iOS) || os(visionOS) || os(tvOS)
 import UIKit
 
 final class NodePool {
@@ -162,7 +162,7 @@ final class NodePool {
         let root = tree.views[0]!
         roots.remove(ObjectIdentifier(root))
         if tree.list != nil { innerCount -= 1 } else { count -= 1 }
-        #if os(iOS)
+        #if os(iOS) || os(visionOS)
         for case let view? in tree.views { presenter.menus.context.dropped(view) }
         #endif
         for view in tree.views { view?.forget() }
@@ -303,7 +303,7 @@ final class NodePool {
         for case let view? in views {
             if view.kind == "control" { presenter.controls.park(view.id) }
             view.incarnation = 0
-            #if os(iOS)
+            #if os(iOS) || os(visionOS)
             presenter.menus.context.parked(view)
             #endif
             presenter.release(view.id) { $0.recycle() }
@@ -360,7 +360,7 @@ final class NodePool {
     /// it follows the style, which the next row's create ops set again
     /// (`rebind` drops the paint it shows).
     private func lookAtRest(_ recognizer: UIGestureRecognizer, of v: NodeView) -> Bool {
-        #if os(iOS)
+        #if os(iOS) || os(visionOS)
         guard recognizer === v.lookHoverRecognizer, recognizer.state == .possible else { return false }
         // (Not a hover held there: the hold's own recognizer goes with the hold.)
         return MainActor.assumeIsolated { !(HeldState.view === v && HeldState.state == "hover") }
@@ -384,13 +384,13 @@ final class NodePool {
         // `.possible` holds while a touch is still being judged (a long press
         // waiting out its duration): at rest means no touch as well.
         guard recognizer.state == .possible, recognizer.numberOfTouches == 0 else { return false }
-        #if os(iOS)
+        #if os(iOS) || os(visionOS)
         if presenter.menus.context.owns(recognizer, on: v) { return true }
         #endif
         return recognizer === v.contextRecognizer
     }
     private func contextual(_ interaction: UIInteraction, of v: NodeView) -> Bool {
-        #if os(iOS)
+        #if os(iOS) || os(visionOS)
         return presenter.menus.context.owns(interaction, on: v) && presenter.menus.context.open?.source !== v
         #else
         return false

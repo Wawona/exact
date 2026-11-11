@@ -32,7 +32,7 @@
 // host, ExactIOS/main.swift) boots a session for it with no view (D7).
 import Foundation
 import os
-#if os(iOS)
+#if os(iOS) || os(visionOS)
 import BackgroundTasks
 import UIKit
 #endif
@@ -49,7 +49,7 @@ public enum WakeStore {
         let complete: (Bool) -> Void
         var waiting: Set<String> = [], success = true, offered = false, booted = false
         init(kind: String, due: [Request], complete: @escaping (Bool) -> Void) { self.kind = kind; self.due = due; self.complete = complete }
-        #if os(iOS)
+        #if os(iOS) || os(visionOS)
         var task: BGTask?
         #endif
     }
@@ -112,7 +112,7 @@ public enum WakeStore {
         }
         TransferCarrier.install()
         RegionCarrier.install()
-        #if os(iOS)
+        #if os(iOS) || os(visionOS)
         for suffix in ["refresh", "processing.network", "processing.network-power"] where permitted(suffix) {
             let registered = BGTaskScheduler.shared.register(forTaskWithIdentifier: "\(bundle).\(suffix)", using: .main) { task in
                 arrived(task, suffix)
@@ -147,7 +147,7 @@ public enum WakeStore {
         a.waiting = []
         for (package, due) in packages {
             let body = NSMutableDictionary(dictionary: ["token": a.token, "package": package, "kind": a.kind, "keys": due.map(\.key)])
-            #if os(iOS)
+            #if os(iOS) || os(visionOS)
             if let task = a.task { body["task"] = task }
             #endif
             NotificationCenter.default.post(name: Notification.Name("exact.wakes.due"), object: body)
@@ -188,7 +188,7 @@ public enum WakeStore {
         schedule()
     }
 
-    #if os(iOS)
+    #if os(iOS) || os(visionOS)
     private static func permitted(_ suffix: String) -> Bool {
         let ids = Bundle.main.object(forInfoDictionaryKey: "BGTaskSchedulerPermittedIdentifiers") as? [String] ?? []
         return ids.contains("\(bundle).\(suffix)")
@@ -271,7 +271,7 @@ public enum WakeStore {
     }
     #endif
 
-    #if !os(iOS) && !os(macOS)
+    #if !os(iOS) && !os(visionOS) && !os(macOS)
     /// tvOS's refresh is later (D17): its requests are kept, never submitted.
     public static func schedule() {}
     #endif

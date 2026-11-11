@@ -101,14 +101,17 @@ function catalogFiles(root) {
   return files;
 }
 
+/** visionOS's floor, Package.swift's: an app's manifest names iOS's minimum, which visionOS does not share. */
+export const visionosMinimum = '2.0';
+
 /** One actool pass includes the app's catalogs, selected or generated icon and launch
  * colours: separate passes silently replace Assets.car. No unchanged build
  * reruns actool; the cache key includes source bytes, target and toolchain. */
 export function iosAssets(app, dir, device, options = {}) {
-  return appleAssets(app, dir, { ...options, device, platform: options.tv ? 'tvos' : 'ios' });
+  return appleAssets(app, dir, { ...options, device, platform: options.vision ? 'visionos' : options.tv ? 'tvos' : 'ios' });
 }
 export function appleAssets(app, dir, { platform = 'macos', device = false, catalog = false, kept = null, expected, expectedLaunchImage, launch = 'system' } = {}) {
-  const sourcePlatform = platform === 'tvos' ? 'ios' : platform;
+  const sourcePlatform = platform === 'tvos' || platform === 'visionos' ? 'ios' : platform;
   const catalogs = appleAssetCatalogInventory(app, platform);
   const selected = catalogs.find(entry => entry.path.endsWith('.icon'));
   if (expected !== undefined && JSON.stringify(catalogs) !== JSON.stringify(expected))
@@ -179,10 +182,10 @@ export function appleAssets(app, dir, { platform = 'macos', device = false, cata
     const accent = catalogs.some(c => c.files.some(f => /(^|\/)AccentColor\.colorset\/Contents\.json$/.test(f.name)));
     if (sources.length) {
       const partial = resolve(work, 'partial.plist');
-      const target = platform === 'macos' ? 'macosx' : platform === 'tvos' ? (device ? 'appletvos' : 'appletvsimulator') : device ? 'iphoneos' : 'iphonesimulator';
+      const target = platform === 'macos' ? 'macosx' : platform === 'tvos' ? (device ? 'appletvos' : 'appletvsimulator') : platform === 'visionos' ? (device ? 'xros' : 'xrsimulator') : device ? 'iphoneos' : 'iphonesimulator';
       run('xcrun', ['actool', ...sources, '--compile', dir, '--platform', target,
-        '--minimum-deployment-target', app.manifest.host?.[sourcePlatform]?.minimumOS ?? (platform === 'macos' ? '14.0' : '17.0'),
-        ...(platform === 'macos' ? [] : ['--target-device', ...(platform === 'tvos' ? ['tv'] : ['iphone', '--target-device', 'ipad'])]),
+        '--minimum-deployment-target', platform === 'visionos' ? visionosMinimum : app.manifest.host?.[sourcePlatform]?.minimumOS ?? (platform === 'macos' ? '14.0' : '17.0'),
+        ...(platform === 'macos' ? [] : ['--target-device', ...(platform === 'tvos' ? ['tv'] : platform === 'visionos' ? ['vision'] : ['iphone', '--target-device', 'ipad'])]),
         ...(iconName ? ['--app-icon', iconName] : []),
         ...alternateIcons.flatMap(name => ['--alternate-app-icon', name]),
         ...(accent ? ['--accent-color', 'AccentColor'] : []),

@@ -328,7 +328,7 @@ final class GpuModule {
         module.landed = sym("gpu_landed", WantsFn.self)
         if module.starved != nil { sym("gpu_on_acquire", OnAcquireFn.self)?(gpuAcquired) }
         module.seen = sym("gpu_seen", WantsFn.self)
-        #if os(iOS) || os(tvOS)
+        #if os(iOS) || os(visionOS) || os(tvOS)
         if module.seen != nil { sym("gpu_on_presented", OnAcquireFn.self)?(gpuPresented) }
         #endif
         return .success(module)
@@ -340,7 +340,7 @@ final class GpuModule {
         self.childView = child; self.childrenCount = childrenCount; self.placement = placement; self.shader = shader; self.validateShader = validateShader; self.clearShaders = clearShaders; self.errorLen = errorLen; self.errorPtr = errorPtr
     }
 
-    #if os(iOS) || os(tvOS)
+    #if os(iOS) || os(visionOS) || os(tvOS)
     /// First frames are with the compositor: every session's canvases that
     /// waited hidden on a reused layer show theirs.
     static func presented() {
@@ -446,7 +446,7 @@ struct DisplayPeriod {
     }
 }
 
-#if os(iOS) || os(tvOS)
+#if os(iOS) || os(visionOS) || os(tvOS)
 /// The module's callback when canvases' first frames have been handed to the
 /// compositor, on the thread Metal scheduled the frame on (gpu/src/frame.rs):
 /// the layers that waited hidden are shown on the main thread. Entries are
@@ -492,7 +492,7 @@ extension GpuModule {
         guard let headroom, highDynamicRange?(id) == 1 else { return }
         let limit = view.style["dynamic_range_limit"]?.string
         headroom(id, DisplayRange.showsHDR(view, limit: limit) ? Float(DisplayRange.headroom(view)) : 1)
-        if #available(iOS 26, macOS 26, tvOS 26, *), let layer {
+        if #available(iOS 26, macOS 26, tvOS 26, visionOS 26, *), let layer {
             let range = layerRange(limit)
             if layer.preferredDynamicRange != range { layer.preferredDynamicRange = range }
         }

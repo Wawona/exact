@@ -21,7 +21,7 @@ package struct PressFeedback {
     /// the press has eased all the way in (D2): UIKit's delayed touches hand
     /// a quick tap in a scroll view its down and its up in one turn.
     var releaseHeld = false
-    #if os(iOS) || os(tvOS)
+    #if os(iOS) || os(visionOS) || os(tvOS)
     /// The origin's offset from the centre the render server's ease was
     /// built about; nil while none runs.
     var easedAbout: CGPoint?
@@ -41,7 +41,7 @@ package struct PressFeedback {
     var atRest: Bool { rests(at: 1) }
     /// Held at `value` since time 0, with nothing pending.
     func rests(at value: CGFloat) -> Bool {
-        #if os(iOS) || os(tvOS)
+        #if os(iOS) || os(visionOS) || os(tvOS)
         if easedAbout != nil || dimmedAt != nil { return false }
         #endif
         return from == value && to == value && start == 0 && !releaseHeld
@@ -91,7 +91,7 @@ extension NodeView {
     /// target, which Core Animation eases toward (`easePress`); on macOS
     /// the factor now, a frame at a time (`PressClock`). LLP 1061 D2.
     var pressModelFactor: CGFloat {
-        #if os(iOS) || os(tvOS)
+        #if os(iOS) || os(visionOS) || os(tvOS)
         press.idle ? 1 : press.to
         #else
         pressFactor
@@ -116,7 +116,7 @@ extension NodeView {
     /// the platform's own. A held press (HeldState.swift) shows it as a
     /// real press does, with no haptic.
     func showPress(_ down: Bool) {
-        #if os(iOS)
+        #if os(iOS) || os(visionOS)
         if presenter?.groupedLists?.press(self, down: down) == true {
             paintPress(false, instantly: true); aimPress(false, release: true); dimPress(false, instantly: true)
             return
@@ -127,7 +127,7 @@ extension NodeView {
         // What a press shows goes at its release whatever the style says now:
         // an authored look the style dropped while held included.
         if !down || !authorsPress { paintPress(false, instantly: down); aimPress(false, release: true) }
-        #if os(iOS)
+        #if os(iOS) || os(visionOS)
         // A list's row is its cell: the cell's ground, not the dim (LLP 1115.000 D16).
         if presenter?.rowCells.press(self, down) == true { return }
         if platformPressDims { dimPress(down); return }
@@ -149,7 +149,7 @@ extension NodeView {
         if defaultLink != nil { showPress(false); return }
         if holds("active") { return }
         if !inside { paintPress(false); aimPress(false) }
-        #if os(iOS)
+        #if os(iOS) || os(visionOS)
         if presenter?.rowCells.press(self, inside) == true { return }
         if platformPressDims { dimPress(inside); return }
         #elseif os(macOS)
@@ -173,7 +173,7 @@ extension NodeView {
         if down { press.releaseHeld = false }
         if release, press.to != 1, now - press.start < PressFeedback.unseen {
             press.releaseHeld = true
-            #if os(iOS) || os(tvOS)
+            #if os(iOS) || os(visionOS) || os(tvOS)
             releaseWhenSeen()
             #else
             PressClock.shared.run(self)
@@ -181,7 +181,7 @@ extension NodeView {
             return
         }
         guard target != press.to else { return }
-        #if os(iOS) || os(tvOS)
+        #if os(iOS) || os(visionOS) || os(tvOS)
         let shown = pressFactor
         press.aim(target, at: now)
         easePress(from: shown)
@@ -199,7 +199,7 @@ extension NodeView {
         CGPoint(x: translatePx.x + translatePercent.x / 100 * bounds.width, y: translatePx.y + translatePercent.y / 100 * bounds.height)
     }
 
-    #if os(iOS) || os(tvOS)
+    #if os(iOS) || os(visionOS) || os(tvOS)
     /// The press reaches the screen as Core Animation's, with no frame of
     /// it on the main thread: the model takes the target at once
     /// (`applyTransform`), and an additive animation eases the difference
@@ -235,7 +235,7 @@ extension NodeView {
     /// No ease of the press on the render server: a view taken for another
     /// node, or one a flight carries, shows its own transform alone.
     func stopPressEase() {
-        #if os(iOS)
+        #if os(iOS) || os(visionOS)
         dimPress(false, instantly: true)
         #endif
         guard press.easedAbout != nil || layer.animation(forKey: "press") != nil else { return }
@@ -294,7 +294,7 @@ extension NodeView {
         return CGPoint(x: bounds.minX + axis(0, bounds.width), y: bounds.minY + axis(1, bounds.height))
     }
 
-    #if os(iOS) || os(tvOS)
+    #if os(iOS) || os(visionOS) || os(tvOS)
     package func applyTransform() {
         // Flying scaled whole in its clip (LLP 1013.000 D4.4): the
         // flight's scale only.
@@ -400,7 +400,7 @@ extension NodeView {
     #endif
 }
 
-#if os(iOS)
+#if os(iOS) || os(visionOS)
 /// The platform's press feedback (LLP 1115, which overrides LLP 1061's "UIKit
 /// shows none" for iOS): a pressable node that is not a native control and
 /// declares no feedback of its own dims while held, as a hand-built UIKit

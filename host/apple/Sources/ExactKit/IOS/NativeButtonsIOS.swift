@@ -8,7 +8,7 @@
 // node's activation (D4); the node keeps keys and focus; the control is the
 // one accessibility element. A glass style's control is the glass body the
 // glass-group pass isolates (D9).
-#if os(iOS) || os(tvOS)
+#if os(iOS) || os(visionOS) || os(tvOS)
 import UIKit
 
 /// UIKit's button, as a native button's control: never a UIKit focus item
@@ -235,7 +235,7 @@ final class NativeButtonIOS: UIButton {
         return false
         #endif
     }
-    #if os(iOS)
+    #if os(iOS) || os(visionOS)
     /// A native invoker of a `role="menu"` popover shows it as its own
     /// pull-down (`MenuHost.nativeMenu`), as `MenuButton` does for a custom one.
     weak var menuFocus: MenuFocus?
@@ -358,8 +358,11 @@ extension ControlHost {
         // (`LinkedDesign`), the table's earlier column: UIKit draws a glass
         // configuration there as a bordered button.
         var current = false
+        #if !os(visionOS)
         if #available(iOS 26.0, tvOS 26.0, *) { current = LinkedDesign.liquidGlass }
+        #endif
         let name = ButtonFace.drawn(current ? face.ios : face.iosBefore26).name
+        #if !os(visionOS)
         if #available(iOS 26.0, tvOS 26.0, *) {
             switch name {
             case "glass": return (.glass(), name, true)
@@ -369,6 +372,7 @@ extension ControlHost {
             default: break
             }
         }
+        #endif
         switch name {
         case "plain": return (.plain(), name, false)
         case "gray": return (.gray(), name, false)
@@ -453,7 +457,7 @@ extension ControlHost {
     }
 }
 
-#if os(iOS)
+#if os(iOS) || os(visionOS)
 extension MenuHost {
     /// A native button that opens a `role="menu"` popover is UIKit's
     /// pull-down button: its menu is its primary action (`showsMenuAsPrimaryAction`),

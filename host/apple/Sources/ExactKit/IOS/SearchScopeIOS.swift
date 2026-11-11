@@ -2,7 +2,7 @@
 // whose search field the bar projects is that search bar's scope buttons, as
 // a hand-built iPhone screen with a large title, a search and a filter has
 // it, riding the bar as the title collapses.
-#if os(iOS) || os(tvOS)
+#if os(iOS) || os(visionOS) || os(tvOS)
 import UIKit
 
 extension NavigationHost {
@@ -11,11 +11,13 @@ extension NavigationHost {
 
     /// A route's title, subtitle or search scope control and the segment drawn for `tab`.
     func barSegment(_ tab: NodeView) -> (control: UIControl, segment: CGRect)? {
-        #if os(iOS)
+        #if os(iOS) || os(visionOS)
         let found: (RouteController, [UInt32], UISegmentedControl?)? = controllers.values.lazy.compactMap { c in
             if let title = c.titleSegments, title.press.tabs.contains(tab.id) { return (c, title.press.tabs, title.control) }
             if let search = c.search, search.scopeTabs.contains(tab.id) { return (c, search.scopeTabs, search.scopeControl) }
+            #if !os(visionOS)
             if #available(iOS 26.0, *), let s = c.subtitleSegments, s.tabs.contains(tab.id) { return (c, s.tabs, s.shown) }
+            #endif
             return nil
         }.first
         guard let (c, tabs, shown) = found, c.navigationController?.topViewController === c, let control = shown, control.window != nil,
@@ -30,7 +32,7 @@ extension NavigationHost {
 }
 #endif
 
-#if os(iOS)
+#if os(iOS) || os(visionOS)
 import UIKit
 
 extension NavigationHost {
@@ -44,10 +46,13 @@ extension NavigationHost {
             c.scoped = next
             next?.isHidden = true
         }
+        #if !os(visionOS)
         // LLP 1135: under a large title with no search, the item's subtitle views.
         if #available(iOS 26.0, *) { subtitles(c, shape?.search == nil ? next : nil) }
+        #endif
     }
 
+    #if !os(visionOS)
     /// LLP 1135 D2: `list` as the segmented control under the large title
     /// and under the inline one, or neither.
     @available(iOS 26.0, *)
@@ -73,6 +78,7 @@ extension NavigationHost {
         }()
         segments.apply(list)
     }
+    #endif
 
     /// D1: the next child the author shows in flow after a header the bar
     /// replaces whole whose search it projects, when it is a filter: two to
@@ -83,12 +89,17 @@ extension NavigationHost {
         // Not under a title the bar draws with more than its words (a subtitle, an
         // avatar, segments), whose subtitle views it would take.
         let large: Bool = {
+            #if os(visionOS)
+            // visionOS's navigation item has no subtitle views.
+            return false
+            #else
             guard #available(iOS 26.0, *) else { return false }
             // Nor where a hatch set a subtitle, or a subtitle view of its own.
             let item = c.navigationItem, mine = c.subtitleSegments
             let free = item.subtitle == nil && item.largeSubtitle == nil
                 && (item.largeSubtitleView == nil || item.largeSubtitleView === mine?.large) && (item.subtitleView == nil || item.subtitleView === mine?.inline)
             return shape.level == 1 && shape.segments == nil && shape.group == nil && item.largeTitleDisplayMode == .always && free
+            #endif
         }()
         guard UIDevice.current.userInterfaceIdiom == .phone, shape.authored.isEmpty, shape.search != nil || large else { return nil }
         let kids = c.node.container.subviews.compactMap { $0 as? NodeView }
@@ -204,6 +215,7 @@ extension HeaderSearch {
     }
     func didPresentSearchController(_ search: UISearchController) { showScopes() }
 }
+#if !os(visionOS)
 /// LLP 1135: a filter as the segmented controls under a large title and
 /// under the inline title it collapses to, kept in step.
 @available(iOS 26.0, *)
@@ -277,7 +289,9 @@ final class SubtitleSegments: NSObject {
         if let list, presenter.views[list.id] === list { apply(list) }
     }
 }
+#endif
 
+#if !os(visionOS)
 private var subtitleSegmentsKey: UInt8 = 0
 extension RouteController {
     /// LLP 1135's controls, while the route's filter is them.
@@ -287,4 +301,5 @@ extension RouteController {
         set { objc_setAssociatedObject(self, &subtitleSegmentsKey, newValue, .OBJC_ASSOCIATION_RETAIN_NONATOMIC) }
     }
 }
+#endif
 #endif

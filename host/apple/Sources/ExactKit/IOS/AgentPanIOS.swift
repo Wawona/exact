@@ -1,4 +1,4 @@
-#if os(iOS) || os(tvOS)
+#if os(iOS) || os(visionOS) || os(tvOS)
 import UIKit
 
 /// @ref LLP 1057 §10.6 — the iOS carrier's one held contact (LLP 1035.003 D1).
@@ -144,7 +144,7 @@ extension Agent {
     /// to, as `PointerRecognizer` resolves a real touch's: from the innermost
     /// enabled node hearing the pointer up, each that hears either.
     static func fingerPath(from view: UIView) -> [HeldNode] {
-        #if os(iOS)
+        #if os(iOS) || os(visionOS)
         return (pointerNode(from: view).map(PointerRecognizer.bubbling(from:)) ?? []).map(HeldNode.init)
         #else
         return [] // tvOS touches no node (PointerIOS.swift)
@@ -364,7 +364,7 @@ extension Agent {
         // simulator, Shelf's discover list): 200 points past the top
         // refreshes, 180 does not.
         var refreshed = false
-        #if os(iOS)
+        #if os(iOS) || os(visionOS)
         let pull = CGFloat(delta[1]) - (o.y + sv.adjustedContentInset.top)
         if scrollsY, pull >= 200, let control = sv.refreshControl, control.isEnabled, !control.isRefreshing {
             control.beginRefreshing()
@@ -392,7 +392,7 @@ extension Agent {
         let target = x ? (sv.superview as? NodeView)?.snappedOffset(want, in: sv) ?? want : want
         place(sv, at: target, x: x, y: y)
         // tvOS has no large titles.
-        #if os(iOS)
+        #if os(iOS) || os(visionOS)
         let o = sv.contentOffset, top = -sv.adjustedContentInset.top, reach = min(sv.bounds.height, sv.window?.bounds.height ?? 0) / 2
         guard y, o.y > top + 0.5, o.y < top + reach, let c = bar(following: sv), c.navigationItem.searchController == nil,
               c.navigationController?.navigationBar.prefersLargeTitles == true, c.navigationItem.largeTitleDisplayMode != .never else { return }

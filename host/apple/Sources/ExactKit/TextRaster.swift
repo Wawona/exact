@@ -47,7 +47,7 @@ struct TextRasterKey: Hashable {
 
 struct TextRasterImage {
     var diagnosticFallback: UInt8 = 0
-    #if os(iOS) || os(tvOS)
+    #if os(iOS) || os(visionOS) || os(tvOS)
     let content: TextInk
     #else
     let surface: IOSurface
@@ -60,7 +60,7 @@ struct TextRasterImage {
     /// above 1 for HDR (LLP 1100 D8).
     var headroom: Float = 0
     /// An HDR `text-shadow` alone, the same size, for a layer under the ink's.
-    #if os(iOS) || os(tvOS)
+    #if os(iOS) || os(visionOS) || os(tvOS)
     var cast: CGImage? = nil
     #else
     var cast: IOSurface? = nil
@@ -71,7 +71,7 @@ struct TextRasterImage {
     var ink = CGRect.null, shadows = CGRect.null
 }
 
-#if os(iOS) || os(tvOS)
+#if os(iOS) || os(visionOS) || os(tvOS)
 /// A paragraph keeps colored pixels, reusable glyph values, or single-color coverage.
 enum TextInk {
     case pixels(CGImage)
@@ -119,7 +119,7 @@ final class TextDrawing {
 #endif
 
 extension TextRasterImage {
-    #if os(iOS) || os(tvOS)
+    #if os(iOS) || os(visionOS) || os(tvOS)
     /// A drawing-backed coverage result carries its immutable glyph values with its painted mask.
     var drawing: TextDrawing? {
         switch content {
@@ -383,7 +383,7 @@ struct TextRasterJob {
         // Truncation inserts runs whose paint need not occur in the source.
         let runs = lines.flatMap { CTLineGetGlyphRuns($0) as! [CTRun] }
         let (space, headroom, deep) = format(runs)
-        #if os(iOS) || os(tvOS)
+        #if os(iOS) || os(visionOS) || os(tvOS)
         // Color profiles do not change coverage; only paints needing separate colors or HDR keep pixels
         var fallbackReason: UInt8 = 0
         if shadow != nil { fallbackReason |= 2 }
@@ -414,7 +414,7 @@ struct TextRasterJob {
             paint(lines, positions, frame: frame, height: height, scale: scale, pass: .ink, into: $0)
         }) else { return nil }
         var out = TextRasterImage(ink.pixels, frame: frame, covered: covered, headroom: headroom)
-        #if os(iOS) || os(tvOS)
+        #if os(iOS) || os(visionOS) || os(tvOS)
         out.diagnosticFallback = fallbackReason
         #endif
         out.ink = painted; out.shadows = shadowed
@@ -469,7 +469,7 @@ struct TextRasterJob {
         let w = extent.pixels?.width ?? (frame.width * scale).rounded(.up)
         let h = extent.pixels?.height ?? (frame.height * scale).rounded(.up)
         guard w.isFinite, h.isFinite, w > 0, h > 0, w < CGFloat(Int.max), h < CGFloat(Int.max) else { return nil }
-        #if os(iOS) || os(tvOS)
+        #if os(iOS) || os(visionOS) || os(tvOS)
         // Retain glyph values; UIKit generates coverage when this drawing is shown
         var out = TextRasterImage(TextDrawing(glyphs.lines, at: positions, frame: frame, scale: scale, color: color, smooths: !antialiased, pixels: CGSize(width: w, height: h)),
                                   covered: covered.rect)
@@ -521,7 +521,7 @@ struct TextRasterJob {
         return CFGetTypeID(ref) == CGColor.typeID ? (ref as! CGColor) : nil
     }
 
-    #if os(iOS) || os(tvOS)
+    #if os(iOS) || os(visionOS) || os(tvOS)
     private typealias Pixels = CGImage
     #else
     private typealias Pixels = IOSurface
@@ -614,7 +614,7 @@ struct TextRasterJob {
         }
     }
 
-    #if os(iOS) || os(tvOS)
+    #if os(iOS) || os(visionOS) || os(tvOS)
     /// A run CoreText decorates as it draws its line: an underline or a line-through
     private static func decorated(_ run: CTRun) -> Bool {
         let attributes = CTRunGetAttributes(run) as NSDictionary

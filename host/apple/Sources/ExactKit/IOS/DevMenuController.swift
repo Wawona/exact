@@ -1,4 +1,4 @@
-#if os(iOS)
+#if os(iOS) || os(visionOS)
 import UIKit
 
 /// UIKit owns sheet width, scrolling, Dynamic Type and row interaction.
@@ -109,6 +109,7 @@ final class DevMenuController: UITableViewController {
         let navigation = UINavigationController(rootViewController: DevMenuController())
         navigation.modalPresentationStyle = UIDevice.current.userInterfaceIdiom == .pad ? .formSheet : .pageSheet
         navigation.preferredContentSize = CGSize(width: 560, height: 640)
+        #if os(iOS)
         if let sheet = navigation.sheetPresentationController {
             // Opens at full height, and a drag rests it at half to show the app beneath
             sheet.detents = [.medium(), .large()]
@@ -116,6 +117,7 @@ final class DevMenuController: UITableViewController {
             sheet.prefersGrabberVisible = true
             sheet.prefersEdgeAttachedInCompactHeight = true
         }
+        #endif
         return navigation
     }
 }

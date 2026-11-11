@@ -6,7 +6,7 @@
 // (#721). A view holding such a box lists its accessibility children
 // itself, as UIKit would were the box a point tall: its subviews in
 // UIKit's order, with that box's children in its place.
-#if os(iOS) || os(tvOS)
+#if os(iOS) || os(visionOS) || os(tvOS)
 import UIKit
 
 extension NodeView {

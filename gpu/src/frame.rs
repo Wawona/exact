@@ -376,9 +376,19 @@ impl Module {
             .filter(|i| !i.seen.load(Ordering::Acquire))
             .map(|i| i.seen.clone())
             .collect();
-        #[cfg(any(target_os = "macos", target_os = "ios", target_os = "tvos"))]
+        #[cfg(any(
+            target_os = "macos",
+            target_os = "ios",
+            target_os = "tvos",
+            target_os = "visionos"
+        ))]
         let mut first = first;
-        #[cfg(any(target_os = "macos", target_os = "ios", target_os = "tvos"))]
+        #[cfg(any(
+            target_os = "macos",
+            target_os = "ios",
+            target_os = "tvos",
+            target_os = "visionos"
+        ))]
         let rode = {
             let ride = open
                 .canvases
@@ -395,7 +405,12 @@ impl Module {
             // scheduled twice).
             before.is_some_and(|n| presented_with_submit(&gpu.queue) == Some(n + drawn))
         };
-        #[cfg(not(any(target_os = "macos", target_os = "ios", target_os = "tvos")))]
+        #[cfg(not(any(
+            target_os = "macos",
+            target_os = "ios",
+            target_os = "tvos",
+            target_os = "visionos"
+        )))]
         let rode = {
             gpu.queue.submit([open.encoder.finish()]);
             false
@@ -731,7 +746,12 @@ fn shown(first: Vec<Arc<AtomicBool>>) {
 /// been scheduled if canvases in it draw their `first` frame; how many
 /// drawables it has presented that way so far. `None` off Metal, with
 /// `first` shown at once.
-#[cfg(any(target_os = "macos", target_os = "ios", target_os = "tvos"))]
+#[cfg(any(
+    target_os = "macos",
+    target_os = "ios",
+    target_os = "tvos",
+    target_os = "visionos"
+))]
 fn ride_next_submit(queue: &wgpu::Queue, first: Vec<Arc<AtomicBool>>) -> Option<usize> {
     // SAFETY: a flag, a callback and a counter of the queue wgpu owns;
     // nothing is encoded.
@@ -750,7 +770,12 @@ fn ride_next_submit(queue: &wgpu::Queue, first: Vec<Arc<AtomicBool>>) -> Option<
 
 /// How many drawables this queue has presented with the submit that drew
 /// them; `None` off Metal.
-#[cfg(any(target_os = "macos", target_os = "ios", target_os = "tvos"))]
+#[cfg(any(
+    target_os = "macos",
+    target_os = "ios",
+    target_os = "tvos",
+    target_os = "visionos"
+))]
 fn presented_with_submit(queue: &wgpu::Queue) -> Option<usize> {
     // SAFETY: a counter of the queue wgpu owns is read; nothing is encoded.
     unsafe { queue.as_hal::<wgpu::hal::api::Metal>() }.map(|q| q.counts().presented_with_submit)

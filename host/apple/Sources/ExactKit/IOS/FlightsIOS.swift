@@ -13,7 +13,7 @@
 // frame, so a scroll that settles moves the landing), with its radius and an
 // image's crop interpolated too. Any other view flies scaled whole in a clip
 // that is the shown box (`FlightScale`). `land` puts it back.
-#if os(iOS) || os(tvOS)
+#if os(iOS) || os(visionOS) || os(tvOS)
 import UIKit
 
 /// The look an arriver shows while it flies: where its image is drawn,

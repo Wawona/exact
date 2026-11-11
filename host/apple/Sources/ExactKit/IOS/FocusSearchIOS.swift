@@ -20,7 +20,7 @@
 // thread in a fast fling of the Extra Heavy feed — to reach the few it can
 // focus. Only viewports and content mounts answer: UIKit logs, at every
 // init, each view of a class that answers `focusItems(in:)`.
-#if os(iOS) || os(tvOS)
+#if os(iOS) || os(visionOS) || os(tvOS)
 import UIKit
 
 enum FocusSearch {
@@ -67,11 +67,13 @@ final class Viewport: ScrollView {
     }
     override init(frame: CGRect) {
         super.init(frame: frame)
-        #if os(iOS)
+        #if os(iOS) || os(visionOS)
         // The page's own scroller takes the keyboard down with a drag that
         // reaches it, as a scroller's unsaid `keyboardDismissMode` does
         // (`NodeView.keyboardDismissal`, LLP 1115.000 D9.1).
+        #if !os(visionOS)
         keyboardDismissMode = .interactive
+        #endif
         #endif
     }
     required init?(coder: NSCoder) { nil }
@@ -97,7 +99,7 @@ final class Viewport: ScrollView {
 /// Bound focus search to a native route or modal presentation, as the
 /// document viewport does (LLP 1123 D2).
 final class PresentationMount: UIView {
-    #if os(iOS)
+    #if os(iOS) || os(visionOS)
     /// Relay a modal presentation's events to its logical ancestors (`MountRelay`).
     var relay: MountRelay?
     #endif

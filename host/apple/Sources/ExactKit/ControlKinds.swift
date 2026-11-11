@@ -214,7 +214,7 @@ struct ButtonFace: Equatable {
     /// an author writes for the grey capsule. tvOS keeps the bordered button:
     /// its focus look is drawn on the button's own shape, and a plain button
     /// has none to draw it on. The two are told apart here and nowhere else.
-    #if os(iOS)
+    #if os(iOS) || os(visionOS)
     static let unsaid = "plain"
     #else
     static let unsaid = "bordered"

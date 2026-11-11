@@ -35,7 +35,7 @@ extension CALayer {
         layer.cornerCurve = cornerCurve
         layer.backgroundColor = backgroundColor
         layer.borderColor = borderColor; layer.borderWidth = borderWidth
-        #if os(iOS) || os(tvOS)
+        #if os(iOS) || os(visionOS) || os(tvOS)
         if let coverage = delegate as? CoverageImageView { layer.contents = coverage.coverage?.painted() }
         else { layer.contents = contents }
         #else

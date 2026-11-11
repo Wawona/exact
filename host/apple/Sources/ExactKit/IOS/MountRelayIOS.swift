@@ -1,5 +1,5 @@
 // @ref LLP 1123 D2 — a presented route's logical ancestors hear its touches.
-#if os(iOS)
+#if os(iOS) || os(visionOS)
 import UIKit
 
 /// What a presented route's or a modal dialog's authored ancestors listen

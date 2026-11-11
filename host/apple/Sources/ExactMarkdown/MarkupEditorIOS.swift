@@ -1,5 +1,5 @@
 // @ref LLP 1045 D5, D6 — source replacements through UIKit's own input path.
-#if os(iOS) || os(tvOS)
+#if os(iOS) || os(visionOS) || os(tvOS)
 import UIKit
 import ExactKit
 

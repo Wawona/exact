@@ -34,7 +34,11 @@ fn closed_wait() -> bool {
         return true;
     }
     // LLP 1126 D10: watchOS has no UIKit presenter to return covered top-layer boxes.
-    cfg!(any(target_os = "ios", target_os = "tvos"))
+    cfg!(any(
+        target_os = "ios",
+        target_os = "tvos",
+        target_os = "visionos"
+    ))
 }
 
 /// Whether `node` is a box of the top layer: a `dialog` or a popover.

@@ -397,7 +397,7 @@ public final class ExactSession {
     let finishHold = FinishHold.platform()
     /// The view presenting this session, while one is mounted (D1).
     weak package var view: ExactView? { didSet { if view !== oldValue { natives.sessionViewChanged() } } }
-    #if os(iOS) || os(tvOS)
+    #if os(iOS) || os(visionOS) || os(tvOS)
     private var systemDark = false
     var launchViewport: (plan: Data?, cover: Bool)?
     #endif
@@ -431,7 +431,7 @@ public final class ExactSession {
         if fillInFlight || !afterFill.isEmpty { out.append("fill") }
         if tickInFlight || hasPublished { out.append("published") }
         if canvasInFlight || canvasOwed || presenter.canvas2d.loadingCount > 0 { out.append("canvas") }
-        #if os(iOS)
+        #if os(iOS) || os(visionOS)
         if SvgFilterLive.inFlight > 0 { out.append("svgPicture") }
         #endif
         return out
@@ -469,7 +469,7 @@ public final class ExactSession {
     /// macOS follows once physical scrolling there is measured (stage 5).
     /// Read when a session wires itself; tests set it to drive the
     /// asynchronous path on macOS.
-    #if os(iOS) || os(tvOS)
+    #if os(iOS) || os(visionOS) || os(tvOS)
     nonisolated(unsafe) static var asyncFills = !ExactEnv.agentFreezes && ExactEnv.environment["EXACT_FILL_SYNC"] != "1"
     #else
     nonisolated(unsafe) static var asyncFills = false
@@ -772,7 +772,7 @@ public final class ExactSession {
         presenter.onResizeBox = { [unowned self] id, width, height in
             whenIdle(bound: true) { [unowned self] in applyUnlessEmpty(runtime.resizeBox(id, width: width, height: height)) }
         }
-        #if os(iOS) || os(tvOS)
+        #if os(iOS) || os(visionOS) || os(tvOS)
         natives.onHatchesConnected = { [weak self] in
             self?.presenter.navigation.replayHatches()
             self?.presenter.elements.replay()
@@ -1308,7 +1308,7 @@ public final class ExactSession {
     }
     var displayModeOverride: UInt32?
     func preferenceBits() -> UInt32 {
-        #if os(iOS) || os(tvOS)
+        #if os(iOS) || os(visionOS) || os(tvOS)
         // The scene owns system appearance; a window's app override does not.
         if let scene = view?.window?.windowScene {
             systemDark = scene.traitCollection.userInterfaceStyle == .dark
@@ -1360,7 +1360,7 @@ public final class ExactSession {
             let early = unreported; unreported.removeAll()
             for id in early {
                 if let v = presenter.views[id] { noteAppearance(v); continue }
-                #if os(iOS) || os(tvOS)
+                #if os(iOS) || os(visionOS) || os(tvOS)
                 if let dark = presenter.flats.appearance(of: id) { noteAppearance(id, dark: dark) }
                 #endif
             }
@@ -1376,7 +1376,7 @@ public final class ExactSession {
     /// own tint is the host's to paint (`ownTint`).
     func reportColors() {
         guard booted, state != .destroyed else { return }
-        #if os(iOS) || os(tvOS)
+        #if os(iOS) || os(visionOS) || os(tvOS)
         // No window, no report: attaching reports (`didMoveToWindow`), before its scheme, so nothing eases from a stand-in blue.
         guard view?.window != nil else { return }
         #endif

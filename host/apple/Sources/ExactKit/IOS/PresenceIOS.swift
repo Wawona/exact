@@ -4,7 +4,7 @@
 // content retires. The final destroy releases every member of the same walk.
 // Its `present` ops keep coming until then: the engine animates it.
 // A view's transform, with a layout transition's box, is in `PressFeedback.swift`.
-#if os(iOS) || os(tvOS)
+#if os(iOS) || os(visionOS) || os(tvOS)
 import UIKit
 
 struct Leaving {

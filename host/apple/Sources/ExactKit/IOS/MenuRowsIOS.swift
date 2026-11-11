@@ -1,7 +1,7 @@
 // What a menu row shows in UIKit's menu (LLP 1021 D3): its title, subtitle
 // and image, read from the row's nodes, which a closed menu never lays out.
 
-#if os(iOS) || os(tvOS)
+#if os(iOS) || os(visionOS) || os(tvOS)
 import UIKit
 
 extension MenuHost {

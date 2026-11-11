@@ -1,4 +1,4 @@
-#if (os(iOS) || os(tvOS)) && !targetEnvironment(macCatalyst)
+#if ((os(iOS) || os(visionOS)) || os(tvOS)) && !targetEnvironment(macCatalyst)
 import Metal
 import QuartzCore
 import UIKit

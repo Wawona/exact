@@ -60,7 +60,7 @@ final class AnimatedRasters {
         guard let image = view.raster?.image, let animation = image.animation else { players.removeValue(forKey: key); return }
         if players[key]?.image === image { return }
         players[key] = Player(view: view, image: image, animation: animation, agent: view.presenter?.session?.clock != nil)
-        #if os(iOS) || os(tvOS)
+        #if os(iOS) || os(visionOS) || os(tvOS)
         // Its scroll, layout and window notices are the ones video uses.
         if view.presenter?.videoVisibility == nil { view.presenter?.videoVisibility = VideoVisibilityHost() }
         #endif
@@ -158,7 +158,7 @@ final class AnimatedRasters {
 
     private func present(_ p: Player) {
         guard let view = p.view else { return }
-        #if os(iOS) || os(tvOS)
+        #if os(iOS) || os(visionOS) || os(tvOS)
         if let layer = view.imageLayer {
             CATransaction.begin(); CATransaction.setDisableActions(true)
             let bitmap = layer.sublayers?.first ?? layer

@@ -34,7 +34,7 @@
 // own sound plays in it. The claim lasts while any call does; when the last
 // ends, the app's category comes back at the deactivation that follows, or
 // at once, without activating, when the session is already inactive.
-#if os(iOS) || os(tvOS)
+#if os(iOS) || os(visionOS) || os(tvOS)
 import AVFoundation
 import Foundation
 import UIKit
@@ -413,7 +413,7 @@ package enum AudioSession {
         guard !observing else { return }
         observing = true
         let center = NotificationCenter.default
-        if #available(iOS 27, tvOS 27, *) {
+        if #available(iOS 27, tvOS 27, visionOS 27, *) {
             center.addObserver(forName: AVAudioSession.didBecomeInactiveNotification, object: nil, queue: .main) { note in
                 // The app's own deactivation is not an interruption.
                 let context = note.userInfo?[AVAudioSession.deactivationContextKey] as? AVAudioSession.DeactivationContext

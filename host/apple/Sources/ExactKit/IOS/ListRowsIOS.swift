@@ -2,7 +2,7 @@
 // scroll view (iOS, tvOS): a fling's fills build, move and drop rows many
 // times a second, a playhead redraws its strip eight, and the route and bar
 // projection reads nothing in them.
-#if os(iOS) || os(tvOS)
+#if os(iOS) || os(visionOS) || os(tvOS)
 import UIKit
 
 extension Presenter {

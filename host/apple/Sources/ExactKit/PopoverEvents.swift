@@ -10,7 +10,7 @@ final class PopoverEvents {
         let incarnation: UInt64
         init(_ node: NodeView) {
             object = ObjectIdentifier(node); id = node.id
-            #if os(iOS) || os(tvOS)
+            #if os(iOS) || os(visionOS) || os(tvOS)
             incarnation = node.incarnation
             #else
             incarnation = 0

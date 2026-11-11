@@ -11,7 +11,7 @@
 // `Mac/ResizeGripMac.swift` and `IOS/ResizeGripIOS.swift`; tvOS's textarea
 // is read-only and has none.
 import CoreGraphics
-#if os(iOS) || os(tvOS)
+#if os(iOS) || os(visionOS) || os(tvOS)
 import UIKit
 #else
 import AppKit

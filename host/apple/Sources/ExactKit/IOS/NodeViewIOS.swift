@@ -6,7 +6,7 @@
 // and opacity come from presentation values, about the center. Everything
 // a node reaches beyond itself — the text engine, the canvases, the web
 // views — it reaches through its presenter's session (LLP 1031 D1).
-#if os(iOS) || os(tvOS)
+#if os(iOS) || os(visionOS) || os(tvOS)
 import ImageIO
 import UIKit
 
@@ -202,7 +202,7 @@ package final class NodeView: UIView, UITextViewDelegate, UITextFieldDelegate, U
             let delta = translation - swipeOrigin
             guard hold.move(delta) else { hold.cancel(); swipeHold = nil; return }
             let armed = hold.mapping.value(delta) >= Gesture.knee
-            #if os(tvOS)
+            #if os(tvOS) || os(visionOS)
             swipeArmed = armed
             #else
             if armed != swipeArmed { swipeFeedback.selectionChanged(); swipeArmed = armed }
@@ -218,7 +218,7 @@ package final class NodeView: UIView, UITextViewDelegate, UITextFieldDelegate, U
         if CanvasInputs.owns(touch.view) { return false }
         if gestureRecognizer === swipeRecognizer, gestureRecognizer.numberOfTouches == 0 { swipeDownX = touch.location(in: window).x }
         if stopsAtPress(gestureRecognizer), pressBoundary(touch, presses: gestureRecognizer !== layoutPanRecognizer) { return false } // LLP 1057.001 rule 3
-        #if os(iOS)
+        #if os(iOS) || os(visionOS)
         if gestureRecognizer === contextRecognizer {
             guard presenter?.menus.eligible(self, contextMenu: true) == true,
                   hasOwnContextMenu || inlineContextTarget(at: touch.location(in: self)) != nil else { return false }
@@ -394,7 +394,7 @@ package final class NodeView: UIView, UITextViewDelegate, UITextFieldDelegate, U
         if ok, presenter?.menus.focus.quiet != true { presenter?.blur(id) }
         return ok
     }
-    #if os(iOS)
+    #if os(iOS) || os(visionOS)
     /// A focused node is not text entry, as the view's shortcut focus is not
     /// (ExactViewIOS): a menu that reloads its responder's input views (a
     /// `select`'s) raised the software keyboard over its options once a
@@ -773,8 +773,8 @@ package final class NodeView: UIView, UITextViewDelegate, UITextFieldDelegate, U
         presenter?.collections.animationEnded(id, dragging: true)
         presenter?.collections.userIntent(id, travel: true)
         retainedScrollTop = nil
-        #if os(iOS)
-        if #available(iOS 27.1, *) { presenter?.arrangements.cancelScrollHandoff(id) }
+        #if os(iOS) || os(visionOS)
+        if #available(iOS 27.1, visionOS 27.1, *) { presenter?.arrangements.cancelScrollHandoff(id) }
         if swipeOwner { presenter?.swipeActions.painted.began(self) }
         #endif
     }
@@ -789,7 +789,7 @@ package final class NodeView: UIView, UITextViewDelegate, UITextFieldDelegate, U
         let room = extras?.nativeScrollContentInsets ?? .zero
         presenter?.onScrolled?(id, Double(scrollView.contentOffset.x + room.left), Double(scrollView.contentOffset.y + room.top + pageBand.top))
         presenter?.stickies.scrolled(id); presenter?.collections.changed(id, user: true)
-        #if os(iOS)
+        #if os(iOS) || os(visionOS)
         if swipeOwner, scrollView.isTracking { presenter?.swipeActions.painted.scrolled(self) }
         #endif
         presenter?.transformGeometry.changed()
@@ -955,7 +955,7 @@ package final class NodeView: UIView, UITextViewDelegate, UITextFieldDelegate, U
             if kind == "native", presenter?.session?.natives.declined(self, at: point, with: event) == true { return nil }
             if event?.type == .touches, isParagraph {
                 touchedText()
-                #if os(iOS)
+                #if os(iOS) || os(visionOS)
                 if let surface = presenter?.textSelection.text(for: self)?.document?.surface { return surface }
                 #endif
             } // selectable text takes its interaction for this touch
@@ -1099,7 +1099,7 @@ package final class NodeView: UIView, UITextViewDelegate, UITextFieldDelegate, U
     func applyMaterialRadius() {
         guard let materialView else { return }
         let radius = BorderPaint.clip(materialView.layer, in: bounds, radii: effectiveCornerSizes(in: bounds))
-        if #available(iOS 26.0, tvOS 26.0, *) {
+        if #available(iOS 26.0, tvOS 26.0, visionOS 26.0, *) {
             materialView.cornerConfiguration = .corners(radius: .fixed(Double(radius)))
         } else {
             materialView.layer.cornerRadius = radius
@@ -1130,7 +1130,7 @@ package final class NodeView: UIView, UITextViewDelegate, UITextFieldDelegate, U
         for k in clear { next.removeValue(forKey: k) }
         for (k, v) in set { next[k] = v }
         props = next
-        #if os(iOS)
+        #if os(iOS) || os(visionOS)
         let nativeList = kind == "list" && next["listStyle"] != nil
         if groupedOwner != nativeList { groupedOwner = nativeList; syncScroll() }
         #endif

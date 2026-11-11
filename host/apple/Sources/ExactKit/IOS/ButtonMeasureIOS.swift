@@ -1,5 +1,5 @@
 // @ref LLP 1069.011.001 D11: cached real UIKit height-for-width before publication.
-#if os(iOS) || os(tvOS)
+#if os(iOS) || os(visionOS) || os(tvOS)
 import UIKit
 import CExact
 

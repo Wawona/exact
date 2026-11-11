@@ -22,7 +22,7 @@ export function watchSimulator(args) {
   return id;
 }
 export async function buildWatch(app, args, { runApple, appleArtifacts, appleBuildLock, receipt, buildParent }) {
-  if (args.some(a => ['--device', '--archive', '--tvos', '--host', '--embed', '--test', '--url'].includes(a))) throw new Error('--watchos currently builds the watch simulator companion; use --sim for its iPhone and --watch-sim for its paired watch');
+  if (args.some(a => ['--device', '--archive', '--tvos', '--visionos', '--host', '--embed', '--test', '--url'].includes(a))) throw new Error('--watchos currently builds the watch simulator companion; use --sim for its iPhone and --watch-sim for its paired watch');
   if (args.includes('--run') && args.includes('--no-install')) throw new Error('--no-install takes no --run');
   const watchSim = watchSimulator(args);
   const release = appleBuildLock(app);

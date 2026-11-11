@@ -4,7 +4,7 @@
 // `haptic()` plays (D14). The iOS-only ones (scroll edge, pointer hover,
 // Smart Invert, numerals that roll) are `IOS/AffordancesIOS.swift`.
 import ObjectiveC
-#if os(iOS) || os(tvOS)
+#if os(iOS) || os(visionOS) || os(tvOS)
 import UIKit
 typealias SymbolImage = UIImage
 typealias SymbolConfig = UIImage.SymbolConfiguration
@@ -35,14 +35,14 @@ extension NodeView {
     package func followsTint(_ key: String) -> Bool { style[key].map { $0.tintAlpha != nil } ?? (key == "tint_color") }
     /// The platform tint used by a native control’s symbol.
     var inheritedTint: PlatformColor {
-        #if os(iOS) || os(tvOS)
+        #if os(iOS) || os(visionOS) || os(tvOS)
         return tintColor
         #else
         return viewTint ?? .controlAccentColor
         #endif
     }
 
-    #if os(iOS) || os(tvOS)
+    #if os(iOS) || os(visionOS) || os(tvOS)
     /// Inks the symbol view. Where its ink is the tint, or its palette names the tint (which UIKit
     /// resolves by the view's tint), the view has no tint of its own: it inherits the node's, and
     /// UIKit dims it. Else its tint is its ink, which UIKit leaves as it is (`.normal`); a share of
@@ -64,7 +64,7 @@ extension NodeView {
 
     /// Whether it is drawn as a list cell's image (iOS's custom grouped row).
     var drawsListSymbol: Bool {
-        #if os(iOS) || os(tvOS)
+        #if os(iOS) || os(visionOS) || os(tvOS)
         listSymbol
         #else
         false
@@ -75,7 +75,7 @@ extension NodeView {
         [style["symbol_rendering"]?.string ?? "", "\(number("symbol_value", -1))", "\(drawsListSymbol)"].joined(separator: "|")
     }
 
-    #if os(iOS) || os(tvOS)
+    #if os(iOS) || os(visionOS) || os(tvOS)
     /// The point size whose large scale UIKit's list cell draws its image at
     /// at each accessibility text size: a star measured on iOS 27.0 under the
     /// system's text size (ink 30.33, 35, 34.33, 40.33 and 45.33 points wide,
@@ -88,7 +88,7 @@ extension NodeView {
     #endif
     /// Shape belongs to the cached image; paint can change without replacing it.
     func symbolShape(_ base: SymbolConfig) -> SymbolConfig {
-        #if os(iOS) || os(tvOS)
+        #if os(iOS) || os(visionOS) || os(tvOS)
         // At an accessibility size UIKit draws a list cell's image smaller
         // than the text's large scale (`listSymbolPoints`).
         guard drawsListSymbol else { return base }
@@ -103,7 +103,7 @@ extension NodeView {
     /// mode (D10) — hierarchical in the tint, a palette, or multicolor.
     /// `face`: as a native control's face draws it, without the page's ink.
     func symbolConfiguration(_ base: SymbolConfig, face: Bool = false) -> SymbolConfig {
-        #if os(iOS) || os(tvOS)
+        #if os(iOS) || os(visionOS) || os(tvOS)
         // A face is baked into a bitmap, in the tint as a value (`carriedTint`); else the tint as UIKit
         // draws it (`SystemColor.tint`), which follows the view the symbol is drawn in
         let tint = face ? carriedTint : inkTintShare.map(SystemColor.tint) ?? drawnSymbolInk ?? SystemColor.tint(1)
@@ -116,7 +116,7 @@ extension NodeView {
         case "multicolor": return base.applying(SymbolConfig.preferringMulticolor())
         case "palette":
             let colors = (style["symbol_palette"]?.array ?? []).compactMap { c -> PlatformColor? in
-                #if os(iOS) || os(tvOS)
+                #if os(iOS) || os(visionOS) || os(tvOS)
                 if face { return c.channels(dark: drawsDark, contrast: drawsHighContrast, elevated: drawsElevated, tint: c.namesTint ? carriedTint : nil).map(TextEngine.color) }
                 if let alpha = c.tintAlpha { return SystemColor.tint(alpha) }
                 return c.channels(dark: drawsDark, contrast: drawsHighContrast, elevated: drawsElevated).map(TextEngine.color)
@@ -140,7 +140,7 @@ extension NodeView {
     /// when it has one.
     func symbolImage(_ name: String, _ config: SymbolConfig) -> SymbolImage? {
         let value = number("symbol_value", -1)
-        #if os(iOS) || os(tvOS)
+        #if os(iOS) || os(visionOS) || os(tvOS)
         if value >= 0 { return UIImage(systemName: name, variableValue: Double(value), configuration: config) }
         return UIImage(systemName: name, withConfiguration: config)
         #else
@@ -195,7 +195,7 @@ extension NodeView {
     }
 }
 
-#if os(iOS) || os(tvOS)
+#if os(iOS) || os(visionOS) || os(tvOS)
 typealias SymbolLeaf = UIImageView
 #else
 typealias SymbolLeaf = NSImageView
@@ -220,8 +220,8 @@ final class SymbolEffectState {
 /// Force Touch trackpad.
 enum Haptics {
     static func play(_ kind: String) {
-        #if os(tvOS)
-        // tvOS has no haptics.
+        #if os(tvOS) || os(visionOS)
+        // tvOS and visionOS have no haptics.
         #elseif os(iOS)
         switch kind {
         case "selection": UISelectionFeedbackGenerator().selectionChanged()

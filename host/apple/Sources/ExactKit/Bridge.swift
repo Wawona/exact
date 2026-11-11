@@ -9,7 +9,7 @@ extension Runtime {
             prepareBatch: { $0.prepare() }, symbolMeasure: SymbolMeasure.measure,
             prewarmIslands: { svg in
                 if svg & 1 != 0 { SvgRasterModule.prewarm() }
-                #if os(iOS) || os(tvOS)
+                #if os(iOS) || os(visionOS) || os(tvOS)
                 if svg & 2 != 0 { SvgFilterMetal.prewarm() }
                 #endif
             }))

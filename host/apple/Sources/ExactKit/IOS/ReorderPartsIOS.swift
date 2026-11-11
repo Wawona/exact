@@ -1,6 +1,6 @@
 // Dropping across lists on UIKit (LLP 1094 D6): the ghost is a snapshot in
 // the window, its port facts and scrollers in window coordinates (y down).
-#if os(iOS) || os(tvOS)
+#if os(iOS) || os(visionOS) || os(tvOS)
 import UIKit
 
 /// The lifted row's stand-in, above everything in the window.

@@ -11,7 +11,7 @@ import AlarmKit
 import SwiftUI
 import WidgetKit
 
-@available(iOS 26.0, *)
+@available(iOS 26.0, visionOS 26.0, *)
 struct ExactAlarmCountdown: Widget {
     var body: some WidgetConfiguration {
         ActivityConfiguration(for: AlarmAttributes<ExactAlarmMetadata>.self) { context in
@@ -41,7 +41,7 @@ struct ExactAlarmCountdown: Widget {
 }
 
 /// The title the alarm was set with: its countdown's, else its alert's.
-@available(iOS 26.0, *)
+@available(iOS 26.0, visionOS 26.0, *)
 private struct AlarmTitle: View {
     let context: ActivityViewContext<AlarmAttributes<ExactAlarmMetadata>>
     var body: some View {
@@ -52,7 +52,7 @@ private struct AlarmTitle: View {
 
 /// The time left, counting down; "Paused" with the time left; nothing while
 /// the alert shows, which is the system's.
-@available(iOS 26.0, *)
+@available(iOS 26.0, visionOS 26.0, *)
 private struct AlarmTime: View {
     let state: AlarmPresentationState
     static func paused(_ state: AlarmPresentationState) -> Bool {

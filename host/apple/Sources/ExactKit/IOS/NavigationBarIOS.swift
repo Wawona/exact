@@ -6,7 +6,7 @@
 // ExactNativeModule.swift.
 // @ref LLP 1115.000 D5.3 — whether the bar shows is each route's, never
 // decided once for its stack (`routeShowsBar`, NavigationTitleIOS.swift).
-#if os(iOS) || os(tvOS)
+#if os(iOS) || os(visionOS) || os(tvOS)
 import UIKit
 
 /// What a route's bar item is projected from: what it shows of the bar
@@ -112,7 +112,7 @@ final class HeaderSearch: NSObject, UISearchBarDelegate, UISearchControllerDeleg
     weak var field: NodeView? {
         didSet {
             if oldValue !== field { oldValue?.headerField = nil; acceptingDismissal = false }
-            #if os(iOS)
+            #if os(iOS) || os(visionOS)
             field?.headerField = controller.searchBar.searchTextField
             field?.applyFieldDirection()
             controller.searchBar.searchTextField.pasteDelegate = field
@@ -127,7 +127,7 @@ final class HeaderSearch: NSObject, UISearchBarDelegate, UISearchControllerDeleg
         super.init()
         controller.searchBar.delegate = self
         controller.delegate = self
-        #if os(iOS)
+        #if os(iOS) || os(visionOS)
         controller.searchResultsUpdater = self
         textDelegate = controller.searchBar.searchTextField.delegate
         controller.searchBar.searchTextField.delegate = self
@@ -144,7 +144,7 @@ final class HeaderSearch: NSObject, UISearchBarDelegate, UISearchControllerDeleg
     /// sticky` with a `top` or `bottom` that is not `auto` (CSS Positioned
     /// Layout 3 §3.4: a box with both `auto` does not stick on that axis).
     func applyHiding() {
-        #if os(iOS)
+        #if os(iOS) || os(visionOS)
         guard let item else { return }
         let sticks = field.map { f in
             f.layoutPosition == "sticky" && ["top", "bottom"].contains { f.style[$0]?.length(basis: 0) != nil }
@@ -172,7 +172,7 @@ final class HeaderSearch: NSObject, UISearchBarDelegate, UISearchControllerDeleg
             }
         }
         applyHiding()
-        #if os(iOS)
+        #if os(iOS) || os(visionOS)
         showScopes()
         #endif
     }
@@ -243,7 +243,7 @@ final class HeaderSearch: NSObject, UISearchBarDelegate, UISearchControllerDeleg
     }
 }
 
-#if os(iOS)
+#if os(iOS) || os(visionOS)
 extension HeaderSearch: UISearchResultsUpdating {
     func updateSearchResults(for search: UISearchController) {
         // UIKit resets the query before ending editing, without the bar's text-change callback
@@ -496,7 +496,7 @@ extension NavigationHost {
         let nav = stack as? UINavigationController
         if let nav {
             hatchNavigation(nav)
-            #if os(iOS)
+            #if os(iOS) || os(visionOS)
             presenter.menus.focus.watch(nav.navigationBar) // a bar item's menu (MenuFocusIOS), every stack, rebuilt or not
             #endif
             projectBack(routes, in: nav)
@@ -545,7 +545,7 @@ extension NavigationHost {
                     project(shape, into: c, canGoBack: canGoBack, shows: shows)
                 }
             }
-            #if os(iOS)
+            #if os(iOS) || os(visionOS)
             scope(c, shape: shows ? shape : nil)
             #endif
             collapse(c, shape: shape, shows: shows, scroller: scroller)
@@ -842,8 +842,8 @@ extension NavigationHost {
         let node = shape.map { shape in kids.firstIndex { $0 === shape.header }.flatMap { kids[($0 + 1)...].first(where: flowing) } }
             ?? (shows || whole ? kids.first(where: flowing) : nil)
         var riders: [NodeView] = []
-        #if os(iOS)
-        if #available(iOS 26.0, *), shape?.level == 1, let scroller,
+        #if os(iOS) || os(visionOS)
+        if #available(iOS 26.0, visionOS 26.0, *), shape?.level == 1, let scroller,
            scroller.style["scroll_edge_effect"]?.string != "none", !Self.transparentBar(c.node),
            case let bands = presenter.controlBands(of: scroller, in: c.node, ControlBars(presenter)), !bands.top.isEmpty {
             riders = bands.top
@@ -1048,7 +1048,7 @@ extension NavigationHost {
         var previous: UInt32?
         for (index, item) in items.enumerated() {
             #if !os(tvOS)
-            if #available(iOS 26.0, *), index > 0, previous != item.toolbarGroup {
+            if #available(iOS 26.0, visionOS 26.0, *), index > 0, previous != item.toolbarGroup {
                 // The space before a group stays the same space.
                 let space = route.barSpaces[item.id] ?? UIBarButtonItem(barButtonSystemItem: .fixedSpace, target: nil, action: nil)
                 route.barSpaces[item.id] = space
@@ -1099,7 +1099,7 @@ extension NavigationHost {
         // does not hold; from iOS 26 it is drawn in the label colour.
         let button = i.menu ? presenter.views[i.id] : nil
         var tinted = i.chip != nil
-        if #available(iOS 26.0, tvOS 26.0, *) { tinted = false }
+        if #available(iOS 26.0, tvOS 26.0, visionOS 26.0, *) { tinted = false }
         if let made = c.barItemsMade[i.id], made.item == i, !tinted, button?.incarnation == made.menuFrom {
             c.barPresses.append(made.press)
             return made.bar
@@ -1175,10 +1175,10 @@ extension NavigationHost {
             item.setTitleTextAttributes(highlighted.isEmpty ? nil : highlighted, for: .highlighted)
             press.activeForeground = nil
         }
-        if #available(iOS 26.0, tvOS 26.0, *) {
+        if #available(iOS 26.0, tvOS 26.0, visionOS 26.0, *) {
             item.style = i.prominent ? .prominent : .plain
             // A drawn face is its own shape: no glass capsule around it.
-            #if !os(tvOS)
+            #if os(iOS)
             item.hidesSharedBackground = i.badge != nil
             item.sharesBackground = i.badge != nil || !i.ownGlass
             #endif

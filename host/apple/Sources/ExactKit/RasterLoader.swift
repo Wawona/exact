@@ -790,7 +790,7 @@ final class RasterLoader {
     /// pixel size, which is the concrete object size the picture is drawn at
     /// (LLP 1011.001 D1); nil for a bitmap or another fit.
     private static func svgAspect(_ view: NodeView, _ metadata: RasterMetadata) -> (Int, Int)? {
-        #if os(iOS) || os(tvOS)
+        #if os(iOS) || os(visionOS) || os(tvOS)
         let box = view.buttonRasterView == nil ? view.bounds.size : metadata.naturalSize
         #else
         let box = view.bounds.size
@@ -809,7 +809,7 @@ final class RasterLoader {
         #else
         let scale = view.traitCollection.displayScale
         #endif
-        #if os(iOS) || os(tvOS)
+        #if os(iOS) || os(visionOS) || os(tvOS)
         // A native face displays the image at its natural dimensions, even
         // before metadata has enlarged the button's image-free layout box.
         if view.buttonRasterView != nil, let natural = metadata?.naturalSize {
@@ -1270,7 +1270,7 @@ final class RasterLoader {
         guard let presenter = landed.first?.view.presenter else { return }
         let sizes = landed.compactMap { item -> (UInt32, CGSize?)? in
             guard item.view.loadGeneration == item.generation, presenter.views[item.view.id] === item.view else { return nil }
-            #if os(iOS) || os(tvOS)
+            #if os(iOS) || os(visionOS) || os(tvOS)
             return (item.view.buttonRasterView ?? item.view.id, item.size)
             #else
             return (item.view.id, item.size)

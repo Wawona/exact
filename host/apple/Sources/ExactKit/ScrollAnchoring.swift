@@ -8,7 +8,7 @@
 // (LLP 1001), with the spec's selection, exclusions and suppression triggers.
 // Not here: `overflow-anchor: none` (not a Contract property), find-in-page
 // priority candidates, and the inline axis.
-#if os(iOS) || os(tvOS)
+#if os(iOS) || os(visionOS) || os(tvOS)
 import UIKit
 #else
 import AppKit
@@ -113,7 +113,7 @@ enum ScrollAnchoring {
         let roots = space.subviews.compactMap { $0 as? NodeView }
         let rect = { (n: NodeView) in n.convert(n.bounds, to: space) }
         let children = { (node: NodeView) -> [NodeView] in
-            #if os(iOS) || os(tvOS)
+            #if os(iOS) || os(visionOS) || os(tvOS)
             let scrolls = node.scrollView != nil
             #else
             let scrolls = node.scroll != nil
@@ -132,7 +132,7 @@ enum ScrollAnchoring {
             while let view = above, view !== scroller {
                 if let node = view as? NodeView {
                     if !live(node) || excluded(node, scroller: scroller) { viable = false; break }
-                    #if os(iOS) || os(tvOS)
+                    #if os(iOS) || os(visionOS) || os(tvOS)
                     let scrolls = node.scrollView != nil
                     #else
                     let scrolls = node.scroll != nil

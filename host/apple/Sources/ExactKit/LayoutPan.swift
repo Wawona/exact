@@ -86,7 +86,7 @@ final class MouseLayoutPan {
     func abandon() { candidate = nil; active = false }
     func retire(_ id: UInt32) { if candidate?.id == id { cancel() } }
 }
-#elseif os(iOS) || os(tvOS)
+#elseif os(iOS) || os(visionOS) || os(tvOS)
 import UIKit
 
 // UIPanGestureRecognizer begins after its recognition threshold. Preserve the

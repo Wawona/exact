@@ -3,7 +3,7 @@
 // scroller at the area's top or foot reaches into that band, as a
 // hand-built screen's scroll view fills the screen. Layout is the area's,
 // unchanged: only where the page is drawn moves.
-#if os(iOS) || os(tvOS)
+#if os(iOS) || os(visionOS) || os(tvOS)
 import UIKit
 
 extension UIScrollView {
@@ -60,7 +60,7 @@ extension Presenter {
                 let edgeEffect = v.style["scroll_edge_effect"]?.string != "none"
                 if let route = ViewPresentation.controllers(for: v).lazy.compactMap({ $0 as? RouteController }).first(where: { $0.host === navigation && v.isDescendant(of: $0.node) }) {
                     if let judge, edgeEffect { found = routeBands(of: v, sv, in: route, judge) }
-                    #if os(iOS)
+                    #if os(iOS) || os(visionOS)
                     if route.edgeScroll === v, let top = keyboardTop,
                        abs(route.node.convert(route.node.bounds, to: nil).maxY - top) < 1 {
                         found.band.bottom += keyboardAccessoryHeight
@@ -80,7 +80,7 @@ extension Presenter {
             if v.pageBand != found.band || v.bandInset != own { v.setPageBand(found.band, inset: own) }
             bars += found.top.map { ($0, v, .top) } + found.bottom.map { ($0, v, .bottom) }
         }
-        #if os(iOS)
+        #if os(iOS) || os(visionOS)
         // The bar's and the bottom bar's own edge effects follow a banded scroller (D2).
         for c in navigation.controllers.values {
             let r = routes[ObjectIdentifier(c)]
@@ -130,7 +130,7 @@ extension Presenter {
     /// the collapse scroller is judged as its title's riders are. None under
     /// a large title unless the eligible top bars ride its safe area.
     private func routeBands(of v: NodeView, _ sv: UIScrollView, in c: RouteController, _ judge: ControlBars) -> Bands {
-        #if os(iOS)
+        #if os(iOS) || os(visionOS)
         if let nav = c.navigationController, navigation.routeShowsBar(c, in: nav), c.navigationItem.largeTitleDisplayMode == .always, c.ridingBars.isEmpty { return Bands() }
         #endif
         if !c.ridingBars.isEmpty, case .edges(let edges)? = navigation.covers[c.node.id], edges.top > 0.5 { return Bands() }

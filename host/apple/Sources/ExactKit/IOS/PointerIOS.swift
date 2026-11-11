@@ -6,7 +6,7 @@
 // pointer hovering is not delivered). An observer, not a gesture: it never
 // recognizes, so it takes nothing from a press, a pan, a long press or the
 // scroll view, and it fires before any of them has decided.
-#if os(iOS) || os(tvOS)
+#if os(iOS) || os(visionOS) || os(tvOS)
 import UIKit
 
 extension Presenter {
@@ -30,7 +30,7 @@ extension Presenter {
 }
 #endif
 
-#if os(iOS)
+#if os(iOS) || os(visionOS)
 import UIKit
 
 final class PointerRecognizer: UIGestureRecognizer {
@@ -262,7 +262,7 @@ extension NodeView {
 }
 #endif
 
-#if os(iOS) || os(tvOS)
+#if os(iOS) || os(visionOS) || os(tvOS)
 import UIKit
 
 /// The responder hop taken on down, not a gesture recognizer. Weak view and
@@ -561,7 +561,7 @@ extension NodeView {
     func activateKey(_ name: String, handoff: Bool = false) -> Bool {
         if isFirstResponder, !formDisabled, !inert, reorderKey(name) { return true }
         guard !disabled, name == "Enter" || (name == " " && props["href"] == nil && UIDevice.current.userInterfaceIdiom != .tv) else { return false }
-        #if os(iOS)
+        #if os(iOS) || os(visionOS)
         if isButton, let presenter, presenter.invocation(of: self) != nil || presenter.menus.invoker(from: self) === self {
             guard !inert else { return false }
             // Keyboard activation has no hit test; menu overlays own only touches.
@@ -616,7 +616,7 @@ extension NodeView {
         var at: UIView? = hit, takesHit = false
         while let cur = at, !(cur is NodeView) {
             takesHit = takesHit || cur === field || (cur as? UIControl)?.isEnabled == true && !(cur is NativeButtonIOS)
-            #if os(iOS)
+            #if os(iOS) || os(visionOS)
             takesHit = takesHit || (cur as? UITextView)?.isEditable == true
             #endif
             at = cur.superview
@@ -624,7 +624,7 @@ extension NodeView {
         return at === self && takesHit
     }
     package override func accessibilityActivate() -> Bool {
-        #if os(iOS)
+        #if os(iOS) || os(visionOS)
         if isButton, presenter?.invocation(of: self) != nil || presenter?.menus.invoker(from: self) === self { return activateKey("Enter", handoff: true) }
         #endif
         return activate(at: convert(CGPoint(x: bounds.midX, y: bounds.midY), to: nil)) != nil
@@ -708,7 +708,7 @@ extension NodeView {
 }
 #endif
 
-#if os(iOS) || os(tvOS)
+#if os(iOS) || os(visionOS) || os(tvOS)
 extension NodeView {
     /// Whether `view` keeps out of the focus a touch whose `pointerdown` an
     /// action prevented (`Presenter.preventedTouches`): the view it went down

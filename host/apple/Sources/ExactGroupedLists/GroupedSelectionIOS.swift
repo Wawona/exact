@@ -1,6 +1,6 @@
 // @ref LLP 1115.000 D11.3 — which rows of a grouped list are selected: a
 // tapped row while its press runs and under the screen it pushed.
-#if os(iOS) || os(tvOS)
+#if os(iOS) || os(visionOS) || os(tvOS)
 import ExactKit
 import UIKit
 

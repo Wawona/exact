@@ -39,7 +39,7 @@ public struct Preferences: OptionSet, Sendable {
     public static var platformInput: Self {
         #if os(tvOS)
         primaryInput(touchScreen: false, focusEngine: true)
-        #elseif os(iOS) || os(watchOS)
+        #elseif os(iOS) || os(visionOS) || os(watchOS)
         primaryInput(touchScreen: true)
         #else
         primaryInput(touchScreen: false)

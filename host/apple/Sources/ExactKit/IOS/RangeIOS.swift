@@ -5,7 +5,7 @@
 // marks, as HTML draws none without a `list` and a stepped SwiftUI `Slider`
 // none on iOS 27; VoiceOver moves it a step at a time. The thumb stays where
 // the person put it until the bound value changes (D4, amended).
-#if os(iOS)
+#if os(iOS) || os(visionOS)
 import UIKit
 
 extension ControlHost {

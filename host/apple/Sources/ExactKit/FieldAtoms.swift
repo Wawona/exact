@@ -108,7 +108,7 @@ extension TextArea {
         for element in renamed { NSAccessibility.post(element: element, notification: .titleChanged) }
         #else
         installAtomTap(!frames.isEmpty)
-        #if os(iOS)
+        #if os(iOS) || os(visionOS)
         trackAtomHover(!frames.isEmpty && atomsHover)
         #endif
         guard changed, let owner else { return }
@@ -334,7 +334,7 @@ extension TextArea {
             }
         }
     }
-    #if os(iOS)
+    #if os(iOS) || os(visionOS)
     /// What follows a pointer (a trackpad's, a mouse's) over the pills.
     private final class AtomHover: NSObject {
         weak var field: TextArea?

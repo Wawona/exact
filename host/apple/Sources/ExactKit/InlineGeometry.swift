@@ -186,7 +186,7 @@ extension NodeView {
         guard let paragraph = paragraphLayout() else { return [] }
         let spec = paragraphSpec(), box = paragraphBox()
         let (above, below) = CSSLineBox.content(font, scale: paragraph.lineScale)
-        #if os(iOS) || os(tvOS)
+        #if os(iOS) || os(visionOS) || os(tvOS)
         let scale = traitCollection.displayScale
         #else
         let scale = pixelScale ?? 1

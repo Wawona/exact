@@ -8,7 +8,7 @@
 // controller's view — what is not a node is counted `opaque`, and any node
 // found there is still matched. The walks are the presenter's, so a test
 // drives them with frames of its own; the agent gathers their inputs.
-#if os(iOS) || os(tvOS)
+#if os(iOS) || os(visionOS) || os(tvOS)
 import UIKit
 
 extension Agent {
@@ -77,7 +77,7 @@ extension Agent {
         // boxes above are the authored frames times `scale`, not the app's doing.
         let scaled = presenter.modals.drawnScales.map { ["route": $0.route.props["navigationKey"] ?? "", "presentation": $0.kind, "scale": (Double($0.scale) * 1000).rounded() / 1000] as [String: Any] }
         if !scaled.isEmpty { reply["scaled"] = scaled }
-        #if os(iOS)
+        #if os(iOS) || os(visionOS)
         // The status bar's style Exact asks for (LLP 1105 D7), and the node that decided it.
         let bar = presenter.statusBar
         reply["statusBar"] = ["style": bar.style == .lightContent ? "light-content" : bar.style == .darkContent ? "dark-content" : "default",

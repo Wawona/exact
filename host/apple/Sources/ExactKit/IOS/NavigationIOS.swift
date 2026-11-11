@@ -3,7 +3,7 @@
 // Only a completed pop invokes the Contract back control. The bar a stack
 // shows, what a route projects into it and when the app module's hatches run
 // are LLP 1075.003's (NavigationBarIOS.swift, NativeHatches.swift).
-#if os(iOS) || os(tvOS)
+#if os(iOS) || os(visionOS) || os(tvOS)
 import UIKit
 
 final class RouteController: UIViewController, UIScrollViewDelegate {
@@ -13,7 +13,9 @@ final class RouteController: UIViewController, UIScrollViewDelegate {
     private(set) var contentViewport: Viewport?
     private let keyboardInset = KeyboardInset()
     var contentMount: UIView { contentViewport ?? view }
+    #if !os(visionOS)
     private var viewportKeyboardDismissal: UIScrollView.KeyboardDismissMode { node.props["keyboardDismissMode"] == nil ? .interactive : node.keyboardDismissal }
+    #endif
     /// What Exact last projected into the navigation item, and that plus
     /// what the route hatch last saw; whether the hatch has run; the header
     /// lifted into the bar; the content scroll view a hatch was handed.
@@ -83,7 +85,7 @@ final class RouteController: UIViewController, UIScrollViewDelegate {
     init(_ node: NodeView) {
         self.node = node
         super.init(nibName: nil, bundle: nil)
-        #if os(iOS)
+        #if os(iOS) || os(visionOS)
         registerForTraitChanges([UITraitPreferredContentSizeCategory.self]) { (c: RouteController, _: UITraitCollection) in c.reopenTitle() }
         #endif
     }
@@ -128,7 +130,7 @@ final class RouteController: UIViewController, UIScrollViewDelegate {
         super.viewDidLayoutSubviews()
         fitContentViewport()
         host?.presenter.owners.publish()
-        #if os(iOS)
+        #if os(iOS) || os(visionOS)
         search?.labelScopes()
         #endif
     }
@@ -213,8 +215,10 @@ final class RouteController: UIViewController, UIScrollViewDelegate {
             scroll.documentNode = node
             scroll.autoresizingMask = [.flexibleWidth, .flexibleHeight]
             scroll.contentInsetAdjustmentBehavior = .never
+            #if !os(visionOS)
             scroll.keyboardDismissMode = viewportKeyboardDismissal
-            #if os(iOS)
+            #endif
+            #if os(iOS) || os(visionOS)
             scroll.scrollsToTop = false
             #endif
             scroll.delegate = self
@@ -232,7 +236,7 @@ final class RouteController: UIViewController, UIScrollViewDelegate {
     /// The route's room for the keys, and under `resizes-visual` its
     /// viewport's frame, extent and inset.
     func fitContentViewport(in block: CGRect? = nil) {
-        #if os(iOS)
+        #if os(iOS) || os(visionOS)
         // Under a search in the bar the route keeps its layout (`block(in:)`)
         // and takes the keys as safe area, as SwiftUI's keyboard region is:
         // UIKit insets its edge scroller so the last rows reach above them.
@@ -251,7 +255,9 @@ final class RouteController: UIViewController, UIScrollViewDelegate {
         let allocation = block ?? presenter.owners.block(in: view)
         let frame = ExactEnv.authoredChrome ? allocation : view.bounds
         if scroll.frame != frame { scroll.frame = frame }
+        #if !os(visionOS)
         scroll.keyboardDismissMode = viewportKeyboardDismissal
+        #endif
         let extent = CGSize(width: max(node.bounds.width, node.style["overflow_x"]?.string == "visible" || node.style["overflow_x"] == nil ? node.content.width : 0),
                             height: max(node.bounds.height, node.style["overflow_y"]?.string == "visible" || node.style["overflow_y"] == nil ? node.content.height : 0))
         let size = CGSize(width: max(allocation.width, node.frame.minX + extent.width), height: max(allocation.height, node.frame.minY + extent.height))
@@ -346,7 +352,7 @@ final class RouteController: UIViewController, UIScrollViewDelegate {
         (parent as? HeldStack)?.setContentScrollView(scrollView, for: edge)
         if edge.contains(.top) {
             followTopEdge(scrollView)
-            #if os(iOS)
+            #if os(iOS) || os(visionOS)
             if !projectingContentScrollView { host?.presenter.syncScrollsToTop() }
             #endif
         }
@@ -365,7 +371,7 @@ final class RouteController: UIViewController, UIScrollViewDelegate {
     /// left them legible under the title.
     private func followTopEdge(_ scrollView: UIScrollView?) {
         topEdgeWatch = nil
-        guard #available(iOS 26.0, tvOS 26.0, *), let page = contentViewport else { return }
+        guard #available(iOS 26.0, tvOS 26.0, visionOS 26.0, *), let page = contentViewport else { return }
         guard let scrollView, scrollView !== page, node.style["scroll_edge_effect"] == nil else {
             if page.topEdgeEffect.isHidden, node.style["scroll_edge_effect"]?.string != "none" { page.topEdgeEffect.isHidden = false }
             return
@@ -674,7 +680,7 @@ final class NavigationHost: NSObject, UINavigationControllerDelegate, UIGestureR
         // tvOS has no interactive pop gesture.
         #if !os(tvOS)
         nav.interactivePopGestureRecognizer?.delegate = self
-        if #available(iOS 26.0, tvOS 26.0, *) { nav.interactiveContentPopGestureRecognizer?.delegate = self }
+        if #available(iOS 26.0, tvOS 26.0, visionOS 26.0, *) { nav.interactiveContentPopGestureRecognizer?.delegate = self }
         #endif
     }
 
@@ -807,7 +813,7 @@ final class NavigationHost: NSObject, UINavigationControllerDelegate, UIGestureR
                 let pushOrPop = NavigationRules.isPushOrPop(from: nav.viewControllers.map(ObjectIdentifier.init), to: stack.map(ObjectIdentifier.init))
                 let arrives = stack.count > 1 && nav.viewControllers.first === stack.first
                     && !nav.viewControllers.contains { $0 === stack.last }
-                #if os(iOS)
+                #if os(iOS) || os(visionOS)
                 // A route pushed from a source zooms from it (ZoomPushIOS).
                 if (pushOrPop || arrives), stack.count > 1, let top = stack.last as? RouteController, !nav.viewControllers.contains(where: { $0 === top }) {
                     prepareZoomPush(top, beneath: stack[stack.count - 2] as? RouteController)
@@ -1218,7 +1224,7 @@ final class NavigationHost: NSObject, UINavigationControllerDelegate, UIGestureR
         #else
         let owner = allNavigations.first { nav in
             if nav.interactivePopGestureRecognizer === gestureRecognizer { return true }
-            if #available(iOS 26.0, *) { return nav.interactiveContentPopGestureRecognizer === gestureRecognizer }
+            if #available(iOS 26.0, visionOS 26.0, *) { return nav.interactiveContentPopGestureRecognizer === gestureRecognizer }
             return false
         }
         #endif
@@ -1370,7 +1376,7 @@ final class NavigationHost: NSObject, UINavigationControllerDelegate, UIGestureR
             presenter.paintVisibleText()
             presenter.flushPendingFocus()
             presenter.elementScrolls.flush()
-            #if os(iOS)
+            #if os(iOS) || os(visionOS)
             presenter.syncScrollsToTop() // the route now on top owns the status-bar tap
             #endif
             // Settled on a stack's root: once UIKit has finished the
@@ -1383,7 +1389,7 @@ final class NavigationHost: NSObject, UINavigationControllerDelegate, UIGestureR
             }
             // At rest: a large title's insets are sampled now (§9.10).
             coversChanged()
-            #if os(iOS)
+            #if os(iOS) || os(visionOS)
             presenter.resolveStatusBar(settled: true)
             #endif
         }
@@ -1453,7 +1459,7 @@ final class NavigationHost: NSObject, UINavigationControllerDelegate, UIGestureR
         pendingPress?.pending = false; pendingPress?.settle(); pendingPress = nil
         lastTransition = "idle"
         if clearFocus { presenter.cancelPendingFocus() }
-        #if os(iOS)
+        #if os(iOS) || os(visionOS)
         scrollsToTopSelection?.scrollsToTop = false
         scrollsToTopSelection = nil
         #endif

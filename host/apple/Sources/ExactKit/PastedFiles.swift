@@ -10,7 +10,7 @@ import Foundation
 #if os(macOS)
 import AppKit
 typealias Pasteboard = NSPasteboard
-#elseif os(iOS)
+#elseif os(iOS) || os(visionOS)
 import UIKit
 typealias Pasteboard = UIPasteboard
 #else
@@ -32,7 +32,7 @@ extension NodeView {
     static func plainText(_ board: Pasteboard) -> String? {
         #if os(macOS)
         board.string(forType: .string)
-        #elseif os(iOS)
+        #elseif os(iOS) || os(visionOS)
         board.string
         #else
         nil
@@ -60,7 +60,7 @@ extension NodeView {
         if let png = board.data(forType: .png) { return ([], png) }
         let tiff = board.data(forType: .tiff).flatMap { NSBitmapImageRep(data: $0)?.representation(using: .png, properties: [:]) }
         return ([], tiff)
-        #elseif os(iOS)
+        #elseif os(iOS) || os(visionOS)
         let urls = (board.urls ?? []).filter(\.isFileURL)
         if !urls.isEmpty { return (urls, nil) }
         // `hasImages` asks without reading, so a text paste decodes nothing.
@@ -126,7 +126,7 @@ extension Agent {
         }
         board.writeObjects(items)
         return body(board)
-        #elseif os(iOS)
+        #elseif os(iOS) || os(visionOS)
         let board = UIPasteboard.withUniqueName()
         defer { UIPasteboard.remove(withName: board.name) }
         if !files.isEmpty { board.urls = files } else if let image { board.image = UIImage(data: image) }

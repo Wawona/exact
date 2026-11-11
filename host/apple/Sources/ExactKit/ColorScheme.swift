@@ -1,6 +1,6 @@
 // `color-scheme` on a subtree (LLP 1034 §8): a node view's own appearance,
 // which the platform's appearance inheritance carries to every view below.
-#if os(iOS) || os(tvOS)
+#if os(iOS) || os(visionOS) || os(tvOS)
 import UIKit
 
 extension NodeView {

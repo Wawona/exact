@@ -59,7 +59,7 @@ enum ColorRange {
 
     /// The colour tagged with its headroom (`CGColor(headroom:)`), components unchanged.
     static func tagged(_ color: CGColor) -> CGColor {
-        guard #available(iOS 26, macOS 26, tvOS 26, *), let space = color.colorSpace, space.model == .rgb,
+        guard #available(iOS 26, macOS 26, tvOS 26, visionOS 26, *), let space = color.colorSpace, space.model == .rgb,
               let c = color.components, c.count == 4, case let h = headroom(color), h >= 1,
               let tagged = CGColor(headroom: h, colorSpace: space, red: c[0], green: c[1], blue: c[2], alpha: c[3]) else { return color }
         return tagged
@@ -67,14 +67,14 @@ enum ColorRange {
 }
 
 /// `dynamic-range-limit` as a layer's range.
-@available(iOS 26, macOS 26, tvOS 26, *)
+@available(iOS 26, macOS 26, tvOS 26, visionOS 26, *)
 package func layerRange(_ limit: String?) -> CALayer.DynamicRange {
     limit == "standard" ? .standard : limit == "constrained" ? .constrainedHigh : .high
 }
 
 extension CALayer {
     private func setColorRange(hdr: Bool, limit: String?) {
-        if #available(iOS 26, macOS 26, tvOS 26, *) {
+        if #available(iOS 26, macOS 26, tvOS 26, visionOS 26, *) {
             let range: CALayer.DynamicRange = hdr ? layerRange(limit) : .standard
             if preferredDynamicRange != range { preferredDynamicRange = range }
         } else {
@@ -121,7 +121,7 @@ extension CALayer {
         if hdr {
             applyDynamicRange(hdr: true, headroom: max(1, h), limit: limit)
         } else {
-            if #available(iOS 26, macOS 26, tvOS 26, *), contentsHeadroom != 0 { contentsHeadroom = 0 }
+            if #available(iOS 26, macOS 26, tvOS 26, visionOS 26, *), contentsHeadroom != 0 { contentsHeadroom = 0 }
             applyColorRange(limit: limit)
         }
         return contentsFormat != previous
@@ -145,7 +145,7 @@ extension CALayer {
     /// Anything else stays standard: an EDR layer costs the compositor even
     /// when its content is SDR.
     func applyDynamicRange(hdr: Bool, headroom: Float, limit: String?) {
-        if #available(iOS 26, macOS 26, tvOS 26, *) {
+        if #available(iOS 26, macOS 26, tvOS 26, visionOS 26, *) {
             let range: CALayer.DynamicRange = hdr ? layerRange(limit) : .standard
             if preferredDynamicRange != range { preferredDynamicRange = range }
             let tag = CGFloat(hdr ? headroom : 0)
@@ -161,7 +161,7 @@ extension CALayer {
 
     /// What the agent reports of a layer's range (LLP 1100 D12).
     var dynamicRangeFacts: [String: Any] {
-        if #available(iOS 26, macOS 26, tvOS 26, *) {
+        if #available(iOS 26, macOS 26, tvOS 26, visionOS 26, *) {
             let names: [CALayer.DynamicRange: String] = [.standard: "standard", .constrainedHigh: "constrained", .high: "high", .automatic: "automatic"]
             return ["dynamicRange": names[preferredDynamicRange] ?? "\(preferredDynamicRange)", "contentsHeadroom": contentsHeadroom]
         }
@@ -177,7 +177,7 @@ extension NodeView {
     /// UIKit puts fitted bitmaps inside a clipping layer; flights and AppKit
     /// use the image layer itself.
     var imageContentLayer: CALayer? {
-        #if os(iOS) || os(tvOS)
+        #if os(iOS) || os(visionOS) || os(tvOS)
         return imageLayer?.contents != nil ? imageLayer : imageLayer?.sublayers?.first
         #else
         return imageLayer
@@ -201,7 +201,7 @@ extension NodeView {
     /// at whatever headroom other layers raised the display to.
     func applyColorRanges(drawing: Bool = false) {
         let limit = style["dynamic_range_limit"]?.string
-        #if os(iOS) || os(tvOS)
+        #if os(iOS) || os(visionOS) || os(tvOS)
         let own: CALayer? = layer
         let fills: [CALayer?] = [boxBorder, boxFill, boxGradient]
         let ink = textRasterLayer
@@ -212,7 +212,7 @@ extension NodeView {
         #endif
         own?.applyColorRange(limit: limit)
         if own?.applyDrawnRange(headroom: drawnHeadroom(drawing: drawing), extended: drawnExtended, limit: limit) == true {
-            #if os(iOS) || os(tvOS)
+            #if os(iOS) || os(visionOS) || os(tvOS)
             setNeedsDisplay()
             #else
             needsDisplay = true
@@ -239,7 +239,7 @@ extension NodeView {
     /// The peak of what this view draws itself (a drawn box, a paragraph
     /// drawn rather than rastered), or 0.
     func drawnHeadroom(drawing: Bool) -> Float {
-        #if os(iOS) || os(tvOS)
+        #if os(iOS) || os(visionOS) || os(tvOS)
         let (box, text) = (boxDrawn, isParagraph && textRaster == nil)
         #else
         let (box, text) = (boxNeedsDraw, isParagraph && !rastersText)
@@ -258,7 +258,7 @@ extension NodeView {
     }
 
     private var drawnExtended: Bool {
-        #if os(iOS) || os(tvOS)
+        #if os(iOS) || os(visionOS) || os(tvOS)
         let box = boxDrawn
         #else
         let box = boxNeedsDraw

@@ -9,7 +9,7 @@
 // when a hatch asks for the tab's controller (`ExactTab.controller`); the
 // route moves into it within the window, before a push animates. It is never
 // taken down again.
-#if os(iOS) || os(tvOS)
+#if os(iOS) || os(visionOS) || os(tvOS)
 import UIKit
 
 /// A tab's stack while it holds one route with no bar, or none yet.

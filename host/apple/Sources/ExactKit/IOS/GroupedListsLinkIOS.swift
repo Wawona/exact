@@ -3,7 +3,7 @@
 // composition links only when its plan uses one, and installs here. The core
 // names no grouped-list type; without the module, a plan with a grouped list
 // is refused at boot (`Unlinked("grouped_lists")`), so nothing below is asked.
-#if os(iOS) || os(tvOS)
+#if os(iOS) || os(visionOS) || os(tvOS)
 import UIKit
 
 /// What the core asks of the grouped lists a presenter shows.
@@ -84,7 +84,7 @@ package enum GroupedListsLink {
 }
 #endif
 
-#if os(iOS)
+#if os(iOS) || os(visionOS)
 package protocol GroupedMenuSurface: AnyObject {
     var menuSource: NodeView? { get }
 }

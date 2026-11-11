@@ -2,13 +2,13 @@
 // D4, LLP 1116.003): a header button's item in the navigation bar under
 // `--chrome platform`. The authored node stays hidden in the content, so
 // its own box is not where a person would touch.
-#if os(iOS) || os(tvOS)
+#if os(iOS) || os(visionOS) || os(tvOS)
 import UIKit
 
 extension NavigationHost {
     /// The search field a shown route projects into UIKit's search bar.
     func drawnSearch(_ node: NodeView) -> UITextField? {
-        #if os(iOS)
+        #if os(iOS) || os(visionOS)
         guard !ExactEnv.authoredChrome else { return nil }
         for c in controllers.values {
             guard let nav = c.navigationController, nav.topViewController === c, barShows(nav),
@@ -24,7 +24,7 @@ extension NavigationHost {
     /// pull-down opens. Nil for any other node; a refusal for an item UIKit
     /// has not placed.
     func barItem(_ node: NodeView) -> Result<(bar: UIView, item: CGRect), BarItemMissing>? {
-        #if os(iOS)
+        #if os(iOS) || os(visionOS)
         guard !ExactEnv.authoredChrome else { return nil }
         let testId = node.props["testId"]
         for c in controllers.values {
@@ -70,7 +70,7 @@ extension Agent {
     /// element with the item's identifier. Nil for any other node; a refusal
     /// when none, or more than one, shows, or the item is outside the window.
     func tabItem(_ node: NodeView) -> Result<UIView, AimRefusal>? {
-        #if os(iOS)
+        #if os(iOS) || os(visionOS)
         if let (bar, item) = presenter.segments.barItem(of: node) { return drawnItem(item, in: bar) }
         let nav = presenter.navigation
         guard nav.tabBarShows, let tabs = nav.container.flatMap({ NavigationTabs.of($0, presenter) }),
@@ -95,7 +95,7 @@ extension Agent {
         #endif
     }
 
-    #if os(iOS)
+    #if os(iOS) || os(visionOS)
     /// The views under `roots` that an accessibility client reads as
     /// elements, shown and with a box; the walk does not enter nodes.
     private static func elements(under roots: [UIView]) -> [UIView] {

@@ -1,4 +1,4 @@
-#if os(iOS) || os(tvOS)
+#if os(iOS) || os(visionOS) || os(tvOS)
 import UIKit
 
 /// A route whose first child is a `header` holding exactly one heading
@@ -70,7 +70,7 @@ struct HeaderShape: Equatable {
         /// under Bold Text. A row its author left unsaid keeps this one's
         /// size or weight; the kernel has stepped the weights it sends.
         static func titleFont(bold: Bool) -> UIFont {
-            if #available(iOS 26.0, *), LinkedDesign.liquidGlass { return .systemFont(ofSize: 17, weight: bold ? .bold : .medium) }
+            if #available(iOS 26.0, visionOS 26.0, *), LinkedDesign.liquidGlass { return .systemFont(ofSize: 17, weight: bold ? .bold : .medium) }
             return .systemFont(ofSize: 17, weight: bold ? .semibold : .regular)
         }
         init(_ button: NodeView, readout isReadout: Bool = false) {

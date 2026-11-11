@@ -6,7 +6,7 @@
 // chord, or Escape, is a shortcut there, as on the web), and the scope rule
 // is every host's (`Shortcuts.swift`). The agent's `type <id> key …` reaches
 // the same buttons (AgentIOS).
-#if os(iOS)
+#if os(iOS) || os(visionOS)
 import UIKit
 
 private struct ChordIOS {

@@ -4,7 +4,7 @@
 // resolves itself (`SystemColor.appTint`) is it. With no root accent the
 // window keeps its own, which UIKit gives the app's `AccentColor` asset
 // (`NSAccentColorName`). A control still reads its own `accent-color`.
-#if os(iOS) || os(tvOS)
+#if os(iOS) || os(visionOS) || os(tvOS)
 import UIKit
 
 final class AppAccent {
@@ -85,7 +85,7 @@ final class AppAccent {
         tint = row.map { row in
             let made = (0..<8).map { i in row.cgColor(dark: i & 4 != 0, contrast: i & 2 != 0, elevated: i & 1 != 0).map(UIColor.init(cgColor:)) }
             return UIColor { traits in
-                #if os(iOS)
+                #if os(iOS) || os(visionOS)
                 let elevated = traits.userInterfaceLevel == .elevated
                 #else
                 let elevated = false // tvOS has no elevated level

@@ -1,6 +1,6 @@
 // UIKit moves the scrollport; row construction follows outside its layout pass.
 // @ref LLP 1044.000 §6 S5; LLP 1010 §6 — visible-only rescue, bounded lead.
-#if os(iOS) || os(tvOS)
+#if os(iOS) || os(visionOS) || os(tvOS)
 import UIKit
 
 final class ScrollPump: NSObject, UIScrollViewDelegate {

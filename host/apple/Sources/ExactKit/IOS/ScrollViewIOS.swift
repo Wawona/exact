@@ -1,4 +1,4 @@
-#if os(iOS) || os(tvOS)
+#if os(iOS) || os(visionOS) || os(tvOS)
 import UIKit
 
 /// A plain container: the document, a canvas's overlay (LLP 1014). Hit-
@@ -92,7 +92,7 @@ package class ScrollView: UIScrollView {
         let inset = adjustedContentInset
         if scrollsX && contentSize.width + inset.left + inset.right > bounds.width + 0.5 { return true }
         if scrollsY && contentSize.height + inset.top + inset.bottom > bounds.height + 0.5 { return true }
-        #if os(iOS)
+        #if os(iOS) || os(visionOS)
         if refreshControl != nil { return true }
         #endif
         return false

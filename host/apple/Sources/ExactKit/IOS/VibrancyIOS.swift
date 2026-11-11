@@ -10,7 +10,7 @@
 //   (`TextRasterIOS.swift`) inside a vibrancy effect view of that colour's
 //   style, which takes the ink's shape and draws it as UIKit draws the
 //   label: blended with what the material blurs.
-#if os(iOS) || os(tvOS)
+#if os(iOS) || os(visionOS) || os(tvOS)
 import UIKit
 
 /// A paragraph's vibrancy effect view: its ink is drawn in the content view.

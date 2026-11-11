@@ -8,7 +8,7 @@
 // (a rotation, a split) and every change of the insets. Bounded
 // containment: the session's page scrolls inside this view exactly as the
 // standalone host's does.
-#if os(iOS) || os(tvOS)
+#if os(iOS) || os(visionOS) || os(tvOS)
 import UIKit
 
 /// The launch screen's colour, by the name `UILaunchScreen` gives it, which
@@ -52,7 +52,7 @@ public final class ExactView: UIView {
     /// The adapter's hook for the head's title (LLP 1048.003 D1): the scene
     /// title is the app's to set. It hears the current title when set.
     public var onTitle: ((String?) -> Void)? { didSet { onTitle?(session.presenter.title) } }
-    #if os(iOS)
+    #if os(iOS) || os(visionOS)
     /// The status bar's style the app declared (LLP 1105), for the
     /// controller that hosts this view to return from
     /// `preferredStatusBarStyle`, and the hook that says it changed, called
@@ -60,6 +60,7 @@ public final class ExactView: UIView {
     /// with the current style when set: call `setNeedsStatusBarAppearanceUpdate`.
     public var statusBarStyle: UIStatusBarStyle { session.presenter.statusBar.style }
     public var onStatusBarStyle: ((UIStatusBarStyle) -> Void)? { didSet { onStatusBarStyle?(statusBarStyle) } }
+    #if os(iOS)
     /// The session's orientation lock (LLP 1133.029 D5), for the controller
     /// that hosts this view to return from `supportedInterfaceOrientations`
     /// (nil: its own answer) and `prefersInterfaceOrientationLocked`. The
@@ -67,6 +68,7 @@ public final class ExactView: UIView {
     /// that does not own its window (`hatchesOwnWindow`) asks for none.
     public var orientationMask: UIInterfaceOrientationMask? { session.presenter.orientationLock.supported }
     public var orientationLocked: Bool { session.presenter.orientationLock.locked }
+    #endif
     #endif
 
     public init(session: ExactSession) {
@@ -82,7 +84,7 @@ public final class ExactView: UIView {
         session.presenter.onViewportFit = { [weak self] in self?.setNeedsLayout(); self?.onViewportFit?() }
         session.presenter.onCanvasColor = { [weak self] color in self?.canvas = color; self?.paintUnderKeys(); self?.onCanvasColor?(color) }
         session.presenter.onTitle = { [weak self] title in self?.onTitle?(title) }
-        #if os(iOS)
+        #if os(iOS) || os(visionOS)
         session.presenter.onStatusBar = { [weak self] choice in self?.onStatusBarStyle?(choice.style) }
         #endif
         #if !os(tvOS)
@@ -112,8 +114,8 @@ public final class ExactView: UIView {
         registerForTraitChanges([UITraitUserInterfaceStyle.self, UITraitDisplayScale.self, UITraitAccessibilityContrast.self]) { (view: ExactView, _: UITraitCollection) in view.reportScheme(); view.setNeedsLayout() }
         // The tvOS SDK has no Swift UITraitDefinition for this trait. OS
         // suppression still applies to its layers without a re-decode (D9).
-        #if os(iOS)
-        if #available(iOS 26, *) {
+        #if os(iOS) || os(visionOS)
+        if #available(iOS 26, visionOS 26, *) {
             registerForTraitChanges([UITraitHDRHeadroomUsageLimit.self]) { (view: ExactView, _: UITraitCollection) in view.session.rasters.displayChanged() }
         }
         #endif
@@ -175,7 +177,7 @@ public final class ExactView: UIView {
         fit()
     }
 
-    #if os(iOS)
+    #if os(iOS) || os(visionOS)
     // aria-keyshortcuts as key commands (ShortcutsIOS, gallery F18).
     // Shortcut focus is not text entry. UIKit may reload a menu's previous
     // responder's input views; an explicit empty view prevents its default
@@ -248,7 +250,7 @@ public final class ExactView: UIView {
                 fit()
                 session.presenter.navigation.mounted()
                 session.presenter.syncAccessibility()
-                #if os(iOS)
+                #if os(iOS) || os(visionOS)
                 // Nothing focused (autofocus has run): this view holds the
                 // focus, so a hardware keyboard's shortcuts are heard (ShortcutsIOS).
                 syncKeyboardFocus()
@@ -373,13 +375,13 @@ public final class ExactView: UIView {
         // past keys that end the area (`resizes-content`), nor on tvOS,
         // whose safe area is the overscan margin.
         var physical = frame
-        #if os(iOS)
+        #if os(iOS) || os(visionOS)
         if !whole {
             let bottom = frame.maxY < bounds.inset(by: safe).maxY - 0.5 ? frame.maxY : bounds.maxY
             physical = CGRect(x: bounds.minX, y: bounds.minY, width: bounds.width, height: bottom - bounds.minY)
         }
         #endif
-        #if os(iOS)
+        #if os(iOS) || os(visionOS)
         if physical.maxY < bounds.maxY {
             physical.size.height += min(presenter.keyboardAccessoryHeight, bounds.maxY - physical.maxY)
         }

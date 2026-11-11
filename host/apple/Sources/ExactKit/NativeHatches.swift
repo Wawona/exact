@@ -57,7 +57,7 @@
 // destroyed session's is answered with nothing. Service queries use the
 // process registry and do not require a live session.
 import CExact
-#if os(iOS) || os(tvOS)
+#if os(iOS) || os(visionOS) || os(tvOS)
 import AVFoundation
 #endif
 import Foundation
@@ -106,7 +106,7 @@ private func hatchSession(_ host: UnsafeMutableRawPointer?) -> ExactSession? {
 }
 
 private let hatchResolve: HatchResolveFn = { host, key, keyLength, id, idLength in
-    #if os(iOS) || os(tvOS)
+    #if os(iOS) || os(visionOS) || os(tvOS)
     hatchSession(host)?.presenter.navigation.resolve(route: hatchText(key, keyLength), id: hatchText(id, idLength))?.id ?? 0
     #else
     0
@@ -129,8 +129,8 @@ private let hatchAfter: HatchAfterFn = { host, token, ms in hatchSession(host)?.
 
 private typealias HatchArrangementFn = @convention(c) (UnsafeMutableRawPointer?, UInt32, UnsafeMutableRawPointer?) -> Int32
 private let hatchArrangement: HatchArrangementFn = { host, node, object in
-    #if os(iOS)
-    if #available(iOS 27.1, *), let presenter = hatchSession(host)?.presenter {
+    #if os(iOS) || os(visionOS)
+    if #available(iOS 27.1, visionOS 27.1, *), let presenter = hatchSession(host)?.presenter {
         let controller = object.map { Unmanaged<AnyObject>.fromOpaque($0).takeUnretainedValue() }
         guard object == nil || controller is UIArrangementViewController else { return 1 }
         return presenter.arrangements.set(node, controller: controller as? UIArrangementViewController) ? 0 : 1
@@ -161,7 +161,7 @@ private let hatchParts: HatchPartsFn = { host, node, json, length, views, count 
 
 private typealias HatchStackFn = @convention(c) (UnsafeMutableRawPointer?, UnsafeMutableRawPointer?) -> UnsafeMutableRawPointer?
 private let hatchStack: HatchStackFn = { host, controller in
-    #if os(iOS) || os(tvOS)
+    #if os(iOS) || os(visionOS) || os(tvOS)
     guard let controller, let session = hatchSession(host),
           let held = Unmanaged<AnyObject>.fromOpaque(controller).takeUnretainedValue() as? UIViewController,
           let nav = session.presenter.navigation.navigation(forHatch: held) else { return nil }
@@ -192,7 +192,7 @@ private let hatchAudioClaim: HatchAudioClaimFn = { host, mode, length, options, 
     if word.hasPrefix("speech-") {
         let type = String(word.dropFirst("speech-".count))
         hatchSession(host)?.log("audio session: claimed for speech (\(type))")
-        #if os(iOS) || os(tvOS)
+        #if os(iOS) || os(visionOS) || os(tvOS)
         guard AudioSession.spokenTypes.contains(type) else { return 0 }
         let id = AudioSession.claimSpeech(type: type) { code in event(context, code) }
         if id == 0 { hatchSession(host)?.log("audio session: the speech claim was refused (the session would not activate)") }
@@ -205,7 +205,7 @@ private let hatchAudioClaim: HatchAudioClaimFn = { host, mode, length, options, 
     }
     // A call's claim, and the system's activation of the calls' session (LLP 1133.033 D10).
     if word.hasPrefix("call-") {
-        #if os(iOS) || os(tvOS)
+        #if os(iOS) || os(visionOS) || os(tvOS)
         switch word {
         case "call-voice", "call-video":
             hatchSession(host)?.log("audio session: claimed by a call (\(word))")
@@ -219,13 +219,13 @@ private let hatchAudioClaim: HatchAudioClaimFn = { host, mode, length, options, 
         return 0
     }
     hatchSession(host)?.log("audio session: claimed by a capture\(word.isEmpty ? "" : " (mode \(word))")")
-    #if os(iOS) || os(tvOS)
+    #if os(iOS) || os(visionOS) || os(tvOS)
     // Map `AudioClaims.options` in declaration order to `CategoryOptions` raw values.
     // Default to a headset microphone and, on iOS, the speaker.
     let raw: [UInt] = [0x1, 0x2, 0x4, 0x20, 0x8, 1 << 19, 1 << 18, 0x80]
     let chosen = raw.indices.filter { options & (1 << UInt64($0)) != 0 }.reduce(UInt(0)) { $0 | raw[$1] }
     let modes: [String: AVAudioSession.Mode] = ["default": .default, "measurement": .measurement, "voiceChat": .voiceChat, "videoChat": .videoChat, "videoRecording": .videoRecording]
-    #if os(iOS)
+    #if os(iOS) || os(visionOS)
     let defaults: AVAudioSession.CategoryOptions = [.defaultToSpeaker, .allowBluetoothHFP]
     #else
     let defaults: AVAudioSession.CategoryOptions = [.allowBluetoothHFP]
@@ -241,20 +241,20 @@ private let hatchAudioClaim: HatchAudioClaimFn = { host, mode, length, options, 
     #endif
 }
 private let hatchAudioRelease: HatchAudioReleaseFn = { host, id in
-    #if os(iOS) || os(tvOS)
+    #if os(iOS) || os(visionOS) || os(tvOS)
     if AudioSession.isSpeech(id) {
         hatchSession(host)?.log("audio session: a speech claim released")
         return AudioSession.releaseSpeech(id)
     }
     #endif
-    #if os(iOS) || os(tvOS)
+    #if os(iOS) || os(visionOS) || os(tvOS)
     if AudioSession.isCall(id) {
         hatchSession(host)?.log("audio session: a call's claim released")
         return AudioSession.releaseCall(id)
     }
     #endif
     hatchSession(host)?.log("audio session: a claim released")
-    #if os(iOS) || os(tvOS)
+    #if os(iOS) || os(visionOS) || os(tvOS)
     AudioSession.releaseCapture(id)
     #endif
 }
@@ -291,7 +291,7 @@ private let hatchLog: HatchLogFn = { host, bytes, length in
 private let hatchDelegate: HatchDelegateFn = { host, controller, object in
     guard let controller, let session = hatchSession(host) else { return }
     let delegate = object.map { Unmanaged<AnyObject>.fromOpaque($0).takeUnretainedValue() }
-    #if os(iOS) || os(tvOS)
+    #if os(iOS) || os(visionOS) || os(tvOS)
     session.presenter.navigation.setAppDelegate(Unmanaged<AnyObject>.fromOpaque(controller).takeUnretainedValue(), delegate)
     #else
     guard Unmanaged<AnyObject>.fromOpaque(controller).takeUnretainedValue() === session.presenter.toolbar.toolbar else { return }

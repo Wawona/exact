@@ -265,11 +265,21 @@ fn device_identity(device: &wgpu::Device) -> Option<usize> {
         // SAFETY: Only read the guard's address; never mutate or destroy the HAL device.
         unsafe { device.as_hal::<A>() }.map(|guard| (&*guard as *const A::Device) as usize)
     }
-    #[cfg(any(target_os = "macos", target_os = "ios", target_os = "tvos"))]
+    #[cfg(any(
+        target_os = "macos",
+        target_os = "ios",
+        target_os = "tvos",
+        target_os = "visionos"
+    ))]
     {
         address::<wgpu::hal::api::Metal>(device)
     }
-    #[cfg(not(any(target_os = "macos", target_os = "ios", target_os = "tvos")))]
+    #[cfg(not(any(
+        target_os = "macos",
+        target_os = "ios",
+        target_os = "tvos",
+        target_os = "visionos"
+    )))]
     {
         #[cfg(windows)]
         if let Some(id) = address::<wgpu::hal::api::Dx12>(device) {

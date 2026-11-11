@@ -1,4 +1,4 @@
-#if os(iOS)
+#if os(iOS) || os(visionOS)
 import UIKit
 
 // A pointer's `:hover` look on iOS (LLP 1121 D8, stage 9 G3): a node with one

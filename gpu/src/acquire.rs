@@ -144,6 +144,7 @@ impl Acquire {
     pub(crate) const ENABLED: bool = cfg!(any(
         target_os = "ios",
         target_os = "tvos",
+        target_os = "visionos",
         target_os = "macos",
         target_os = "android"
     ));
@@ -156,7 +157,12 @@ impl Acquire {
     /// canvas twice in a frame; it keeps asking at the tick until it does
     /// the same. Android also wakes only a render that missed its texture,
     /// through the reader's existing executor descriptor.
-    pub(crate) const AWAITED: bool = cfg!(any(target_os = "ios", target_os = "tvos", test));
+    pub(crate) const AWAITED: bool = cfg!(any(
+        target_os = "ios",
+        target_os = "tvos",
+        target_os = "visionos",
+        test
+    ));
 
     /// Ask for `target`'s next texture, unless one is already in flight.
     pub(crate) fn request(&mut self, target: &Arc<wgpu::Surface<'static>>) {

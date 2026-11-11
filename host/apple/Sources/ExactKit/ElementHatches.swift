@@ -46,7 +46,7 @@ final class ElementHatches {
     /// What a hatched node gives up on this host: on iOS its flat leaf, and
     /// its row's reuse unless its hatch is `reusable`.
     static func lost(reusable: Bool) -> [String] {
-        #if os(iOS) || os(tvOS)
+        #if os(iOS) || os(visionOS) || os(tvOS)
         reusable ? ["flat"] : ["flat", "pool"]
         #else
         []
@@ -198,7 +198,7 @@ final class ElementHatches {
         if entry.node.kind == "iframe", event != .ended { presenter.session?.webviews.hatched(id) }
         // What the node's hatch registered ends with it; a view lent to another node starts clean.
         if event == .ended { regions.ended(node: id) }
-        #if os(iOS) || os(tvOS)
+        #if os(iOS) || os(visionOS) || os(tvOS)
         // The answer is the view's while it is still this node's: a click
         // inside the hatch (after the batch) can have replaced the node and
         // given its view to another. At `ended` it is the last word.
@@ -231,7 +231,7 @@ final class ElementHatches {
 
     /// Whether `node` is in a list's row, or in one the batch is making (iOS).
     private static func inList(_ node: NodeView, _ presenter: Presenter) -> Bool {
-        #if os(iOS) || os(tvOS)
+        #if os(iOS) || os(visionOS) || os(tvOS)
         if presenter.pool.list(creating: node.id) != nil { return true }
         #endif
         return list(holding: node) != nil
@@ -255,7 +255,7 @@ final class ElementHatches {
         for entry in nodes.values {
             let word = entry.node.props["hatch"] ?? ""
             live[word, default: 0] += 1
-            #if os(iOS) || os(tvOS)
+            #if os(iOS) || os(visionOS) || os(tvOS)
             if entry.node.hatchReusable { reused[word, default: 0] += 1 }
             #endif
         }
@@ -278,7 +278,7 @@ final class ElementHatches {
         return reply
     }
 
-    #if os(iOS) || os(tvOS)
+    #if os(iOS) || os(visionOS) || os(tvOS)
     private var reported: Set<String> = []
     /// Before each batch, in a development build (LLP 1075.003 §3.5,
     /// 1075.003.000 §3.6): what Exact owns of each hatched node's scroll view,
@@ -305,7 +305,7 @@ final class ElementHatches {
     /// a control (a switch, slider, date picker…), an iframe's `WKWebView` or
     /// a local PDF's `PDFView` (LLP 1020.002 §9), a scroll view.
     static func platform(of node: NodeView, _ presenter: Presenter) -> AnyObject? {
-        #if os(iOS) || os(tvOS)
+        #if os(iOS) || os(visionOS) || os(tvOS)
         node.field ?? node.textArea ?? presenter.controls.controls[node.id] ?? presenter.segments.control(of: node.id) ?? node.web ?? node.scrollView
         #else
         node.field ?? node.textArea ?? presenter.controls.controls[node.id] ?? presenter.segments.control(of: node.id) ?? node.web ?? node.scroll
@@ -389,7 +389,7 @@ final class ElementHatches {
             guard !node.disabled else { return refuse("the field is disabled") }
             guard node.props["editable"] != "false", node.props["readonly"] != "true" else { return refuse("the field is readonly") }
             let value = TextInputLimit.prefix(text, props: node.props)
-            #if os(iOS) || os(tvOS)
+            #if os(iOS) || os(visionOS) || os(tvOS)
             if let f = node.field {
                 guard f.markedTextRange == nil else { return refuse("the field is composing") }
                 f.text = value
@@ -428,7 +428,7 @@ final class ElementHatches {
     /// A hatch's `click()`, `focus()` or `blur()` on a node, as the DOM's, on
     /// the next turn (`later`). False when refused.
     func act(_ id: UInt32, _ action: UInt32) -> Bool {
-        #if os(iOS) || os(tvOS)
+        #if os(iOS) || os(visionOS) || os(tvOS)
         return presenter.navigation.act(id, action)
         #else
         guard let node = presenter.views[id] else { return false }

@@ -578,7 +578,7 @@ final class FrameAutomation {
     #endif
 }
 
-#if os(iOS)
+#if os(iOS) || os(visionOS)
 /// Hears a touch begin and recognizes nothing, so the page's own touches pass.
 final class PersonTouches: UIGestureRecognizer, UIGestureRecognizerDelegate {
     let touched: () -> Void

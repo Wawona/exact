@@ -14,7 +14,7 @@
 // the swipe down; `closerequest`, HTML's default, permits it; `any` also
 // takes a tap on the dimmed page. A dismissal the person made fires HTML's
 // `cancel` at the dialog.
-#if os(iOS) || os(tvOS)
+#if os(iOS) || os(visionOS) || os(tvOS)
 import UIKit
 
 final class DialogSheetController: UIViewController, UIGestureRecognizerDelegate, UIScrollViewDelegate {
@@ -23,12 +23,12 @@ final class DialogSheetController: UIViewController, UIGestureRecognizerDelegate
     /// The dialog's box as the kernel laid it out: the sheet's height.
     private(set) var box = CGSize.zero
     private var backdropTap: UITapGestureRecognizer?
-    #if !os(tvOS)
+    #if os(iOS)
     private var maximumDetentHeight: CGFloat?
     #endif
     /// The presentation's height offer stays independent of the chosen detent.
     var availableHeight: CGFloat? {
-        #if !os(tvOS)
+        #if os(iOS)
         if let maximumDetentHeight { return maximumDetentHeight }
         #endif
         return presentationController?.containerView?.safeAreaLayoutGuide.layoutFrame.height
@@ -47,6 +47,7 @@ final class DialogSheetController: UIViewController, UIGestureRecognizerDelegate
         modalPresentationStyle = .overFullScreen
         #else
         modalPresentationStyle = .pageSheet
+        #if os(iOS)
         // One resting height, the content's: overscroll and dismissal stay
         // UIKit's, and there is no grabber, as for a route's single detent.
         sheetPresentationController?.detents = [.custom(identifier: .init("exact.dialog")) { [weak self] context in
@@ -55,6 +56,7 @@ final class DialogSheetController: UIViewController, UIGestureRecognizerDelegate
             let height = box.height
             return height > 0 ? min(height.rounded(.up), context.maximumDetentValue) : context.maximumDetentValue
         }]
+        #endif
         #endif
     }
     required init?(coder: NSCoder) { nil }
@@ -79,7 +81,9 @@ final class DialogSheetController: UIViewController, UIGestureRecognizerDelegate
         // Its presenter's tint, as the root's (LLP 1095 D4): a sheet sits outside it.
         if let tint = ThemeRoles.color("AccentColor", in: view) { view.tintColor = tint }
         view.backgroundColor = ThemeRoles.color("background", in: view) ?? ThemeRoles.color("Canvas", in: view, or: .systemBackground)
+        #if !os(visionOS)
         scroller.keyboardDismissMode = .interactive
+        #endif
         #endif
         scroller.delegate = self
         scroller.frame = view.bounds
@@ -140,7 +144,7 @@ final class DialogSheetController: UIViewController, UIGestureRecognizerDelegate
         // Recenter before UIKit captures the detent animation's starting geometry.
         place()
         guard resized else { return }
-        #if !os(tvOS)
+        #if os(iOS)
         if let sheet = sheetPresentationController {
             if viewIfLoaded?.window != nil, !ExactEnv.agentFreezes { sheet.animateChanges { sheet.invalidateDetents() } }
             else { sheet.invalidateDetents() }

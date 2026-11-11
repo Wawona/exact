@@ -4,7 +4,7 @@
 // them, and they draw over its content with UIKit's scroll edge effect, as a
 // hand-built iOS 26 screen's list runs under a `safeAreaBar`. Layout does not
 // change: the bands are its scroll view's (`PageEdgesIOS.swift`).
-#if os(iOS) || os(tvOS)
+#if os(iOS) || os(visionOS) || os(tvOS)
 import UIKit
 
 /// One pass's answers (`Presenter.reachPageEdges`), so sibling scrollers share
@@ -165,8 +165,8 @@ final class ControlBars {
             kept.insert(ObjectIdentifier(w.bar))
             viewport.controlBars[ObjectIdentifier(w.bar)] = Weak(w.bar)
             if w.bar.bandOver != w.scroller.paintRank { w.bar.bandOver = w.scroller.paintRank; if let p = w.bar.superview { PaintOrder.changed(p) } }
-            #if os(iOS)
-            if #available(iOS 26.0, *), let sv = w.scroller.scrollView {
+            #if os(iOS) || os(visionOS)
+            if #available(iOS 26.0, visionOS 26.0, *), let sv = w.scroller.scrollView {
                 let i = (w.bar.edgeInteraction as? UIScrollEdgeElementContainerInteraction) ?? {
                     let made = UIScrollEdgeElementContainerInteraction()
                     w.bar.addInteraction(made); w.bar.edgeInteraction = made

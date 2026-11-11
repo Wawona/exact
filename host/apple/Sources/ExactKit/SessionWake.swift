@@ -1,5 +1,5 @@
 // A session booted for a wake, with no view presented (LLP 1133.017 D7).
-#if os(iOS)
+#if os(iOS) || os(visionOS)
 import UIKit
 
 extension ExactSession {

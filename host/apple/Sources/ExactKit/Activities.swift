@@ -10,7 +10,7 @@ final class ActivityLibrary {
     let open: Open, close: Close, send: Send
     private init(_ open: Open, _ close: Close, _ send: Send) { self.open = open; self.close = close; self.send = send }
     static var packaged: Bool {
-        #if os(iOS)
+        #if os(iOS) || os(visionOS)
         FileManager.default.fileExists(atPath: embeddedModule(framework: "ExactActivity", dylib: "libexact_activity.dylib"))
         #else
         false
@@ -18,7 +18,7 @@ final class ActivityLibrary {
     }
     private static var shared: ActivityLibrary?
     static func load() throws -> ActivityLibrary {
-        #if os(iOS)
+        #if os(iOS) || os(visionOS)
         if let shared { return shared }
         let loaded = try load(path: embeddedModule(framework: "ExactActivity", dylib: "libexact_activity.dylib"))
         shared = loaded

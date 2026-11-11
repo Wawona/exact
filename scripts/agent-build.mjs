@@ -285,7 +285,7 @@ export async function makeOverride(host, app, state, { bake = bakePlan, log } = 
 
 // ---------------------------------------------------------------- a background build's end
 
-const prebuildHost = args => args.includes('--tvos') ? 'tvos' : args.includes('--ios') || args.includes('--device') ? 'ios' : 'macos';
+const prebuildHost = args => args.includes('--visionos') ? 'visionos' : args.includes('--tvos') ? 'tvos' : args.includes('--ios') || args.includes('--device') ? 'ios' : 'macos';
 /** Where `prebuild` records the build it started: its `id`, its arguments, its
  * start, the pid of the shell running it, and, once it has ended, its exit code
  * and how much of the log it wrote. Written whole (`publish`), and only by the

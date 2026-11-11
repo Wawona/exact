@@ -11,7 +11,7 @@
 // as a wake does (LLP 1133.017 D7): `boot`, which the app's host sets.
 import Foundation
 import os
-#if os(iOS)
+#if os(iOS) || os(visionOS)
 import UIKit
 #elseif os(macOS)
 import AppKit
@@ -57,7 +57,7 @@ public enum ExactTools {
             return refuse("unavailable", "The app has no session to call.")
         }
         let cold = !session.booted || session.firstDrawMs == nil
-        #if os(iOS)
+        #if os(iOS) || os(visionOS)
         if cold, UIApplication.shared.applicationState == .background {
             log(session, "tools: \(tool) found no session ready; booting one with no view")
             boot?()
@@ -92,7 +92,7 @@ public enum ExactTools {
 
     /// No view of the session is visible: its timers stop while the call runs (D7).
     private static func hidden(_ session: ExactSession) -> Bool {
-        #if os(iOS)
+        #if os(iOS) || os(visionOS)
         return UIApplication.shared.applicationState == .background
         #elseif os(macOS)
         return !NSApp.windows.contains { $0.isVisible && $0.occlusionState.contains(.visible) }

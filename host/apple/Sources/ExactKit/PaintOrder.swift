@@ -160,7 +160,7 @@ extension NodeView {
             top = max(top, z)
         }
         dense?.top = top
-        #if os(iOS) || os(tvOS)
+        #if os(iOS) || os(visionOS) || os(tvOS)
         (parent as? ScrollView)?.keepPlatformViewsOver()
         #endif
     }
@@ -245,7 +245,7 @@ extension PaintView {
         #endif
         if let picture = (self as? NodeView)?.boxFilter?.picture {
             if picture.zPosition != value { picture.zPosition = value }
-            #if os(iOS) || os(tvOS)
+            #if os(iOS) || os(visionOS) || os(tvOS)
             Shadow.active?.rank(picture, value)
             #endif
         }
@@ -277,7 +277,7 @@ extension NSView {
 }
 #endif
 
-#if os(iOS) || os(tvOS)
+#if os(iOS) || os(visionOS) || os(tvOS)
 extension ScrollView {
     /// UIKit hangs a scroller's edge effect (iOS 26) in a view after its
     /// content, at depth 0, to draw over it. A child ranked above 0 (one

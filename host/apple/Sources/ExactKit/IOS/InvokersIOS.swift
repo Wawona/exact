@@ -1,7 +1,7 @@
 // A custom invoker's activation (HTML's activation behaviour): the nearest
 // button on a press's path owns activation after the press handler runs.
 
-#if os(iOS) || os(tvOS)
+#if os(iOS) || os(visionOS) || os(tvOS)
 import UIKit
 
 /// The transparent button `MenuHost` lays over an invoker, above its
@@ -57,7 +57,7 @@ class InvokerButton: UIButton {
     }
     private static func interactive(_ view: UIView) -> Bool {
         guard let node = view as? NodeView else {
-            #if os(iOS)
+            #if os(iOS) || os(visionOS)
             if (view as? UITextView)?.isEditable == true { return true }
             #endif
             if (view as? UIControl)?.isEnabled == true { return true }
@@ -125,7 +125,7 @@ extension MenuHost {
     /// A native control that took the touch (`consumed`) consumes it: only its own press runs.
     @discardableResult
     func activating(from touched: NodeView, pressing target: NodeView?, consumed: Bool = false, _ press: () -> Void) -> NodeView? {
-        #if os(iOS)
+        #if os(iOS) || os(visionOS)
         if !consumed {
             let source = presenter?.activationButton(from: touched)
             if source !== target {

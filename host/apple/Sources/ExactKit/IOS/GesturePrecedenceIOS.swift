@@ -1,4 +1,4 @@
-#if os(iOS) || os(tvOS)
+#if os(iOS) || os(visionOS) || os(tvOS)
 import UIKit
 
 // LLP 1057.001 §1 on UIKit, with UIKit's own relationships: rule 3's boundary
@@ -31,7 +31,7 @@ extension NodeView {
     package func gestureRecognizer(_ gesture: UIGestureRecognizer, shouldRequireFailureOf other: UIGestureRecognizer) -> Bool {
         // A swipe waits for the screen-edge back gesture to fail, as UIKit's
         // own swipe actions and Signal's swipe to reply do: from the edge, back wins.
-        #if os(iOS)
+        #if os(iOS) || os(visionOS)
         // Only the screen-edge one: iOS 26's content pop is the same class,
         // and it waits for the swipe in turn, so waiting on it would leave neither.
         if gesture === swipeRecognizer, let nav = other.view?.next as? UINavigationController,

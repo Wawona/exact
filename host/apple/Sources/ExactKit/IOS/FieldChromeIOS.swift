@@ -1,5 +1,5 @@
 // @ref LLP 1104 D4–D5: real UIKit measurements, shared by the two text engines.
-#if os(iOS) || os(tvOS)
+#if os(iOS) || os(visionOS) || os(tvOS)
 import UIKit
 import CExact
 import CoreText

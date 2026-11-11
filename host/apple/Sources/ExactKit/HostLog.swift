@@ -18,7 +18,7 @@ enum HostLog {
     }
 }
 
-#if os(iOS) || os(tvOS)
+#if os(iOS) || os(visionOS) || os(tvOS)
 import UIKit
 
 extension Presenter {

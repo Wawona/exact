@@ -8,7 +8,7 @@
 // @ref LLP 1116 D8 — with a `value`, it is UIKit's progress view instead
 // (`.default`), across the content box at its own height, tinted by the
 // node's `accent-color` (none leaves UIKit's tint), at HTML's fraction.
-#if os(iOS) || os(tvOS)
+#if os(iOS) || os(visionOS) || os(tvOS)
 import UIKit
 
 extension ControlHost {

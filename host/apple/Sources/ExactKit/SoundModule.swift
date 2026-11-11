@@ -7,7 +7,7 @@
 // graph; nothing loads or plays under the agent, whose clock is virtual (D10).
 import Foundation
 import QuartzCore
-#if os(iOS) || os(tvOS)
+#if os(iOS) || os(visionOS) || os(tvOS)
 import AVFoundation
 import UIKit
 #endif
@@ -123,7 +123,7 @@ final class SoundOutput {
         haptics = [:]
         backlog = []
         close()
-        #if os(iOS) || os(tvOS)
+        #if os(iOS) || os(visionOS) || os(tvOS)
         AudioSession.forgetIdle(ObjectIdentifier(self))
         AudioSession.release(ObjectIdentifier(self))
         #endif
@@ -138,7 +138,7 @@ final class SoundOutput {
         guard backlog.isEmpty, counts(arm)[0] == 0, now() > latestStart + 0.05 else { return false }
         say("sound: the idle output stopped so the audio session can change; the next sound opens it again")
         close()
-        #if os(iOS) || os(tvOS)
+        #if os(iOS) || os(visionOS) || os(tvOS)
         AudioSession.release(ObjectIdentifier(self))
         #endif
         return true
@@ -234,7 +234,7 @@ final class SoundOutput {
 
     private func open() -> Arm? {
         guard let library = library() else { fail("no sound module in this build"); return nil }
-        #if os(iOS) || os(tvOS)
+        #if os(iOS) || os(visionOS) || os(tvOS)
         // The session before the engine: an output made with no active session is AURemoteIO's to fail.
         do { try AudioSession.hold(ObjectIdentifier(self)) } catch { fail("the audio session did not activate: \(error.localizedDescription)"); return nil }
         AudioSession.stopsWhenIdle(ObjectIdentifier(self)) { [weak self] in self?.stopIfIdle() ?? true }
@@ -269,7 +269,7 @@ final class SoundOutput {
     /// Starts `arm`'s engine again after an interruption, the session first
     /// when it must be activated again: nil, or why not.
     private func start(_ arm: Arm) -> String? {
-        #if os(iOS) || os(tvOS)
+        #if os(iOS) || os(visionOS) || os(tvOS)
         if reactivate { do { try AudioSession.hold(ObjectIdentifier(self)) } catch { return "the audio session did not activate again: \(error.localizedDescription)" } }
         #endif
         var reason = [CChar](repeating: 0, count: 512)
@@ -283,7 +283,7 @@ final class SoundOutput {
     /// `playback` app's failed output leaves other apps' audio playing.
     private func fail(_ reason: String) {
         failure = (reason, now())
-        #if os(iOS) || os(tvOS)
+        #if os(iOS) || os(visionOS) || os(tvOS)
         AudioSession.release(ObjectIdentifier(self))
         #endif
         say("sound: the output did not open: \(reason); the app plays on silent, and a sound \(String(format: "%g", retryAfter)) s later tries again")
@@ -328,7 +328,7 @@ final class SoundOutput {
         return state
     }
 
-    #if os(iOS) || os(tvOS)
+    #if os(iOS) || os(visionOS) || os(tvOS)
     /// The session's events, which the owner observes (LLP 1133.009 D7). An
     /// interruption pauses the engine. When it ends with `shouldResume`
     /// the session is activated and the engine started again, and a failure

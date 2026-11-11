@@ -1,5 +1,5 @@
 // @ref LLP 1069.011.001 D1–D9, D14–D17: one configuration for fitting and presenting.
-#if os(iOS) || os(tvOS)
+#if os(iOS) || os(visionOS) || os(tvOS)
 import UIKit
 
 /// No defaults of ours: dictionary membership is the kernel's authored mask.

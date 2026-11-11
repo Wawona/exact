@@ -3,7 +3,7 @@ import CoreGraphics
 import CExact
 import ImageIO
 import ObjectiveC
-#if os(iOS)
+#if os(iOS) || os(visionOS)
 import UIKit
 #endif
 
@@ -464,7 +464,7 @@ final class RasterImage: @unchecked Sendable {
     /// (RawCamera's 450 KB of data among them). Nil leaves it to ImageIO.
     static func catalog(_ name: String, metadata: RasterMetadata, plan: RasterDecodePlan,
                         charge: any RasterBackingCharge, sourceOwner: (any RasterSourceOwner)?) -> RasterImage? {
-        #if os(iOS)
+        #if os(iOS) || os(visionOS)
         guard plan.variant != RasterVariant.hdr, !plan.deep,
               let image = UIImage(named: name)?.cgImage, image.width == plan.width, image.height == plan.height,
               // Drawn, never adopted: the catalog's image is UIKit's to keep.

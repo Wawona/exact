@@ -5,7 +5,7 @@
 // documented ones (`SystemColorNames`), resolved against the appearance the
 // view draws in and the system's Increased Contrast; any other name is the
 // fallback pair, logged once.
-#if os(iOS) || os(tvOS)
+#if os(iOS) || os(visionOS) || os(tvOS)
 import UIKit
 #else
 import AppKit
@@ -15,7 +15,7 @@ package enum SystemColor {
     /// CSS's `CanvasText`, the initial `color` (LLP 1095
     /// stage 2): the platform's own dynamic text colour, so a row the
     /// presenter has no value for still follows appearance and contrast.
-    #if os(iOS) || os(tvOS)
+    #if os(iOS) || os(visionOS) || os(tvOS)
     package static let canvasText: UIColor = .label
     #else
     package static let canvasText: NSColor = .textColor
@@ -23,7 +23,7 @@ package enum SystemColor {
     /// `canvasText`'s channels under an appearance, for a painter that takes
     /// channels; the role's pair where the platform has no answer.
     static func canvasTextChannels(dark: Bool, contrast: Bool? = nil) -> [Double] {
-        #if os(iOS) || os(tvOS)
+        #if os(iOS) || os(visionOS) || os(tvOS)
         let name = "labelColor"
         #else
         let name = "textColor"
@@ -114,7 +114,7 @@ package enum SystemColor {
         return rgba
     }
 
-    #if os(iOS) || os(tvOS)
+    #if os(iOS) || os(visionOS) || os(tvOS)
     private typealias Native = UIColor
     #else
     private typealias Native = NSColor
@@ -132,7 +132,7 @@ package enum SystemColor {
     private static func lookup(_ name: String) -> Native? {
         if name.hasPrefix("named:") {
             let asset = String(name.dropFirst(6))
-            #if os(iOS) || os(tvOS)
+            #if os(iOS) || os(visionOS) || os(tvOS)
             return UIColor(named: asset)
             #else
             return NSColor(named: asset)
@@ -143,10 +143,10 @@ package enum SystemColor {
 
     /// The colour's sRGB channels under an appearance and contrast.
     private static func rgba(_ color: Native, dark: Bool, contrast: Bool, elevated: Bool = false) -> [Double]? {
-        #if os(iOS) || os(tvOS)
+        #if os(iOS) || os(visionOS) || os(tvOS)
         var traits = [UITraitCollection(userInterfaceStyle: dark ? .dark : .light),
                       UITraitCollection(accessibilityContrast: contrast ? .high : .normal)]
-        #if os(iOS)
+        #if os(iOS) || os(visionOS)
         traits.append(UITraitCollection(userInterfaceLevel: elevated ? .elevated : .base))
         #endif
         let c = color.resolvedColor(with: UITraitCollection(traitsFrom: traits))
@@ -171,7 +171,7 @@ package enum SystemColor {
     private static func tint(alpha: Double, dark: Bool, contrast: Bool, fallback: [Double]?) -> [Double]? {
         var color: Native?
         if Thread.isMainThread {
-            #if os(iOS) || os(tvOS)
+            #if os(iOS) || os(visionOS) || os(tvOS)
             color = appTint ?? defaultTint
             #else
             color = NSColor.controlAccentColor
@@ -186,7 +186,7 @@ package enum SystemColor {
         return c
     }
 
-    #if os(iOS) || os(tvOS)
+    #if os(iOS) || os(visionOS) || os(tvOS)
     /// The tint of a window that sets none: the app's `AccentColor` asset
     /// (`NSAccentColorName`) as UIKit applies it, else system blue. A window
     /// reads nil until one is set; any view resolves it. On main.
@@ -200,7 +200,7 @@ package enum SystemColor {
     /// kernel resolves `AccentColor` by, never a view's own, so sessions
     /// under different tints never overwrite each other's report. On main.
     static var appTint: PlatformColor? {
-        #if os(iOS) || os(tvOS)
+        #if os(iOS) || os(visionOS) || os(tvOS)
         let scenes = UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }
         let ordered = scenes.filter { $0.activationState == .foregroundActive } + scenes.filter { $0.activationState != .foregroundActive }
         let windows = ordered.flatMap(\.windows).filter { $0.windowLevel == .normal }
@@ -217,7 +217,7 @@ package enum SystemColor {
     /// colours can read no window.
     static func tintPair(_ color: PlatformColor?) -> [[Double]]? {
         let color = color ?? {
-            #if os(iOS) || os(tvOS)
+            #if os(iOS) || os(visionOS) || os(tvOS)
             return defaultTint
             #else
             return .controlAccentColor
@@ -228,12 +228,12 @@ package enum SystemColor {
     }
 }
 
-#if os(iOS) || os(tvOS)
+#if os(iOS) || os(visionOS) || os(tvOS)
 extension SystemColor {
     /// Whether a platform colour resolves differently under `b` than under
     /// `a`: by style, contrast and, on iOS, the level (tvOS has none).
     static func resolvesDifferently(_ a: UITraitCollection, _ b: UITraitCollection) -> Bool {
-        #if os(iOS)
+        #if os(iOS) || os(visionOS)
         if a.userInterfaceLevel != b.userInterfaceLevel { return true }
         #endif
         return a.userInterfaceStyle != b.userInterfaceStyle || a.accessibilityContrast != b.accessibilityContrast
@@ -260,7 +260,7 @@ extension BatchValue {
     }
 }
 
-#if os(iOS) || os(tvOS)
+#if os(iOS) || os(visionOS) || os(tvOS)
 extension BatchValue {
     /// The colour as a dynamic colour resolves it in `traits`, which carry the tint of the view UIKit
     /// draws it in
@@ -308,13 +308,13 @@ extension NodeView {
         row?.namesTint == true ? viewTint : nil
     }
     var viewTint: PlatformColor? {
-        #if os(iOS) || os(tvOS)
+        #if os(iOS) || os(visionOS) || os(tvOS)
         return tintColor
         #else
         return nearestAccent
         #endif
     }
-    #if os(iOS) || os(tvOS)
+    #if os(iOS) || os(visionOS) || os(tvOS)
     /// A window or ancestor tint changed, or UIKit dimmed it or brought it back: the rows naming it
     /// apply again, as UIKit asks of a view that draws in its tint.
     package override func tintColorDidChange() {
@@ -454,7 +454,7 @@ extension NodeView {
     /// on macOS, where contrast is the system's alone (AppKit's named
     /// high-contrast appearances resolve as plain Aqua).
     var drawsHighContrast: Bool? {
-        #if os(iOS) || os(tvOS)
+        #if os(iOS) || os(visionOS) || os(tvOS)
         switch traitCollection.accessibilityContrast {
         case .high: return true
         case .normal: return false
@@ -466,7 +466,7 @@ extension NodeView {
     }
     /// Whether this view draws at iOS's elevated level (a sheet, a popover).
     var drawsElevated: Bool {
-        #if os(iOS)
+        #if os(iOS) || os(visionOS)
         return traitCollection.userInterfaceLevel == .elevated
         #else
         return false

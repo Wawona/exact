@@ -10,7 +10,7 @@
 // it (the web's chaining rule); `type` puts text through the field's own
 // `insertText`; `screenshot` draws the viewport's hierarchy to PNG, including Metal.
 // `window: true` or a UIKit presentation captures the window, including its alert, action sheet, popover or sheet.
-#if os(iOS) || os(tvOS)
+#if os(iOS) || os(visionOS) || os(tvOS)
 import UIKit
 
 extension Agent {
@@ -449,7 +449,7 @@ extension Agent {
         if presenter.inlineText(UInt32(id)) != nil { native["inline"] = true }
         if let canvas { native["canvas"] = "#\(canvas.id)" }
         if let f = host.field { native["editor"] = String(describing: Swift.type(of: f)); native["firstResponder"] = f.isFirstResponder }
-        #if os(iOS)
+        #if os(iOS) || os(visionOS)
         if let stepper = host.stepperObservation { native["stepper"] = stepper }
         #endif
         if let t = host.textArea { native["editor"] = String(describing: Swift.type(of: t)); native["firstResponder"] = t.isFirstResponder }
@@ -497,7 +497,7 @@ extension Agent {
     /// a tap outside), else a pushed route's Back button, else the top
     /// sheet's swipe down. The system's button is no node, so no tap reaches it.
     func back() -> [String: Any] {
-        #if os(iOS)
+        #if os(iOS) || os(visionOS)
         if ShareSheet.agentBack(in: session) || session.picker.agentBackDocument() { return backReply(("sheet", "")) }
         #endif
         if let cancelled = presenter.menus.agentCancel() { return backReply(("dialog", cancelled ? "" : "the alert is still moving: `clock settle` first")) }
@@ -699,7 +699,7 @@ extension Agent {
             // there. UIKit synthesizes neither, so the selection is the
             // recognized one; a long press's stops there, as a finger's does.
             var selection: [String: Any]?
-            #if os(iOS)
+            #if os(iOS) || os(visionOS)
             if event == "contextmenu", let target = hit as? NodeView,
                presenter.menus.eligible(target, contextMenu: true),
                let run = target.inlineContextTarget(at: target.convert(p, from: nil)) {
@@ -770,7 +770,7 @@ extension Agent {
             return ["tapped": Int(v.id), "wheel": wheel, "at": at]
         }
         if v.kind == "iframe" { return delivered(session.webviews.tap(v, request: req, at: at), hit) }
-        #if os(iOS)
+        #if os(iOS) || os(visionOS)
         // A finger on a number input's stepper steps it (LLP 1116.007 D4).
         if plain, let text = hit as? NodeView, presenter.textSelection.text(for: text)?.selected.length ?? 0 > 0 {
             presenter.textSelection.clear()
@@ -1017,7 +1017,7 @@ extension Agent {
             if phase == "down", let token = req["releaseKey"] as? String { keyReleases[token] = { ["phase": "up", "delivery": "recognized"] } }
             return reply
         }
-        #if os(iOS)
+        #if os(iOS) || os(visionOS)
         if let node = presenter.shortcut(key: device.key, held: held, focus: v) {
             // A repeat is not a press, as on every host.
             if req["repeat"] as? Bool != true { presenter.pressShortcut(node) }
@@ -1134,7 +1134,7 @@ extension Agent {
             if phase != "up", req["repeat"] as? Bool != true { for m in presses { _ = presenter.keyDown(at: focus, m.key, held: m.held, code: KeyCodes.device(m.key)?.code ?? "") } }
             // The page's shortcuts first, as the web's capture listener and
             // macOS's `routeKey` hear them (gallery F18, ShortcutsIOS).
-            #if os(iOS)
+            #if os(iOS) || os(visionOS)
             if phase != "up", let node = presenter.shortcut(key: name, held: held, focus: focus ?? presenter.focusedNode) {
                 presenter.supersedePress() // a key, as `keyDown` and `performShortcut` take it
                 if req["repeat"] as? Bool != true { presenter.pressShortcut(node) }
@@ -1171,7 +1171,7 @@ extension Agent {
                     (f.delegate as? PromptField)?.heard = nil
                 } else if presenter.controls.radioKey(focus, name, held: held) { // x2apps survey #2
                 } else {
-                    #if os(iOS)
+                    #if os(iOS) || os(visionOS)
                     _ = focus.activateKey(name)
                     #else
                     if focus.handlers.contains("press") || focus.defaultLink != nil, name == "Enter" || (name == " " && focus.props["href"] == nil) { presenter.press(focus.id) }
@@ -1316,7 +1316,7 @@ extension Agent {
             }
         }
         if moving { r["moving"] = true }
-        #if os(iOS)
+        #if os(iOS) || os(visionOS)
         // The status bar is SpringBoard's, never in the window's picture: its height, for the simulator driver to put it in (devices.mjs `withDisplay`).
         if wholeWindow, let bar = vp.window?.windowScene?.statusBarManager?.statusBarFrame.height, bar > 0, !(vp.window?.windowScene?.statusBarManager?.isStatusBarHidden ?? true) { r["statusBar"] = Agent.r2(bar) }
         // The window's own safe area, whatever the page's `viewport-fit`: the rows `compare` leaves out (the home indicator's too).
@@ -1433,7 +1433,7 @@ extension Agent {
         guard let window = presenter.viewport.window, let root = window.rootViewController else { return nil }
         visit(root)
         if let alert = found as? UIAlertController { return alert.preferredStyle == .alert ? "alert" : "action sheet" }
-        #if os(iOS)
+        #if os(iOS) || os(visionOS)
         if found is UIActivityViewController { return "share sheet" }
         #endif
         // A menu one of the popovers gave UIKit (`--touch platform`), however

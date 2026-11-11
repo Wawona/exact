@@ -269,7 +269,7 @@ final class WebArm: NSObject, WKScriptMessageHandler, WKNavigationDelegate {
     /// a web view's delegate, and a PDF's links' confirmation without one.
     @discardableResult func makeUI() -> FrameUI {
         if let ui { return ui }
-        #if os(iOS)
+        #if os(iOS) || os(visionOS)
         let made = agent ? FrameUIAgent(arm: self) : FrameUI(arm: self)
         #else
         let made = FrameUI(arm: self)
@@ -497,7 +497,7 @@ final class WebArm: NSObject, WKScriptMessageHandler, WKNavigationDelegate {
         let preferences = WebArm.preferences()
         if #available(macOS 14.0, iOS 17.0, *) { preferences.inactiveSchedulingPolicy = .throttle }
         configuration.preferences = preferences
-        #if os(iOS)
+        #if os(iOS) || os(visionOS)
         configuration.allowsInlineMediaPlayback = true
         #endif
         let browser = FrameBrowser(emit: { [weak self] name, record in self?.emitNavigation(name, record) },
@@ -832,7 +832,7 @@ final class WebArm: NSObject, WKScriptMessageHandler, WKNavigationDelegate {
         // Every serve gives the page's files anew, so the last serve's end.
         assetPage = files.give(localGuest ? src.flatMap(WebArm.assetURL) : nil, source: src)
         if assetPage != nil { wrapperURL = URL(string: "\(AssetScheme.origin)/.exact/frame/\(id)/index.html")! }
-        #if os(iOS)
+        #if os(iOS) || os(visionOS)
         // iOS lays a top-level document out by its viewport `<meta>` (980
         // CSS px without one); a frame ignores it and takes its box. Only a
         // document that asks for its box's width is laid out the same

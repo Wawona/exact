@@ -8,7 +8,7 @@
 // committed `checked` after the action (D4). `appearance: none` draws
 // nothing native. VoiceOver reads it as UIKit reads a toggle (LLP 1115.000
 // D13.3).
-#if os(iOS) || os(tvOS)
+#if os(iOS) || os(visionOS) || os(tvOS)
 import UIKit
 
 /// The checklist mark: an SF Symbol circle scaled with the body text, filled
@@ -172,7 +172,7 @@ final class ControlHost: NSObject {
             kept.tag = Int(node.id)
             controls[node.id] = kept
             kinds[node.id] = kind
-            #if os(iOS)
+            #if os(iOS) || os(visionOS)
             presenter.menus.adoptNativeMenu(kept, of: node.id)
             #endif
             return kept
@@ -222,7 +222,7 @@ final class ControlHost: NSObject {
             return controls[node.id] == nil && !node.subviews.contains { $0 is UIControl }
         }
         guard b.owner === node, b.superview === node, !b.isGlass, !b.isTracking, !b.isHighlighted else { return false }
-        #if os(iOS)
+        #if os(iOS) || os(visionOS)
         return b.menuAtRest
         #else
         return true
@@ -231,7 +231,7 @@ final class ControlHost: NSObject {
     /// `id`'s node parks: its button stays in it, out of every map, until the
     /// node's next id takes it back (`control(for:)`).
     func park(_ id: UInt32) {
-        #if os(iOS)
+        #if os(iOS) || os(visionOS)
         presenter.menus.parkNativeMenu(id)
         #endif
         controls.removeValue(forKey: id)
@@ -336,7 +336,7 @@ final class ControlHost: NSObject {
             // the kernel's, from the measurement, and asked here of none.
             var natural = control is NativeButtonIOS ? .zero : naturalSize(control, owner)
             let box = control is NativeButtonIOS ? owner.bounds : owner.contentBox()
-            #if os(iOS)
+            #if os(iOS) || os(visionOS)
             // A select its box holds narrower than its widest option wraps its
             // title and grows taller, as a pop-up button does under Auto Layout,
             // rather than running past its box (unit-converter at the largest
@@ -361,7 +361,7 @@ final class ControlHost: NSObject {
                 let width = control is UISlider ? box.width : natural.width
                 #endif
                 var x = box.midX - width / 2
-                #if os(iOS)
+                #if os(iOS) || os(visionOS)
                 if control is UIDatePicker {
                     switch valueAlignment(owner) {
                     case .left: x = box.minX

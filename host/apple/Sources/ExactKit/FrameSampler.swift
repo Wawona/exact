@@ -267,7 +267,7 @@ final class FrameSampler: NSObject {
         if let seq { pending.first = min(pending.first ?? seq.0, seq.0); pending.last = max(pending.last ?? seq.1, seq.1) }
         pending.batches += 1
         pending.apply += ms
-        #if (os(iOS) || os(tvOS)) && !targetEnvironment(macCatalyst)
+        #if ((os(iOS) || os(visionOS)) || os(tvOS)) && !targetEnvironment(macCatalyst)
         if #available(iOS 18.0, tvOS 18.0, *) { (recorder as? UpdateRecorder)?.batch(seq, ms: ms) }
         #endif
         activity()
@@ -301,7 +301,7 @@ final class FrameSampler: NSObject {
     /// recording's included, it keeps the default range, which never raises
     /// the rate (LLP 1061 D4).
     private func followDisplay() {
-        #if os(iOS)
+        #if os(iOS) || os(visionOS)
         let range = recording == nil || recorder != nil ? CAFrameRateRange.default : FrameClock.full(on: session?.presenter.viewport.window?.screen)
         if let link, link.preferredFrameRateRange != range { link.preferredFrameRateRange = range }
         #endif
@@ -322,7 +322,7 @@ final class FrameSampler: NSObject {
         let interrupted = observationStopped
         observationStopped = nil
         concludeOpen()
-        #if (os(iOS) || os(tvOS)) && !targetEnvironment(macCatalyst)
+        #if ((os(iOS) || os(visionOS)) || os(tvOS)) && !targetEnvironment(macCatalyst)
         if #available(iOS 18.0, tvOS 18.0, *) {
             (updateLink as? UIUpdateLink)?.isEnabled = false
             // A passive recording goes on through the sampler's quiet stops, and ends with its session
@@ -372,7 +372,7 @@ final class FrameSampler: NSObject {
     /// cycle need not commit where a turn ends, so the turns time only the
     /// main thread's work there.
     private func watchUpdates() {
-        #if (os(iOS) || os(tvOS)) && !targetEnvironment(macCatalyst)
+        #if ((os(iOS) || os(visionOS)) || os(tvOS)) && !targetEnvironment(macCatalyst)
         guard updateLink == nil, #available(iOS 18.0, tvOS 18.0, *), let view = session?.presenter.viewport, view.window?.windowScene != nil else { return }
         let link = UIUpdateLink(view: view)
         link.addAction(to: .beforeCATransactionCommit) { [weak self] _, _ in
@@ -514,7 +514,7 @@ final class FrameSampler: NSObject {
     /// False while one runs, or with nothing to observe.
     func beginRecording() -> Bool {
         guard recording == nil else { return false }
-        #if (os(iOS) || os(tvOS)) && !targetEnvironment(macCatalyst)
+        #if ((os(iOS) || os(visionOS)) || os(tvOS)) && !targetEnvironment(macCatalyst)
         if #available(iOS 18.0, tvOS 18.0, *), let session {
             let passive = Recording()
             if let recorder = UpdateRecorder(session: session, recording: passive) {
@@ -537,7 +537,7 @@ final class FrameSampler: NSObject {
 
     func endRecording() -> Recording? {
         guard let done = recording else { return nil }
-        #if (os(iOS) || os(tvOS)) && !targetEnvironment(macCatalyst)
+        #if ((os(iOS) || os(visionOS)) || os(tvOS)) && !targetEnvironment(macCatalyst)
         if #available(iOS 18.0, tvOS 18.0, *), let passive = recorder as? UpdateRecorder {
             passive.stop()
             recorder = nil

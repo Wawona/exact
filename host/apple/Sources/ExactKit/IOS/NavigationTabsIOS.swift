@@ -12,7 +12,7 @@
 // NavigationTabs.swift's; what a tab shows, TabFace.swift's. A tab whose
 // stack shows no bar and has pushed nothing has no navigation controller
 // until it needs one (HeldStackIOS.swift).
-#if os(iOS) || os(tvOS)
+#if os(iOS) || os(visionOS) || os(tvOS)
 import UIKit
 
 /// The tab delegate Exact keeps: a tab the bar would select presses its
@@ -502,7 +502,7 @@ extension UITabBarController {
     /// The bar the controller projects, including iPadOS's floating list of tab items.
     var projectedTabBar: UIView? {
         if #available(iOS 18.0, tvOS 18.0, *), isTabBarHidden { return nil }
-        #if os(iOS)
+        #if os(iOS) || os(visionOS)
         return tabBar.window != nil ? tabBar : floatingTabList
         #else
         return tabBar
@@ -513,7 +513,7 @@ extension UITabBarController {
     var shownTabBar: UIView? { NavigationHost.shownBar(projectedTabBar) }
 }
 
-#if os(iOS)
+#if os(iOS) || os(visionOS)
 extension UITabBarController {
     /// iPadOS 18's floating tab bar, in a regular width: no `UITabBar` in the
     /// window (`tabBar` is out of it), but a list of the tabs' items at the

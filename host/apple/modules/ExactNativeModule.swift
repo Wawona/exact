@@ -308,7 +308,7 @@ open class ExactModule {
     /// The session is leaving the window (for another, a reload, its end):
     /// take back the recognizers and views `window` added, while it is there.
     open func windowEnded(_ window: ExactWindow) {}
-    #if os(iOS) || os(tvOS)
+    #if os(iOS) || os(visionOS) || os(tvOS)
     /// A navigation controller Exact built: once, before any route in it is
     /// laid out (at a cold launch, once the module loads, for each one
     /// already built). Set `showsBar` here; the bar's look is the app's.
@@ -569,7 +569,7 @@ final class ExactHatches {
     let arrangementFn: ArrangementFn?
     /// One of 184 or more: a module's service query (ExactServices.swift).
     let serviceFn: ServiceFn?
-    #if os(iOS) || os(tvOS)
+    #if os(iOS) || os(visionOS) || os(tvOS)
     /// One of 112 or more: a held tab's navigation controller, built (`ExactTab.controller`).
     typealias StackFn = @convention(c) (UnsafeMutableRawPointer?, UnsafeMutableRawPointer?) -> UnsafeMutableRawPointer?
     let stackFn: StackFn?
@@ -607,7 +607,7 @@ final class ExactHatches {
         partsFn = regions ? table.load(fromByteOffset: 88, as: UnsafeRawPointer?.self).map { unsafeBitCast($0, to: PartsFn.self) } : nil
         tamberFn = table.load(as: UInt32.self) >= 104
             ? table.load(fromByteOffset: 96, as: UnsafeRawPointer?.self).map { unsafeBitCast($0, to: TamberFn.self) } : nil
-        #if os(iOS) || os(tvOS)
+        #if os(iOS) || os(visionOS) || os(tvOS)
         stackFn = table.load(as: UInt32.self) >= 112
             ? table.load(fromByteOffset: 104, as: UnsafeRawPointer?.self).map { unsafeBitCast($0, to: StackFn.self) } : nil
         #endif
@@ -685,7 +685,7 @@ final class ExactHatches {
     func act(_ node: UInt32, _ action: UInt32) -> Bool { actFn(host, node, action) == 0 }
 }
 
-#if os(iOS) || os(tvOS)
+#if os(iOS) || os(visionOS) || os(tvOS)
 /// A navigation controller Exact built (LLP 1075.003 §3.2, §3.7).
 public final class ExactNavigation {
     public let controller: UINavigationController
@@ -834,7 +834,7 @@ public final class ExactElement {
     /// Its HTML id ("" when it has none).
     public let id: String
     let node: UInt32, key: String
-    #if os(iOS) || os(tvOS)
+    #if os(iOS) || os(visionOS) || os(tvOS)
     /// The route it was resolved in: once that ends (a pop, a reload), the
     /// element does nothing, so a saved one never reaches a later node.
     weak var route: ExactRoute?
@@ -877,12 +877,12 @@ public final class ExactElement {
     /// False once the element's route or node has ended: it then does nothing.
     public var isLive: Bool {
         guard !ended else { return false }
-        #if os(iOS) || os(tvOS)
+        #if os(iOS) || os(visionOS) || os(tvOS)
         if hatch == nil { return route?.isLive == true }
         #endif
         return hatch != nil
     }
-    #if os(iOS) || os(tvOS)
+    #if os(iOS) || os(visionOS) || os(tvOS)
     init(id: String, node: UInt32, route: ExactRoute, hatches: ExactHatches) {
         self.id = id; self.node = node; key = route.key; self.route = route; self.hatches = hatches
     }
@@ -910,13 +910,13 @@ public final class ExactElement {
         if isLive { hatches?.owns(scope: scopeName, node: node, kind: 1, object: recognizer, what, surface: surface) }
     }
 
-    #if os(iOS)
+    #if os(iOS) || os(visionOS)
     /// Lay out this element's two authored children with UIKit, preserving their content.
     /// The first child is primary and the second secondary. Exact manages their child controllers
     /// and containment; supply a detached controller with empty content slots. The app configures
     /// the native arrangement, including animated updates. Navigation stays in the enclosing
     /// controller, with its native policies unchanged. Pass nil to restore authored layout.
-    @available(iOS 27.1, *)
+    @available(iOS 27.1, visionOS 27.1, *)
     @discardableResult
     public func arrange(using controller: UIArrangementViewController?) -> Bool {
         guard isLive, let hatches, let arrange = hatches.arrangementFn else { return false }
@@ -963,7 +963,7 @@ public final class ExactElement {
     /// Focus it (LLP 1035.001's focus rules).
     public func focus() { act(1, "focus") }
     public func blur() { act(2, "blur") }
-    #if os(iOS) || os(tvOS)
+    #if os(iOS) || os(visionOS) || os(tvOS)
     public var scrollView: UIScrollView? { platform as? UIScrollView }
     public var textField: UITextField? { platform as? UITextField }
     public var textView: UITextView? { platform as? UITextView }
@@ -1111,7 +1111,7 @@ private let moduleTick: @convention(c) (UnsafeMutableRawPointer?, UInt32, UInt64
 /// hatch runs), 1 retired (the handle goes). Bit 0 of the flags is
 /// `showsBar`, Exact's default in and the stack's choice out.
 private let moduleNavigation: @convention(c) (UnsafeMutableRawPointer?, UInt32, UnsafeMutableRawPointer?, UInt32) -> UInt32 = { raw, event, controller, flags in
-    #if os(iOS) || os(tvOS)
+    #if os(iOS) || os(visionOS) || os(tvOS)
     guard let m = module(raw), let hatches = m.hatches, let controller else { return flags }
     let nav = Unmanaged<UINavigationController>.fromOpaque(controller).takeUnretainedValue()
     let id = ObjectIdentifier(nav)
@@ -1132,7 +1132,7 @@ private let moduleNavigation: @convention(c) (UnsafeMutableRawPointer?, UInt32, 
 /// `route(module, event, controller, navigation, scroll, json, len)`: event
 /// 0 built, 1 changed, 2 ended; json `{"key": …, "data": {…}}`.
 private let moduleRoute: @convention(c) (UnsafeMutableRawPointer?, UInt32, UnsafeMutableRawPointer?, UnsafeMutableRawPointer?, UnsafeMutableRawPointer?, UnsafePointer<UInt8>?, UInt32) -> Void = { raw, event, controller, navigation, scroll, json, length in
-    #if os(iOS) || os(tvOS)
+    #if os(iOS) || os(visionOS) || os(tvOS)
     guard let m = module(raw), let hatches = m.hatches, let controller, let json, length > 0,
           let object = try? JSONSerialization.jsonObject(with: Data(bytes: json, count: Int(length))) as? [String: Any],
           let key = object["key"] as? String else { return }
@@ -1169,7 +1169,7 @@ private let moduleRoute: @convention(c) (UnsafeMutableRawPointer?, UInt32, Unsaf
 /// container (the hatch runs), 1 it retired, 2 the router selected `index` in
 /// a container the app owns, 3 that container retired.
 private let moduleTabs: @convention(c) (UnsafeMutableRawPointer?, UInt32, UnsafeMutableRawPointer?, UInt32) -> Void = { raw, event, controller, index in
-    #if os(iOS) || os(tvOS)
+    #if os(iOS) || os(visionOS) || os(tvOS)
     guard let m = module(raw), let hatches = m.hatches else { return }
     switch event {
     case 0:
@@ -1195,7 +1195,7 @@ private let moduleTabs: @convention(c) (UnsafeMutableRawPointer?, UInt32, Unsafe
 /// (a navigation controller, or a held tab's container, `heldStacks`); a
 /// container the app owns, retained once for the host, or nil.
 private let moduleTabContainer: @convention(c) (UnsafeMutableRawPointer?, UnsafePointer<UInt8>?, UInt32, UnsafePointer<UnsafeMutableRawPointer?>?, UInt32) -> UnsafeMutableRawPointer? = { raw, json, length, controllers, count in
-    #if os(iOS) || os(tvOS)
+    #if os(iOS) || os(visionOS) || os(tvOS)
     guard let m = module(raw), let hatches = m.hatches, let json,
           let object = try? JSONSerialization.jsonObject(with: Data(bytes: json, count: Int(length))) as? [String: Any],
           let nodes = object["nodes"] as? [NSNumber] else { return nil }

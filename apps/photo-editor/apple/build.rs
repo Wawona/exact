@@ -5,7 +5,7 @@ fn main() {
         panic!("Photo Editor has no tvOS build: its editing needs a touchscreen");
     }
     let platform = match target_os.as_deref() {
-        Ok("ios" | "tvos" | "watchos") => "ios",
+        Ok("ios" | "tvos" | "visionos" | "watchos") => "ios",
         _ => "macos",
     };
     exact_js_bake::build(std::path::Path::new(".."), platform).expect("bake the photo editor");

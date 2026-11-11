@@ -3,7 +3,7 @@
 // UIKit's list draws a cell's image, and the line under it starting under
 // its content, where a standard cell's starts under its text.
 import ExactKit
-#if os(iOS) || os(tvOS)
+#if os(iOS) || os(visionOS) || os(tvOS)
 import UIKit
 
 /// What a custom row draws as a standard cell would: the leading symbol it

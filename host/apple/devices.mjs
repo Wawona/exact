@@ -260,7 +260,7 @@ export function simulators() {
   return Object.entries(JSON.parse(r.stdout).devices).flatMap(([runtime, list]) => list.map((d) => ({ udid: d.udid, name: d.name, runtime, state: d.state, type: d.deviceTypeIdentifier?.split('.').pop() ?? '' })));
 }
 
-/** The simulator to use — `pick` (a udid or a name; EXACT_SIM by default), else the one booted iPhone, else the iPhone Pro on the newest iOS — booted and waited for. When several are booted, the one `app` (a bundle id) is installed on, and of several so, the one the app in `dir` last used (its `.exact/simulator`, written when a simulator is named or chosen so), said on stderr; refused when that is none or several, naming how to choose: `hint`, the caller's own way. With `tv`, the same choice among Apple TVs on tvOS. An iPhone is one by its device type, not its name: a simulator renamed `work-phone` is still one. */
+/** The simulator to use — `pick` (a udid or a name; EXACT_SIM by default), else the one booted iPhone, else the iPhone Pro on the newest iOS — booted and waited for. When several are booted, the one `app` (a bundle id) is installed on, and of several so, the one the app in `dir` last used (its `.exact/simulator`, written when a simulator is named or chosen so), said on stderr; refused when that is none or several, naming how to choose: `hint`, the caller's own way. With `tv`, the same choice among Apple TVs on tvOS; with `vision`, among Apple Vision Pros on visionOS. An iPhone is one by its device type, not its name: a simulator renamed `work-phone` is still one. */
 const saidSimulator = new Set(); // a verify opens a dozen sessions: the choice is said once
 export function simulator(pick = process.env.EXACT_SIM, options = {}) { return bootSimulator(chooseSimulator(pick, options)); }
 /** `simulators()` as it was a moment ago in this process: a drive chooses its simulator before it takes the store's
@@ -269,17 +269,20 @@ export function simulator(pick = process.env.EXACT_SIM, options = {}) { return b
 let chosenFrom = null;
 const recentSimulators = () => (chosenFrom && Date.now() - chosenFrom.at < 5000 ? chosenFrom : chosenFrom = { at: Date.now(), all: simulators() }).all;
 /** `simulator`'s choice, booting nothing: what a drive locks before it launches (agent.mjs `resolveDevice`). */
-export function chooseSimulator(pick = process.env.EXACT_SIM, { tv = false, hint = 'EXACT_SIM=<udid|name>', app, dir } = {}) {
+export function chooseSimulator(pick = process.env.EXACT_SIM, { tv = false, vision = false, hint = 'EXACT_SIM=<udid|name>', app, dir } = {}) {
   const all = recentSimulators();
-  const version = (d) => Number(/(?:iOS|tvOS)-(\d+)-(\d+)/.exec(d.runtime)?.slice(1).join('.') ?? 0);
+  const version = (d) => Number(/(?:iOS|tvOS|xrOS)-(\d+)-(\d+)/.exec(d.runtime)?.slice(1).join('.') ?? 0);
   const kind = (d) => d.type || d.name.replaceAll(' ', '-');
-  const iphones = all.filter((d) => (tv ? /SimRuntime\.tvOS/.test(d.runtime) && /^Apple-TV/.test(kind(d)) : /SimRuntime\.iOS/.test(d.runtime) && /^iPhone/.test(kind(d)))).sort((a, b) => version(b) - version(a) || a.name.localeCompare(b.name));
+  const family = vision ? { runtime: /SimRuntime\.xrOS/, type: /^Apple-Vision/, device: 'Apple Vision Pro', os: 'visionOS', remembered: 'simulator-vision' }
+    : tv ? { runtime: /SimRuntime\.tvOS/, type: /^Apple-TV/, device: 'Apple TV', os: 'tvOS', remembered: 'simulator-tv' }
+    : { runtime: /SimRuntime\.iOS/, type: /^iPhone/, device: 'iPhone', os: 'iOS', remembered: 'simulator' };
+  const iphones = all.filter((d) => family.runtime.test(d.runtime) && family.type.test(kind(d))).sort((a, b) => version(b) - version(a) || a.name.localeCompare(b.name));
   let dev = pick ? all.find((d) => d.udid === pick || d.name === pick) : null;
   if (pick && !dev) throw new Error(`no simulator ${pick} (xcrun simctl list devices available)`);
   // Several booted: whose is which is not this process's to guess (an install onto another drive's simulator,
   // 2026-10-09: build.mjs --ios takes --sim, not --phone, for a simulator). One booted, or none, is still chosen.
   const booted = iphones.filter((d) => d.state === 'Booted');
-  const used = dir ? resolve(dir, '.exact', tv ? 'simulator-tv' : 'simulator') : null;
+  const used = dir ? resolve(dir, '.exact', family.remembered) : null;
   let last = null; try { last = used && readFileSync(used, 'utf8').trim(); } catch { /* none chosen yet */ }
   // What `used` remembers: a simulator named, or one the installed-app check chose.
   let chosen = Boolean(pick);
@@ -288,14 +291,14 @@ export function chooseSimulator(pick = process.env.EXACT_SIM, { tv = false, hint
     const mine = has.length > 1 ? has.find((d) => d.udid === last) : null;
     if (has.length === 1 || mine) {
       dev = mine ?? has[0]; chosen = true;
-      if (!saidSimulator.has(dev.udid)) { saidSimulator.add(dev.udid); console.error(`${booted.length} ${tv ? 'Apple TV' : 'iPhone'} simulators are booted; using ${dev.name} ${dev.udid}, ${mine ? `the one this app last used of those with ${app} installed` : `the one with ${app} installed`}; name another with ${hint}`); }
+      if (!saidSimulator.has(dev.udid)) { saidSimulator.add(dev.udid); console.error(`${booted.length} ${family.device} simulators are booted; using ${dev.name} ${dev.udid}, ${mine ? `the one this app last used of those with ${app} installed` : `the one with ${app} installed`}; name another with ${hint}`); }
     } else {
       const named = (d) => `${d.name} ${d.udid}${has.includes(d) ? ` (has ${app})` : ''}`;
-      throw new Error(`${booted.length} ${tv ? 'Apple TV' : 'iPhone'} simulators are booted (${booted.map(named).join(', ')})${app ? `, ${has.length ? 'several' : 'none'} with ${app} installed` : ''}: name one with ${hint}`);
+      throw new Error(`${booted.length} ${family.device} simulators are booted (${booted.map(named).join(', ')})${app ? `, ${has.length ? 'several' : 'none'} with ${app} installed` : ''}: name one with ${hint}`);
     }
   }
   dev ??= booted[0] ?? iphones.find((d) => /^iPhone-\d+-Pro$/.test(kind(d))) ?? iphones[0];
-  if (!dev) throw new Error(`no ${tv ? 'Apple TV' : 'iPhone'} simulator on ${tv ? 'tvOS' : 'iOS'}; add one in Xcode, or name any simulator by udid or name with EXACT_SIM (or --sim)`);
+  if (!dev) throw new Error(`no ${family.device} simulator on ${family.os}; add one in Xcode, or name any simulator by udid or name with EXACT_SIM (or --sim)`);
   if (used && chosen && dev.udid !== last) try { mkdirSync(dirname(used), { recursive: true }); writeFileSync(used, `${dev.udid}\n`); } catch { /* remembered next time, if it can be */ }
   return dev;
 }

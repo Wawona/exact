@@ -14,7 +14,7 @@
 // `exact.shortcuts.set` `{items}`, the items as the interface's
 // `ShortcutItem`, or `[]` to clear them.
 import Foundation
-#if os(iOS) && !os(tvOS)
+#if (os(iOS) || os(visionOS)) && !os(tvOS)
 import UIKit
 #elseif os(macOS)
 import AppKit
@@ -37,7 +37,7 @@ public enum ExactShortcuts {
             guard let body = note.object as? NSDictionary else { return }
             set(body["items"] as? [[String: Any]] ?? [])
         }
-        #if os(iOS) && !os(tvOS)
+        #if (os(iOS) || os(visionOS)) && !os(tvOS)
         // The system's copy of the app's list may be from an older build: set it again.
         set(items)
         #endif
@@ -46,7 +46,7 @@ public enum ExactShortcuts {
     static func set(_ list: [[String: Any]]) {
         let kept = list.filter { ($0["name"] as? String)?.isEmpty == false && ($0["url"] as? String)?.hasPrefix("/") == true }
         if let data = try? JSONSerialization.data(withJSONObject: kept) { UserDefaults.standard.set(data, forKey: key) }
-        #if os(iOS) && !os(tvOS)
+        #if (os(iOS) || os(visionOS)) && !os(tvOS)
         // iOS shows the manifest's first, then these, as many as fit (HIG: four in all).
         UIApplication.shared.shortcutItems = kept.map { item in
             let symbol = (item["apple"] as? [String: Any])?["symbol"] as? String
@@ -58,7 +58,7 @@ public enum ExactShortcuts {
         #endif
     }
 
-    #if os(iOS) && !os(tvOS)
+    #if (os(iOS) || os(visionOS)) && !os(tvOS)
     /// The location a quick action opens.
     public static func location(of item: UIApplicationShortcutItem) -> String? {
         (item.userInfo?["url"] as? String) ?? (item.type.hasPrefix("/") ? item.type : nil)

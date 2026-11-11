@@ -12,7 +12,7 @@
 // where there is no Metal device.
 import Metal
 import QuartzCore
-#if os(iOS) || os(tvOS)
+#if os(iOS) || os(visionOS) || os(tvOS)
 import UIKit
 
 package final class Shadow {

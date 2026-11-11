@@ -18,7 +18,7 @@ import UIKit
 import AppKit
 #endif
 
-#if os(iOS)
+#if os(iOS) || os(visionOS)
 /// What the core asks of the photo picker's module, which links PhotosUI.
 package protocol MediaPickerCapability: AnyObject {
     /// Present the photo picker over `controller` for a media-only
@@ -190,6 +190,25 @@ final class Picker: NSObject {
     /// A video's pixel size (the track's transform applied) and seconds.
     static func video(_ url: URL) -> [String] {
         let asset = AVURLAsset(url: url)
+        #if os(visionOS)
+        // visionOS has only AVAsset's asynchronous loaders, which run on
+        // AVFoundation's queues; the description waits for them.
+        final class Facts: @unchecked Sendable { var out = ["", "", ""] }
+        let facts = Facts(), loaded = DispatchSemaphore(value: 0)
+        Task.detached {
+            if let track = try? await asset.loadTracks(withMediaType: .video).first,
+               let (size, transform) = try? await track.load(.naturalSize, .preferredTransform) {
+                let s = size.applying(transform)
+                facts.out[0] = "\(Int(abs(s.width).rounded()))"; facts.out[1] = "\(Int(abs(s.height).rounded()))"
+            }
+            if let duration = try? await asset.load(.duration), CMTimeGetSeconds(duration).isFinite {
+                facts.out[2] = "\(CMTimeGetSeconds(duration))"
+            }
+            loaded.signal()
+        }
+        loaded.wait()
+        return facts.out
+        #else
         var out = ["", "", ""]
         if let track = asset.tracks(withMediaType: .video).first {
             let s = track.naturalSize.applying(track.preferredTransform)
@@ -198,6 +217,7 @@ final class Picker: NSObject {
         let seconds = CMTimeGetSeconds(asset.duration)
         if seconds.isFinite { out[2] = "\(seconds)" }
         return out
+        #endif
     }
 
     /// D6: JPEG at quality 0.9, orientation applied, with no metadata copied

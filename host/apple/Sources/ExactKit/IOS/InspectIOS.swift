@@ -6,7 +6,7 @@
 // the nearest view that stands for a plan node, a walk that stops at a
 // system bar (D5's chrome rule: a plan node the bar hosts, its title or an
 // item, is selectable; UIKit's own parts select nothing, and say so).
-#if EXACT_INSPECT && os(iOS)
+#if EXACT_INSPECT && (os(iOS) || os(visionOS))
 import UIKit
 
 enum InspectHost {

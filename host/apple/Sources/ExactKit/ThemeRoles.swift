@@ -117,16 +117,18 @@ extension Presenter {
     /// sets its root's (LLP 1095 D4): rows that name the tint resolve by it,
     /// and an authored `accent-color` below still sets its subtree's.
     func applyThemeTint() {
-        #if os(iOS) || os(tvOS)
+        #if os(iOS) || os(visionOS) || os(tvOS)
         root.tintColor = ThemeRoles.color("AccentColor", in: root)
         // Its sheets sit outside the root, and its bars' titles were set
         // once: a live edit sets them again (LLP 1121 stage 5).
         for sheet in ThemeRoles.adopted(by: root) {
             sheet.tintColor = root.tintColor
-            #if os(iOS)
+            #if os(iOS) || os(visionOS)
             // A popover's layer over a sheet is clear: only what it holds paints.
             if sheet is PopoverLayer { continue }
+            #if os(iOS)
             if let owner = sheet.next as? PaintsSheetSurface { owner.paintSurface(); continue }
+            #endif
             sheet.backgroundColor = ThemeRoles.color("background", in: sheet) ?? ThemeRoles.color("Canvas", in: sheet, or: .systemBackground)
             #endif
         }

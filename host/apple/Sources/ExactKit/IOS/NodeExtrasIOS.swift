@@ -1,7 +1,7 @@
 // The fields a node's view rarely sets, apart from the view (LLP 1010 §6:
 // a list's memory is its rows'). Every accessor reads and writes as the
 // stored property it replaces did.
-#if os(iOS) || os(tvOS)
+#if os(iOS) || os(visionOS) || os(tvOS)
 import UIKit
 
 /// What most nodes never set — gestures and their holds, editors and
@@ -128,7 +128,7 @@ final class NodeExtras {
     var field: UITextField?
     var fieldWaits = false
     weak var headerField: UITextField?
-    #if os(iOS)
+    #if os(iOS) || os(visionOS)
     /// A number input's stepper (`NumberStepperIOS.swift`).
     var stepper: FieldStepper?
     #endif
@@ -206,7 +206,7 @@ final class NodeExtras {
     weak var activeReadingAnchor: NodeView?
     /// A plain scroller's anchor across a batch (`ScrollAnchoring.swift`).
     var scrollAnchor: (node: NodeView, y: CGFloat)?
-    #if !os(tvOS)
+    #if os(iOS)
     lazy var swipeFeedback = UISelectionFeedbackGenerator()
     #endif
 }
@@ -401,7 +401,7 @@ extension NodeView {
         get { extras?.scrollAnchor }
         set { if newValue != nil || extras != nil { more.scrollAnchor = newValue } }
     }
-    #if !os(tvOS)
+    #if os(iOS)
     var swipeFeedback: UISelectionFeedbackGenerator { more.swipeFeedback }
     #endif
 }
@@ -474,7 +474,7 @@ extension NodeView {
     /// (`ModalController.paintSurface`), so that below its large detent the
     /// sheet is UIKit's glass (LLP 1141.001 D3).
     var groundIsSheets: Bool {
-        #if os(iOS)
+        #if os(iOS) || os(visionOS)
         guard props["navigationPresentation"] == "modal", !wrote("background_color"),
               case .object(let o)? = style["background_color"] else { return false }
         return o["sys"]?.string == "systemBackgroundColor"

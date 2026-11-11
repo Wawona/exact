@@ -6,10 +6,10 @@
 // extension's configuration by this type, as Apple's sample shares one
 // attributes file between its two targets. It carries nothing: the title,
 // the tint and the time are AlarmKit's own attributes and state.
-#if os(iOS)
+#if os(iOS) || os(visionOS)
 import AlarmKit
 
-@available(iOS 26.0, *)
+@available(iOS 26.0, visionOS 26.0, *)
 public struct ExactAlarmMetadata: AlarmMetadata {
     public init() {}
 }

@@ -12,7 +12,7 @@
 // edge (an absolute bar riding the keyboard): what a pinned bar hides of the
 // port is not the field's to be shown in, as a UIKit table whose bottom inset
 // takes in its toolbar scrolls the field above it.
-#if os(iOS) || os(tvOS)
+#if os(iOS) || os(visionOS) || os(tvOS)
 import UIKit
 
 /// One keyboard contribution to a scroll view's shared bottom insets.
@@ -33,6 +33,17 @@ final class KeyboardInset {
 }
 
 extension Presenter {
+    var interactiveKeyboardDrag: Bool {
+        #if os(visionOS)
+        // visionOS has no interactive keyboard dismissal.
+        return false
+        #else
+        let drags = { (sv: UIScrollView) in sv.keyboardDismissMode == .interactive && (sv.isTracking || sv.isDragging) }
+        return drags(viewport) || scrollers.contains { views[$0]?.scrollView.map(drags) ?? false }
+            || navigation.primaryRoutes.contains { $0.contentViewport.map(drags) ?? false }
+        #endif
+    }
+
     /// Scroll a node into the part of the viewport the keyboard leaves —
     /// the browser's rule for a focused field — through every scroll
     /// container above it, each moving only as far as it must, never past
@@ -275,6 +286,7 @@ extension NodeView {
     /// keeps UIKit's `.none`. An authored `keyboardDismissMode` wins, `none`
     /// included: the prop has no default row, so unsaid it is absent from
     /// the node's props, and absence is the whole test.
+    #if !os(visionOS)
     var keyboardDismissal: UIScrollView.KeyboardDismissMode {
         switch props["keyboardDismissMode"] {
         case "interactive": return .interactive
@@ -282,18 +294,21 @@ extension NodeView {
         case "none": return .none
         default:
             guard scrollsVertically else { return .none }
-            #if os(iOS)
+            #if os(iOS) || os(visionOS)
             let route = ViewPresentation.controllers(for: self).lazy.compactMap { $0 as? RouteController }.first
             if route?.search?.controller.searchBar.searchTextField.isEditing == true { return .onDrag }
             #endif
             return .interactive
         }
     }
+    #endif
     /// Written again when the prop or the axes the node scrolls change; a
     /// grouped list's collection view takes it from here (`mount`).
     func updateKeyboardDismissal() {
+        #if !os(visionOS)
         guard let scroll = scrollView, scroll.keyboardDismissMode != keyboardDismissal else { return }
         scroll.keyboardDismissMode = keyboardDismissal
+        #endif
     }
 }
 
@@ -391,7 +406,7 @@ extension NavigationHost {
     }
 
     func ownerKeyboardExtension(_ owner: UIViewController) -> CGFloat {
-        #if os(iOS)
+        #if os(iOS) || os(visionOS)
         if ExactEnv.authoredChrome, owner === primaryOwner, presenter.keyboardPolicy == "resizes-content" { return presenter.keyboardAccessoryHeight }
         #endif
         return 0

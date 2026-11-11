@@ -1,5 +1,5 @@
 // @ref LLP 1126.001 WP14 — activity addresses use the development gallery.
-#if EXACT_WIDGET_GALLERY && (os(iOS) || os(macOS))
+#if EXACT_WIDGET_GALLERY && ((os(iOS) || os(visionOS)) || os(macOS))
 import SwiftUI
 import ImageIO
 import UniformTypeIdentifiers

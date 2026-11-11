@@ -49,6 +49,8 @@ pub(in crate::runner) fn target() -> &'static str {
         "ios"
     } else if cfg!(target_os = "tvos") {
         "tvos"
+    } else if cfg!(target_os = "visionos") {
+        "visionos"
     } else if cfg!(target_os = "macos") {
         "macos"
     } else if cfg!(target_os = "android") {

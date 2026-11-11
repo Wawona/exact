@@ -9,7 +9,7 @@
 // Items are rebuilt every time the menu opens (UIDeferredMenuElement
 // .uncached), after the invoker's own press has gone to the runner — both
 // fire, D1 — so the menu shows rows refreshed by that press.
-#if os(iOS) || os(tvOS)
+#if os(iOS) || os(visionOS) || os(tvOS)
 import UIKit
 
 final class MenuHost {
@@ -18,7 +18,7 @@ final class MenuHost {
     private var overlays: [UInt32: UIButton] = [:]
     /// The target and press shape each overlay's menu was built for.
     private var menuShapes: [UInt32: String] = [:]
-    #if os(iOS)
+    #if os(iOS) || os(visionOS)
     /// Native buttons that are pull-downs (`nativeMenu`), by node.
     var nativeMenus: [UInt32: NativeButtonIOS] = [:]
     #endif
@@ -49,7 +49,7 @@ final class MenuHost {
     /// The layers lifted over a dialog's sheet: outside the viewport and the route mounts.
     var sheetLayers: [UIView] { agentOpen.values.sorted { $0.order < $1.order }.map(\.layer).filter { $0.sheet != nil && $0.superview != nil } }
     func logicalParent(of view: UIView) -> UIView? {
-        #if os(iOS)
+        #if os(iOS) || os(visionOS)
         if let parent = context.logicalParent(of: view) { return parent }
         #endif
         return agentOpen.values.first { $0.popover === view }?.parent
@@ -86,7 +86,7 @@ final class MenuHost {
         let order: Int
         let ancestor: String?
         let layer: PopoverLayer
-        #if os(iOS)
+        #if os(iOS) || os(visionOS)
         var relay: MountRelay?
         #endif
         init(source: UInt32?, popover: NodeView, order: Int, ancestor: String?, presenter: Presenter) {
@@ -99,7 +99,7 @@ final class MenuHost {
     }
 
     init(presenter: Presenter) { self.presenter = presenter }
-    #if os(iOS)
+    #if os(iOS) || os(visionOS)
     /// The context menus (LLP 1021 §5.1, ContextMenusIOS.swift).
     private(set) lazy var context = ContextMenuHost(presenter: presenter!, menus: self)
     #endif
@@ -173,7 +173,7 @@ final class MenuHost {
                   opens(v, pop)
             else { continue }
             if v.isNativeButton {
-                #if os(iOS)
+                #if os(iOS) || os(visionOS)
                 if pop.props["accessibilityRole"] == "menu", !isConfirmation(pop), let native = presenter.controls.controls[v.id] as? NativeButtonIOS {
                     let heading = pop.props["accessibilityLabel"] ?? ""
                     nativeMenu(native, of: v, popover: pop, shape: "\(target)|\(heading)", heading: heading)
@@ -186,7 +186,7 @@ final class MenuHost {
             // the invoker, as a native button's does (LLP 1021 D3: only a menu
             // is the platform's pull-down); its tap invokes after its press
             // (`activating`, `invoke`). tvOS's remote has no such path: the overlay stays.
-            #if os(iOS)
+            #if os(iOS) || os(visionOS)
             if !pullsDown(pop) { continue }
             #endif
             live.insert(v.id)
@@ -213,7 +213,7 @@ final class MenuHost {
             }
             rejectActiveMenuProperties(in: pop)
             let button = overlays[v.id] ?? {
-                #if os(iOS)
+                #if os(iOS) || os(visionOS)
                 let b = MenuButton(type: .custom)
                 b.focus = focus
                 #else
@@ -224,7 +224,7 @@ final class MenuHost {
                 overlays[v.id] = b
                 return b
             }()
-            #if os(iOS)
+            #if os(iOS) || os(visionOS)
             if let native = button as? MenuButton {
                 if native.popover !== pop { native.dismissMenu() }
                 native.popover = pop
@@ -255,14 +255,14 @@ final class MenuHost {
             }
         }
         for (id, b) in overlays where !live.contains(id) {
-            #if os(iOS)
+            #if os(iOS) || os(visionOS)
             (b as? MenuButton)?.dismissMenu()
             #endif
             b.removeFromSuperview()
             overlays[id] = nil
             menuShapes[id] = nil
         }
-        #if os(iOS)
+        #if os(iOS) || os(visionOS)
         for (id, b) in nativeMenus where !liveNative.contains(id) || presenter.controls.controls[id] !== b {
             Self.endNativeMenu(b); nativeMenus[id] = nil
         }
@@ -282,7 +282,7 @@ final class MenuHost {
     /// D13: activation finished; now read the surviving control's live target.
     func invoke(_ source: NodeView, bubbled: Bool = false) {
         guard source !== invocationOwner else { return }
-        #if os(iOS)
+        #if os(iOS) || os(visionOS)
         let custom = source.kind == "button" && (source.props["href"] ?? "").isEmpty
         #else
         let custom = false
@@ -356,7 +356,7 @@ final class MenuHost {
             discardPendingConfirmations { $0.matches(pop) }
             if let owner = confirmation, owner.popover === pop { finish(owner, chosen: nil) }
             else { drop(name) }
-            #if os(iOS)
+            #if os(iOS) || os(visionOS)
             for case let button as MenuButton in overlays.values where button.popover === pop { button.dismissMenu() }
             for button in nativeMenus.values where button.popover === pop { button.dismissMenu() }
             context.close(pop)
@@ -610,17 +610,17 @@ final class MenuHost {
         resetConfirmation()
         sheets.reset()
         overlays.values.forEach {
-            #if os(iOS)
+            #if os(iOS) || os(visionOS)
             ($0 as? MenuButton)?.dismissMenu()
             #endif
             $0.removeFromSuperview()
         }
         overlays.removeAll()
-        #if os(iOS)
+        #if os(iOS) || os(visionOS)
         nativeMenus.values.forEach(Self.endNativeMenu); nativeMenus.removeAll()
         #endif
         for name in Array(agentOpen.keys) { drop(name) }
-        #if os(iOS)
+        #if os(iOS) || os(visionOS)
         context.reset()
         #endif
         laidOut.removeAll()
@@ -706,7 +706,7 @@ final class MenuHost {
     }
     private func showsInViews(_ node: NodeView) -> Bool {
         if sheets.owns(node) || agentOpen.values.contains(where: { $0.popover === node }) { return true }
-        #if os(iOS)
+        #if os(iOS) || os(visionOS)
         return context.open?.popover === node
         #else
         return false
@@ -714,7 +714,7 @@ final class MenuHost {
     }
     /// Whether `node` is an open popover in the top layer (the agent's).
     func lifted(_ node: NodeView) -> Bool {
-        #if os(iOS)
+        #if os(iOS) || os(visionOS)
         if context.lifts(node) { return true }
         #endif
         return sheets.owns(node) || agentOpen.values.contains { $0.popover === node }
@@ -724,13 +724,13 @@ final class MenuHost {
     /// drops closes.
     /// A frame op on `node`: a context menu's lifted row takes it as its home.
     func framed(_ node: NodeView) {
-        #if os(iOS)
+        #if os(iOS) || os(visionOS)
         context.framed(node)
         #endif
         sheets.framed(node)
     }
     func children(_ parent: UIView, _ wanted: [NodeView]) {
-        #if os(iOS)
+        #if os(iOS) || os(visionOS)
         context.children(parent, wanted)
         #endif
         sheets.children(parent, wanted)
@@ -748,7 +748,7 @@ final class MenuHost {
 
     private func lift(_ entry: Lifted) {
         guard let presenter, let pop = entry.popover else { return }
-        #if os(iOS)
+        #if os(iOS) || os(visionOS)
         if entry.relay == nil { entry.relay = MountRelay(presenter, mount: entry.layer) }
         #endif
         entry.layer.mount(in: presenter)
@@ -819,7 +819,7 @@ final class MenuHost {
     /// under the agent, its painted presentation shown.
     func isOpen(_ node: NodeView) -> Bool {
         if pendingConfirmations.contains(where: { $0.matches(node) }) || confirmation?.popover === node && confirmation?.finishing == false || sheets.isOpen(node) { return true }
-        #if os(iOS)
+        #if os(iOS) || os(visionOS)
         if context.isOpen(node) || overlays.values.contains(where: { ($0 as? MenuButton).map { $0.popover === node && $0.isMenuOpen } == true }) { return true }
         if nativeMenus.values.contains(where: { $0.popover === node && $0.isMenuOpen }) { return true }
         #endif
@@ -1002,7 +1002,7 @@ final class MenuHost {
         return owner.finishing || owner.alert.isBeingPresented || owner.alert.isBeingDismissed
     }
     func observation() -> [String: Any]? {
-        #if os(iOS)
+        #if os(iOS) || os(visionOS)
         if let open = context.observation() { return open }
         #endif
         if confirmation == nil, let open = agentOpen.values.max(by: { $0.order < $1.order }), let pop = open.popover {

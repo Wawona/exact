@@ -1,4 +1,4 @@
-#if os(iOS) || os(tvOS)
+#if os(iOS) || os(visionOS) || os(tvOS)
 import UIKit
 
 /// The layout regions UIKit lays out beside the safe area (LLP 1123 D10),
@@ -22,7 +22,7 @@ enum LayoutRegionsIOS {
         // from iOS 26's regions, whose readable content can differ from
         // the older guide's; below iOS 26, the guides, without adaptation
         let regions: [(CGRect, (CGRect, CGRect))]
-        if #available(iOS 26.0, tvOS 26.0, *) {
+        if #available(iOS 26.0, tvOS 26.0, visionOS 26.0, *) {
             func rect(_ region: UIView.LayoutRegion) -> CGRect { local(root.bounds.inset(by: root.edgeInsets(for: region))) }
             func pair(_ region: (UIView.LayoutRegion.AdaptivityAxis?) -> UIView.LayoutRegion) -> (CGRect, (CGRect, CGRect)) {
                 (rect(region(nil)), (rect(region(.horizontal)), rect(region(.vertical))))

@@ -1,7 +1,7 @@
 // The status bar's style, declared from state (LLP 1105): `status-bar-style`
 // on any node; the declaration painted on top of what covers the bar wins.
 // tvOS has no status bar.
-#if os(iOS)
+#if os(iOS) || os(visionOS)
 import UIKit
 
 /// What the bar shows (D1, D4) and how a change reaches it, with the node

@@ -345,11 +345,11 @@ pub fn compatibility_id_pinned(
 
 /// The faced tools this platform's binary compiles a door for (LLP 1133.023
 /// D8): each one's signature and face join the id, so a plan that changes
-/// one is a binary change. tvOS (an `ios` bake for a tvOS target) and the
-/// web compile none.
+/// one is a binary change. tvOS and visionOS (`ios` bakes for their
+/// targets) and the web compile none.
 fn faces(compat: &mut Compat, plan: &exact_plan::Plan, platform: &str, target: &str) {
     let door = match platform {
-        _ if target.contains("tvos") => return,
+        _ if target.contains("tvos") || target.contains("visionos") => return,
         "ios" | "macos" => "apple",
         "android" => "android",
         _ => return,

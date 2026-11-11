@@ -30,14 +30,14 @@ private final class VideoContainer: PlatformView {
     #endif
 }
 
-#if os(iOS) || os(tvOS)
+#if os(iOS) || os(visionOS) || os(tvOS)
 private final class VideoLayerView: UIView {
     override class var layerClass: AnyClass { AVPlayerLayer.self }
     var playerLayer: AVPlayerLayer { layer as! AVPlayerLayer }
 }
 #endif
 
-#if os(iOS)
+#if os(iOS) || os(visionOS)
 /// AVKit's video overlay hides its controls in an audio element's 54-point
 /// box. UIKit controls keep an audio-only player usable at that size.
 private final class AudioControls: UIView {
@@ -136,7 +136,7 @@ private final class VideoArm: NSObject, NowPlayingPlayer {
     var inline: VideoLayerView?
     /// The full-screen presentation `requestFullscreen` made, while it shows.
     var fullscreen: FullscreenPlayer?
-    #if os(iOS)
+    #if os(iOS) || os(visionOS)
     var audioControls: AudioControls?
     var presentation: UIView? { audioControls ?? controller?.view ?? inline }
     #else
@@ -221,7 +221,7 @@ private final class VideoArm: NSObject, NowPlayingPlayer {
     /// controls; `state` reads the time from the player when asked.
     func updateTick() {
         var wants = listeners.contains("timeupdate")
-        #if os(iOS)
+        #if os(iOS) || os(visionOS)
         wants = wants || audioControls != nil && bool("controls")
         #endif
         wants = wants && !invalidated
@@ -229,7 +229,7 @@ private final class VideoArm: NSObject, NowPlayingPlayer {
             tick = player.addPeriodicTimeObserver(forInterval: CMTime(seconds: 0.25, preferredTimescale: 600), queue: .main) { [weak self] _ in
                 // A seek in flight reports its own time when it lands.
                 guard let self, !self.invalidated, self.seekTarget == nil else { return }
-                #if os(iOS)
+                #if os(iOS) || os(visionOS)
                 self.audioControls?.refresh()
                 #endif
                 self.emit("timeupdate", payload: String(self.seconds))
@@ -273,7 +273,7 @@ private final class VideoArm: NSObject, NowPlayingPlayer {
         #if os(macOS)
         return "AVKit"
         #else
-        #if os(iOS)
+        #if os(iOS) || os(visionOS)
         if audioControls != nil { return "UIKit" }
         #endif
         return controller != nil ? "AVKit" : inline != nil ? "AVPlayerLayer" : "AVPlayer"
@@ -340,7 +340,7 @@ private final class VideoArm: NSObject, NowPlayingPlayer {
         avkitPublishes = on
         #if os(macOS)
         presentation.updatesNowPlayingInfoCenter = on
-        #elseif os(iOS)
+        #elseif os(iOS) || os(visionOS)
         controller?.updatesNowPlayingInfoCenter = on
         #endif
     }
@@ -364,7 +364,7 @@ private final class VideoArm: NSObject, NowPlayingPlayer {
     func timeStatusChanged() {
         guard Thread.isMainThread else { DispatchQueue.main.async { [weak self] in self?.timeStatusChanged() }; return }
         guard !invalidated else { return }
-        #if os(iOS)
+        #if os(iOS) || os(visionOS)
         audioControls?.refresh()
         #endif
         let status = player.timeControlStatus
@@ -404,7 +404,7 @@ private final class VideoArm: NSObject, NowPlayingPlayer {
         controller?.exitsFullScreenWhenPlaybackEnds = bool("exitsFullScreenWhenPlaybackEnds")
         #endif
         controller?.requiresLinearPlayback = bool("requiresLinearPlayback")
-        #if !os(tvOS)
+        #if os(iOS)
         controller?.allowsVideoFrameAnalysis = bool("allowsVideoFrameAnalysis", true)
         #endif
         #endif
@@ -412,9 +412,14 @@ private final class VideoArm: NSObject, NowPlayingPlayer {
         // changed value is sent.
         set(\.isMuted, bool("muted"))
         set(\.volume, Float(number("volume", 1)))
+        // visionOS's player decides external playback and display sleep itself.
+        #if !os(visionOS)
         set(\.allowsExternalPlayback, !bool("disableremoteplayback") && !(props["controlslist"] ?? "").split(separator: " ").contains("noremoteplayback"))
+        #endif
         set(\.automaticallyWaitsToMinimizeStalling, bool("automaticallyWaitsToMinimizeStalling", true))
+        #if !os(visionOS)
         set(\.preventsDisplaySleepDuringVideoPlayback, bool("preventsDisplaySleepDuringVideoPlayback", true))
+        #endif
         // HTML's loop seeks to the start at the end without pausing (no pause, play or ended).
         set(\.actionAtItemEnd, bool("loop") ? .none : .pause)
         if changed("poster") { loadPoster() }
@@ -553,7 +558,7 @@ private final class VideoArm: NSObject, NowPlayingPlayer {
                 guard let self, !self.invalidated, self.generation == token, mine == self.seeks else { return }
                 self.seekTarget = nil
                 guard completed else { return }
-                #if os(iOS)
+                #if os(iOS) || os(visionOS)
                 self.audioControls?.refresh()
                 #endif
                 self.emit("seeked"); self.emit("timeupdate", payload: String(self.seconds))
@@ -564,6 +569,9 @@ private final class VideoArm: NSObject, NowPlayingPlayer {
     var frameReady: Bool {
         #if os(macOS)
         return presentation.isReadyForDisplay
+        #elseif os(visionOS)
+        // visionOS's player controller does not report its first frame; the item's readiness stands in.
+        return controller != nil ? player.currentItem?.status == .readyToPlay : inline?.playerLayer.isReadyForDisplay ?? false
         #else
         return controller?.isReadyForDisplay ?? inline?.playerLayer.isReadyForDisplay ?? false
         #endif
@@ -635,14 +643,19 @@ private final class VideoArm: NSObject, NowPlayingPlayer {
     }
 
     var hdrItem: Bool {
+        #if os(visionOS)
+        // visionOS has only AVAsset's asynchronous track loaders; the item's tracks are loaded.
+        player.currentItem?.tracks.contains { $0.assetTrack?.hasMediaCharacteristic(.containsHDRVideo) == true } ?? false
+        #else
         player.currentItem?.asset.tracks(withMediaType: .video).contains { $0.hasMediaCharacteristic(.containsHDRVideo) } ?? false
+        #endif
     }
 
     /// Read the presentation objects, so diagnostics can catch a missed update.
     var appliedDynamicRange: [String: String] {
         var result: [String: String] = [:]
-        #if os(iOS) || os(tvOS)
-        if #available(iOS 26, tvOS 26, *), let layer = inline?.playerLayer {
+        #if os(iOS) || os(visionOS) || os(tvOS)
+        if #available(iOS 26, tvOS 26, visionOS 26, *), let layer = inline?.playerLayer {
             let range = layer.preferredDynamicRange
             result["layer"] = range == .standard ? "standard" : range == .constrainedHigh ? "constrained" : "no-limit"
         }
@@ -673,19 +686,19 @@ private final class VideoArm: NSObject, NowPlayingPlayer {
         let image: NSImage.DynamicRange = limit == "standard" ? .standard : limit == "constrained" ? .constrainedHigh : .high
         #endif
         if poster.preferredImageDynamicRange != image { poster.preferredImageDynamicRange = image }
-        #if os(iOS) || os(tvOS)
+        #if os(iOS) || os(visionOS) || os(tvOS)
         if let layer = inline?.playerLayer {
-            if #available(iOS 26, tvOS 26, *) {
+            if #available(iOS 26, tvOS 26, visionOS 26, *) {
                 let wanted: CALayer.DynamicRange = limit == "standard" ? .standard : limit == "constrained" ? .constrainedHigh : .high
                 if layer.preferredDynamicRange != wanted { layer.preferredDynamicRange = wanted }
             } else {
-                #if os(iOS)
+                #if os(iOS) || os(visionOS)
                 layer.wantsExtendedDynamicRangeContent = limit != "standard"
                 #endif
             }
         }
         #endif
-        // tvOS has no AVKit range preference.
+        // tvOS and visionOS have no AVKit range preference.
         #if os(iOS) || os(macOS)
         if #available(iOS 26, macOS 26, *) {
             let range: AVDisplayDynamicRange = limit == "standard" ? .standard : limit == "constrained" ? .constrainedHigh : .high
@@ -697,7 +710,7 @@ private final class VideoArm: NSObject, NowPlayingPlayer {
         }
         #endif
     }
-    #if os(iOS) || os(tvOS)
+    #if os(iOS) || os(visionOS) || os(tvOS)
     /// A video without `controls` uses the native player layer, as Chrome's
     /// `<video>` without controls draws no UI (LLP 1042 §7 A): PiP and frame
     /// analysis select AVKit only when set by name, since without controls or
@@ -709,7 +722,7 @@ private final class VideoArm: NSObject, NowPlayingPlayer {
         // An `audio` has no picture to take full screen or to picture in
         // picture. Its inline controls are UIKit on iOS (LLP 1042 §8).
         let audio = props["semanticTag"] == "audio"
-        #if os(iOS)
+        #if os(iOS) || os(visionOS)
         if audio {
             if audioControls == nil && bool("controls") {
                 let controls = AudioControls(arm: self)
@@ -743,12 +756,16 @@ private final class VideoArm: NSObject, NowPlayingPlayer {
             // `renderInContext` throws on (object-fit does not animate in CSS).
             native.videoGravity = gravity
             controller = native
-            #if os(iOS)
+            #if os(iOS) || os(visionOS)
             native.updatesNowPlayingInfoCenter = avkitPublishes
             #endif
             applyDynamicRange()
             container.insertSubview(native.view, belowSubview: poster)
+            #if os(visionOS)
+            displayObservations = [player.observe(\.timeControlStatus, options: [.new]) { [weak self] _, _ in self?.displayReadinessChanged() }]
+            #else
             displayObservations = [native.observe(\.isReadyForDisplay, options: [.new]) { [weak self] _, _ in self?.displayReadinessChanged() }]
+            #endif
             showPoster() // the controller has no frame yet
             inline?.playerLayer.player = nil
             inline?.removeFromSuperview()
@@ -793,7 +810,7 @@ private final class VideoArm: NSObject, NowPlayingPlayer {
     }
     func layout() {
         guard !invalidated else { return }
-        #if os(iOS) || os(tvOS)
+        #if os(iOS) || os(visionOS) || os(tvOS)
         attach()
         #endif
         let fit = props["objectFit"] ?? "contain", gravity = self.gravity
@@ -815,7 +832,7 @@ private final class VideoArm: NSObject, NowPlayingPlayer {
             frame = CGRect(x: (frame.width - naturalSize.width * scale) / 2, y: (frame.height - naturalSize.height * scale) / 2, width: naturalSize.width * scale, height: naturalSize.height * scale)
         }
         if presentation.superview === container { presentation.frame = frame }
-        #if os(iOS)
+        #if os(iOS) || os(visionOS)
         audioControls?.refresh()
         #endif
         poster.frame = posterFrame
@@ -829,7 +846,7 @@ private final class VideoArm: NSObject, NowPlayingPlayer {
         observations.removeAll(); playerObservations.removeAll(); displayObservations.removeAll()
         notifications.forEach(NotificationCenter.default.removeObserver); notifications.removeAll()
         player.replaceCurrentItem(with: nil)
-        #if os(iOS) || os(tvOS)
+        #if os(iOS) || os(visionOS) || os(tvOS)
         fullscreen?.left = nil; fullscreen?.dismiss(animated: false); fullscreen = nil
         detach()
         controller?.view.removeFromSuperview()
@@ -843,7 +860,7 @@ private final class VideoArm: NSObject, NowPlayingPlayer {
     }
 }
 
-#if os(iOS) || os(tvOS)
+#if os(iOS) || os(visionOS) || os(tvOS)
 /// The full-screen player: AVKit's own controller on the inline one's
 /// AVPlayer, so the time, the play or pause, and the rate are the same ones
 /// when it closes (Menu on tvOS, Done on iOS) as when it opened.

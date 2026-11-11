@@ -17,7 +17,7 @@ extension Presenter {
     /// The frontmost shown `aria-modal` view, the most recently made of
     /// those shown: while one is up only shortcuts inside it are heard.
     var shortcutModal: NodeView? {
-        #if os(iOS) || os(tvOS)
+        #if os(iOS) || os(visionOS) || os(tvOS)
         // A dialog in its sheet is modal with nothing written (LLP 1115.000 D11.5).
         if let dialog = menus.sheets.topDialog { return dialog }
         #endif

@@ -135,7 +135,7 @@ extension TextEngine {
     /// device pixels its line box was rounded to (`Paragraph.lineScale`) as
     /// well: whole points where text is laid out at 1 (LLP 1008 §3).
     static func paintedBaseline(_ baseline: CGFloat, scale: CGFloat, lineScale: CGFloat = 1) -> CGFloat {
-        #if os(iOS) || os(tvOS)
+        #if os(iOS) || os(visionOS) || os(tvOS)
         let scale = max(1, scale)
         #else
         let scale = max(1, min(scale, lineScale))

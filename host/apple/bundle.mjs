@@ -140,7 +140,7 @@ export function assembleMac({intents, shared, library, serviceDylibs, macWidgets
     }
     return bundlePath;
 }
-export function assembleIOS({intents, shared, library, serviceDylibs, triple, app, paths, binDir, bin, device, development, appleReach, tv, bakedCompat, bakedPlan, ipa, linkRoot, swiftc, buildReceipt, rosterKeys, sdkName, production, distribution, stampSdk, libDir, gpuArtifacts, looseArms, modulesBuilt, modulesLoadName, hasSvg, svgBuilt, svgLoadName, svgFilterBuilt, svgFilterLibraryName, canvasGpuBuilt, canvasGpuLoadName, args, unsigned, prof, ph, sha1, composition, destination, target, sdk, hasGpu, dylib, alarm = null}, {runApple, appleArtifacts, macInfoPlist, copyAppleStaticTrees, writeUsageStrings, receipt, shippedReceipt, assertAppleIdentity, placeAppleArtifact, infoPlist, distributionKeys, copyAppleGpuProducts, entitlements, appClip, stripForDistribution}) {
+export function assembleIOS({intents, shared, library, serviceDylibs, triple, app, paths, binDir, bin, device, development, appleReach, tv, vision = false, bakedCompat, bakedPlan, ipa, linkRoot, swiftc, buildReceipt, rosterKeys, sdkName, production, distribution, stampSdk, libDir, gpuArtifacts, looseArms, modulesBuilt, modulesLoadName, hasSvg, svgBuilt, svgLoadName, svgFilterBuilt, svgFilterLibraryName, canvasGpuBuilt, canvasGpuLoadName, args, unsigned, prof, ph, sha1, composition, destination, target, sdk, hasGpu, dylib, alarm = null}, {runApple, appleArtifacts, macInfoPlist, copyAppleStaticTrees, writeUsageStrings, receipt, shippedReceipt, assertAppleIdentity, placeAppleArtifact, infoPlist, distributionKeys, copyAppleGpuProducts, entitlements, appClip, stripForDistribution}) {
   // The bundle, assembled from scratch (new inodes, see above), with the app's assets (a phone reads no other
   // machine's paths); ad-hoc signed for a simulator, signed with the team's identity, profile, and entitlements for a phone.
   const bundle = resolve(binDir, basename(paths.bundle));
@@ -150,16 +150,16 @@ export function assembleIOS({intents, shared, library, serviceDylibs, triple, ap
   mkdirSync(resolve(bundle, 'Frameworks'), { recursive: true });
   if (shared) cpSync(shared.framework, resolve(bundle, 'Frameworks/ExactCore.framework'), { recursive: true });
   copyFileSync(bin, resolve(bundle, paths.executable));
-  writeFileSync(resolve(bundle, 'Info.plist'), infoPlist(app, device, { development, distributed: distribution, reach: appleReach, tv }));
+  writeFileSync(resolve(bundle, 'Info.plist'), infoPlist(app, device, { development, distributed: distribution, reach: appleReach, tv, vision }));
   const refused = webRefusal(app, distribution, tv);
   if (refused) console.log(refused);
   // The GPU crate's shaders (LLP 1030 D8): files the presenter registers
   // with the module before a surface is created, never strings in the dylib.
   copyAppleStaticTrees(paths.capture, bundle);
   verifyBakeFiles(bakedCompat, bakedPlan, listAssets(bundle, true, ['typescript']));
-  const assetKeys = iosAssets(app, bundle, device, { tv, catalog: !!ipa, kept: { dir: resolve(linkRoot, 'assets'), stamp: swiftc }, expected: buildReceipt.binary.metadata.appleAssetCatalogs ?? [], ...(tv ? {} : { expectedLaunchImage: buildReceipt.binary.metadata.launchImage ?? null }), launch: buildReceipt.graph.launchBackground });
+  const assetKeys = iosAssets(app, bundle, device, { tv, vision, catalog: !!ipa, kept: { dir: resolve(linkRoot, 'assets'), stamp: swiftc }, expected: buildReceipt.binary.metadata.appleAssetCatalogs ?? [], ...(tv ? {} : { expectedLaunchImage: buildReceipt.binary.metadata.launchImage ?? null }), launch: buildReceipt.graph.launchBackground });
   const stamp = { ...rosterKeys, ...(ipa ? distributionKeys(sdkName) : {}), ...buildInfo(app, { root, archive: !!ipa, production: production || distribution, ...stampSdk }) };
-  writeFileSync(resolve(bundle, 'Info.plist'), infoPlist(app, device, { development, distributed: distribution, reach: appleReach, icon: assetKeys, distribution: stamp, tv }));
+  writeFileSync(resolve(bundle, 'Info.plist'), infoPlist(app, device, { development, distributed: distribution, reach: appleReach, icon: assetKeys, distribution: stamp, tv, vision }));
   if (shared) run('plutil', ['-insert', 'ExactWidgetGeneration', '-string', createHash('sha256').update(JSON.stringify([bakedCompat.id, buildReceipt.graph.artifacts])).digest('hex'), resolve(bundle, 'Info.plist')]);
   writeUsageStrings(appleReach, bundle);
   // AlarmKit's countdown is a Live Activity the extension draws (LLP 1133.030 D8 item 2).

@@ -1,5 +1,5 @@
 import ExactKit
-#if os(iOS) || os(tvOS)
+#if os(iOS) || os(visionOS) || os(tvOS)
 import UIKit
 
 extension GroupedCell {
@@ -47,7 +47,7 @@ extension GroupedCell {
 
 extension GroupedListHost {
     func press(_ node: NodeView, down: Bool) -> Bool {
-        #if os(iOS)
+        #if os(iOS) || os(visionOS)
         for list in lists.values where list.rows[node.id]?.custom == false {
             (list.cell(node.id) as? GroupedCell)?.forcedPressed = down
             return true

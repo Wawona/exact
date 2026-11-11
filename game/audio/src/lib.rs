@@ -13,13 +13,13 @@ use std::{collections::BTreeMap, sync::Arc};
 #[cfg(any(
     target_os = "macos",
     target_os = "ios",
-    target_os = "tvos",
+    target_os = "tvos", target_os = "visionos",
     windows,
     test
 ))]
 #[allow(unsafe_code)]
 mod native;
-#[cfg(any(target_os = "macos", target_os = "ios", target_os = "tvos"))]
+#[cfg(any(target_os = "macos", target_os = "ios", target_os = "tvos", target_os = "visionos"))]
 pub use native::AppleOutput;
 #[cfg(windows)]
 pub use native::WindowsOutput;

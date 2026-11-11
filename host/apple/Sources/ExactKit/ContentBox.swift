@@ -5,7 +5,7 @@
 // offsets: it is held with the frame beneath a sheet and through a failed
 // layout, where a style row is not. A box sent none has no inset.
 import CoreGraphics
-#if os(iOS) || os(tvOS)
+#if os(iOS) || os(visionOS) || os(tvOS)
 import UIKit
 #else
 import AppKit
@@ -46,7 +46,7 @@ extension NodeView {
     func applyKernelContentBox(_ box: CGRect?, padding: [CGFloat?]?) {
         kernelContentBox = box; kernelPadding = padding
         layoutField(); layoutTextArea(); video?.layout(); layoutContent()
-        #if os(iOS) || os(tvOS)
+        #if os(iOS) || os(visionOS) || os(tvOS)
         setNeedsLayout(); setNeedsDisplay()
         #else
         layerPaintCache = nil

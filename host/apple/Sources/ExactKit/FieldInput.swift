@@ -18,7 +18,7 @@ struct FieldInput {
     }
 }
 
-#if os(iOS)
+#if os(iOS) || os(visionOS)
 extension NodeView: UITextPasteDelegate {
     // UIKit resolves item providers asynchronously. Intercept the final string,
     // when its native paste range is known, rather than the earlier paste: call.

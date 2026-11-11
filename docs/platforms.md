@@ -15,7 +15,7 @@ in the commit that changes it.
 | tvOS | partial: driven and smoked on the iOS presenter (`bun scripts/smoke.mjs tvos`); XCTests do not build yet; no delivery | `bun host/apple/build.mjs --tvos --run` | `tvos` | 17.0 (the iOS floor) | [1](https://github.com/Wawona/Wawona/issues/239) |
 | Windows | partial: runs, answers `check`, refuses a stale build; no delivery | `bun host/windows/build.mjs <app> --run` (on Windows) | `windows` | Windows 11 22621, x64 | [1](https://github.com/Wawona/Wawona/issues/240), [4](https://github.com/Wawona/Wawona/issues/244) |
 | Android | early: a debug-signed release APK; no AAB, no store delivery | `bun scripts/agent-android.mjs build <app> --apk` ([the artifact](#android-release-artifact)) | `android` | API 31; 30 with `host.android.minimumOS: "11"`; 29 with `"10"` for an app whose data is Rust (the pinned Hermes bundle needs 30) | [1](https://github.com/Wawona/Wawona/issues/241), [5](https://github.com/Wawona/Wawona/issues/245) |
-| visionOS | absent: declared in `Package.swift` only | | none | | [2](https://github.com/Wawona/Wawona/issues/242) |
+| visionOS | early: the iOS presenter boots on the Apple Vision Pro simulator; no device build, agent target, smoke or delivery | `bun host/apple/build.mjs --visionos --run` | none | 2.0 | [2](https://github.com/Wawona/Wawona/issues/242) |
 | watchOS | snapshot only (`ExactWatch`, LLP 1126); no TypeScript apps | `bun host/apple/build.mjs --watchos` | none | 10 | [3](https://github.com/Wawona/Wawona/issues/243) |
 | WearOS | absent: fork goal | | none | | [5](https://github.com/Wawona/Wawona/issues/245) |
 | AsteroidOS | absent: fork goal, a Qt6/QML host | | none | | [6](https://github.com/Wawona/Wawona/issues/246) |
@@ -26,6 +26,15 @@ Xcode 26's Swift does not compile it.
 A host is shipping when an app built for it can be driven by `scripts/agent.mjs`, smoked
 by `scripts/smoke.mjs` and delivered by `scripts/deploy.mjs`. Partial lacks one of those;
 early lacks more than one.
+
+## visionOS
+
+visionOS runs the iOS presenter (`os(visionOS)` beside `os(iOS)`, `target_os = "visionos"` beside `"ios"` and
+`"tvos"`), baked as an `ios` app. UIKit on visionOS lacks some of what the iOS presenter uses, and there the
+presenter does without: haptics, orientation locks, sheet detents, the status bar, keyboard accessory bars,
+navigation subtitles, glass effects and glass groups (a visionOS window is glass already; a glass group refuses
+with `os`), and AVKit's dynamic range preference. A visionOS window has no screen, so `UIScreen` is a stand-in that answers from the window. The
+agent's accessibility snapshot does not answer on the visionOS simulator yet.
 
 ## Android release artifact
 

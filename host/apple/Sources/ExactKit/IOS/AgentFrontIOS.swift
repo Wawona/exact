@@ -1,7 +1,7 @@
 // Wait for UIKit's foreground eligibility before announcing agent readiness.
 // SpringBoard can keep launch and fold overlays up after activation; the
 // simulator driver waits for them separately (`host/apple/cloak.mjs`).
-#if os(iOS) || os(tvOS)
+#if os(iOS) || os(visionOS) || os(tvOS)
 import UIKit
 
 extension Agent {

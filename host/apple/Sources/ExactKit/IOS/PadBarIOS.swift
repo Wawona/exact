@@ -111,6 +111,12 @@ final class PadBar: UIToolbar {
     required init?(coder: NSCoder) { nil }
 }
 #else
+import CoreGraphics
+
+extension Presenter {
+    /// A field here has no accessory bar.
+    var keyboardAccessoryHeight: CGFloat { 0 }
+}
 extension NodeView {
     @discardableResult func applyPadBar() -> Bool { false }
     func tintPadBar() {}

@@ -22,7 +22,7 @@ fn main() {
     // tvOS and watchOS reuse the manifest's iOS policy, including interpreted Rust updates.
     let platform = if matches!(
         std::env::var("CARGO_CFG_TARGET_OS").as_deref(),
-        Ok("ios" | "tvos" | "watchos")
+        Ok("ios" | "tvos" | "visionos" | "watchos")
     ) {
         "ios"
     } else {

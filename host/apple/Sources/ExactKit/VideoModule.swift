@@ -84,7 +84,7 @@ struct OffscreenAutoplay {
 
 final class VideoView {
     weak var owner: NodeView?
-    #if os(iOS) || os(tvOS)
+    #if os(iOS) || os(visionOS) || os(tvOS)
     // Player creation and the first source update together include AVKit's presentation view.
     private var creationSeconds: TimeInterval?
     #endif
@@ -142,7 +142,7 @@ final class VideoView {
         if blocked != visibilityBlocked { update() }
     }
 
-    #if os(iOS) || os(tvOS)
+    #if os(iOS) || os(visionOS) || os(tvOS)
     /// Whether it holds the app's audio session: while it has sound (a
     /// source, not muted), LLP 1096 D8.
     private var holdsSession = false
@@ -160,7 +160,7 @@ final class VideoView {
     }
     #endif
     init(owner: NodeView) {
-        #if os(iOS) || os(tvOS)
+        #if os(iOS) || os(visionOS) || os(tvOS)
         let started = CACurrentMediaTime()
         defer { creationSeconds = CACurrentMediaTime() - started }
         #endif
@@ -173,7 +173,7 @@ final class VideoView {
             guard let message = try? JSONSerialization.jsonObject(with: Data(bytes: bytes, count: length)) as? [String: Any] else { return }
             video.receive(message)
         })
-        #if os(iOS) || os(tvOS)
+        #if os(iOS) || os(visionOS) || os(tvOS)
         if handle != nil, !ExactEnv.agentMode { AudioSession.playerCame(ObjectIdentifier(self)) }
         #endif
         if let handle, let raw = module.view(handle) {
@@ -186,7 +186,7 @@ final class VideoView {
     func invalidate() {
         owner?.presenter?.videoVisibility?.remove(self)
         guard let handle else {
-            #if os(iOS) || os(tvOS)
+            #if os(iOS) || os(visionOS) || os(tvOS)
             holdSession(false)
             #endif
             return
@@ -196,7 +196,7 @@ final class VideoView {
         platformView?.removeFromSuperview()
         platformView = nil
         // The player is stopped and its claim gone before the category moves.
-        #if os(iOS) || os(tvOS)
+        #if os(iOS) || os(visionOS) || os(tvOS)
         holdSession(false)
         AudioSession.playerWent(ObjectIdentifier(self))
         #endif
@@ -220,7 +220,7 @@ final class VideoView {
         BorderPaint.clip(layer, in: CGRect(origin: .zero, size: content.size), radii: radii)
     }
     func update() {
-        #if os(iOS) || os(tvOS)
+        #if os(iOS) || os(visionOS) || os(tvOS)
         let started = CACurrentMediaTime()
         #endif
         // Radius, borders and padding are style, not player props. Refresh
@@ -285,17 +285,17 @@ final class VideoView {
         // A video with sound, or a media-session claimant (Now Playing needs
         // a non-mixable category), holds the app's session; muted (applied to
         // the player first) or gone, it gives it back (LLP 1096 D8).
-        #if os(iOS) || os(tvOS)
+        #if os(iOS) || os(visionOS) || os(tvOS)
         let audible = !ExactEnv.agentMode && (props["mediaTitle"] != nil || (props["muted"] != "true" && props["src"]?.isEmpty == false))
         #endif
         guard props != last else { return }
         last = props
-        #if os(iOS) || os(tvOS)
+        #if os(iOS) || os(visionOS) || os(tvOS)
         if audible { holdSession(true) }
         #endif
         guard let data = try? JSONSerialization.data(withJSONObject: props) else { return }
         data.withUnsafeBytes { module.update(handle, $0.bindMemory(to: UInt8.self).baseAddress, data.count) }
-        #if os(iOS) || os(tvOS)
+        #if os(iOS) || os(visionOS) || os(tvOS)
         if !audible { holdSession(false) }
         if props["src"] != nil, let creationSeconds {
             self.creationSeconds = nil

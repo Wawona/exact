@@ -15,7 +15,7 @@
 // there.
 import Foundation
 import QuartzCore
-#if os(iOS)
+#if os(iOS) || os(visionOS)
 import UIKit
 #endif
 
@@ -104,7 +104,7 @@ final class MIDIHub {
             let hub = Unmanaged<MIDIHub>.fromOpaque(context).takeUnretainedValue()
             hub.heard(Heard(uid: uid, at: at, bytes: Array(UnsafeBufferPointer(start: bytes, count: count))))
         })
-        #if os(iOS)
+        #if os(iOS) || os(visionOS)
         // Ports change while the app is suspended; enumerate again on return.
         for name in [UIApplication.willEnterForegroundNotification, UIApplication.didBecomeActiveNotification] {
             NotificationCenter.default.addObserver(forName: name, object: nil, queue: .main) { [weak self] _ in self?.refresh() }

@@ -1,6 +1,6 @@
 // @ref LLP 1008 §9 — authored row content and action controls projected into
 // UIKit swipe cells. The kernel owns dimensions; UIKit owns the gesture.
-#if os(iOS) || os(tvOS)
+#if os(iOS) || os(visionOS) || os(tvOS)
 import UIKit
 import UIKit.UIGestureRecognizerSubclass
 
@@ -21,7 +21,7 @@ package final class SwipeActionsHost {
     unowned let presenter: Presenter
     private var rows: [UInt32: Row] = [:]
     private var refusals: [UInt32: String] = [:]
-    #if os(iOS)
+    #if os(iOS) || os(visionOS)
     /// Rows whose actions keep their paint (PaintedSwipesIOS.swift).
     private(set) lazy var painted = PaintedSwipes(presenter)
     #endif
@@ -67,7 +67,7 @@ package final class SwipeActionsHost {
     /// A touch is landing on `owner`: project its row now, and release it
     /// again if the touch never reaches the table.
     func touch(_ owner: NodeView) {
-        #if os(iOS)
+        #if os(iOS) || os(visionOS)
         if painted.touch(owner) { return }
         #endif
         guard let row = rows[owner.id], row.owner === owner, !row.projected, !row.grouped else { return }
@@ -81,18 +81,18 @@ package final class SwipeActionsHost {
     func reset() {
         for row in rows.values { row.discard() }
         rows.removeAll(); refusals.removeAll()
-        #if os(iOS)
+        #if os(iOS) || os(visionOS)
         painted.reset()
         #endif
     }
-    #if os(iOS)
+    #if os(iOS) || os(visionOS)
     /// A painted row began a drag (PaintedSwipesIOS.swift): every native
     /// row closes, one row of either kind open at a time.
     func closeNative() {
         for row in rows.values { row.table?.setEditing(false, animated: true) }
     }
     #endif
-    #if os(iOS)
+    #if os(iOS) || os(visionOS)
     /// A grouped list row's actions on one side, as its list cell offers
     /// them (LLP 1116.001 D1); nil for a row that names none there, or that
     /// is no grouped list's swipe row.
@@ -110,7 +110,7 @@ package final class SwipeActionsHost {
     /// (LLP 1084 D3), drawn in UIKit's list cell. Read from the authored
     /// hierarchy: a row the list carries is its parent's child from its cell.
     private func groupedRow(_ owner: NodeView) -> Bool {
-        #if os(iOS)
+        #if os(iOS) || os(visionOS)
         guard let lists = presenter.groupedLists else { return false }
         func parent(_ view: UIView?) -> NodeView? {
             var at = view.flatMap(lists.logicalParent) ?? view?.superview
@@ -138,12 +138,12 @@ package final class SwipeActionsHost {
         }.map(\.id))
         var wanted = Set<UInt32>(), paintedOwners = Set<UInt32>()
         var claimed = Set<UInt32>()
-        #if os(iOS)
+        #if os(iOS) || os(visionOS)
         painted.dropStale()
         #endif
         for owner in presenter.carrying("swipeContent") {
             guard let content = owner.props["swipeContent"] else { continue }
-            #if os(iOS)
+            #if os(iOS) || os(visionOS)
             // A painted row the batch did not reach keeps what it was adopted
             // with: a list scrolling builds a few rows a report, not every
             // row again. Its names resolve inside it, so a name the batch
@@ -226,7 +226,7 @@ package final class SwipeActionsHost {
                 continue
             }
             refusals.removeValue(forKey: owner.id)
-            #if os(iOS)
+            #if os(iOS) || os(visionOS)
             // Actions that say `appearance="none"` keep their paint: the row
             // swipes by its scroll, with UIKit's swipe's behaviours. In a
             // grouped list too: its cell then offers no swipe actions
@@ -249,7 +249,7 @@ package final class SwipeActionsHost {
             wanted.insert(owner.id)
         }
         for id in Array(rows.keys) where !wanted.contains(id) { rows.removeValue(forKey: id)?.discard() }
-        #if os(iOS)
+        #if os(iOS) || os(visionOS)
         painted.retain(paintedOwners)
         #endif
         refusals = refusals.filter { presenter.views[$0.key] != nil }
@@ -388,7 +388,7 @@ package final class SwipeActionsHost {
         static func drags(_ view: UIView?) -> Bool {
             var at = view
             while let v = at, !(v is UICollectionViewCell || v is UITableViewCell) {
-                #if os(iOS)
+                #if os(iOS) || os(visionOS)
                 if v is UISwitch || v is UISlider { return true }
                 #endif
                 if v is UITextField || v is UITextView { return true }
@@ -491,7 +491,7 @@ package final class SwipeActionsHost {
                 DispatchQueue.main.async { [weak self] in self?.settle() }
             }
             table.addGestureRecognizer(watch)
-            #if os(iOS)
+            #if os(iOS) || os(visionOS)
             table.addGestureRecognizer(makeClaim())
             #endif
             self.table = table; self.cell = cell
@@ -550,7 +550,7 @@ package final class SwipeActionsHost {
                 actionAncestors[control.id] = ancestors
             }
             ownerInert = owner.authoredInert
-            #if os(iOS)
+            #if os(iOS) || os(visionOS)
             if claim == nil { let made = makeClaim(); owner.addGestureRecognizer(made); claim = made }
             #endif
             scrollWasHidden = owner.scroll?.isHidden ?? false

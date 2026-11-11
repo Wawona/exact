@@ -115,7 +115,7 @@ let tests: [Target] = [
 
 let package = Package(
     name: "Exact",
-    platforms: [.macOS(.v14), .iOS(.v17), .tvOS(.v17), .watchOS(.v10), .visionOS(.v1)],
+    platforms: [.macOS(.v14), .iOS(.v17), .tvOS(.v17), .watchOS(.v10), .visionOS("2.0")],
     products: [.library(name: "ExactCore", type: widgetCore ? .dynamic : nil, targets: ["ExactCore"]), .library(name: "ExactSnapshot", type: widgetCore ? .static : nil, targets: ["ExactSnapshot"])] + (testing ? [.library(name: "ExactKit", targets: ["ExactKit"])] : [
         .library(name: "ExactKit", targets: ["ExactKit"]),
         .library(name: "ExactUpdates", targets: ["ExactUpdates"]),

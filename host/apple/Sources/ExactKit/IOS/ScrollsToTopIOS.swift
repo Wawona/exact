@@ -8,11 +8,11 @@
 // page. A grouped list answers with the collection view that shows, never
 // the hidden scroll beneath it. Run after every batch and every finished
 // navigation.
-#if os(iOS) || os(tvOS)
+#if os(iOS) || os(visionOS) || os(tvOS)
 import UIKit
 
 // `scrollsToTop` is iOS's alone; the search below is the bar's rule on tvOS too.
-#if os(iOS)
+#if os(iOS) || os(visionOS)
 extension Presenter {
     func syncScrollsToTop() {
         #if EXACT_INSPECT
@@ -77,8 +77,8 @@ extension Presenter {
             depth += 1
             if let hit = level.first(where: { $0.scrollView != nil && $0.scrollsVertically }) { return hit }
             level = level.flatMap { node -> [NodeView] in
-                #if os(iOS)
-                if #available(iOS 27.1, *), let panes = node.presenter?.arrangements.panes(in: node) { return panes.filter { !$0.isHidden } }
+                #if os(iOS) || os(visionOS)
+                if #available(iOS 27.1, visionOS 27.1, *), let panes = node.presenter?.arrangements.panes(in: node) { return panes.filter { !$0.isHidden } }
                 #endif
                 return node.container.subviews.compactMap { $0 as? NodeView }.filter { !$0.isHidden }
             }

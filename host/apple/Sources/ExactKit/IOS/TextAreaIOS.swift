@@ -1,5 +1,5 @@
 // Contract textarea: UITextView keeps Enter as a newline, never a submission.
-#if os(iOS) || os(tvOS)
+#if os(iOS) || os(visionOS) || os(tvOS)
 import UIKit
 
 // The software keyboard calls UIKeyInput directly, including deletion in an
@@ -144,7 +144,7 @@ final class TextField: UITextField {
             if super.canPerformAction(#selector(paste(_:)), withSender: sender) { super.paste(sender) }
         }
     }
-    #if os(iOS)
+    #if os(iOS) || os(visionOS)
     override func pasteAndMatchStyle(_ sender: Any?) { paste(sender) }
     override func canPerformAction(_ action: Selector, withSender sender: Any?) -> Bool {
         if owner?.pastesFiles(action) == true { return isEnabled && owner?.props["editable"] != "false" }
@@ -379,7 +379,7 @@ package final class TextArea: UITextView {
             if super.canPerformAction(#selector(paste(_:)), withSender: sender) { super.paste(sender) }
         }
     }
-    #if os(iOS)
+    #if os(iOS) || os(visionOS)
     package override func pasteAndMatchStyle(_ sender: Any?) { paste(sender) }
     package override func canPerformAction(_ action: Selector, withSender sender: Any?) -> Bool {
         if owner?.pastesFiles(action) == true { return isEditable }
@@ -508,7 +508,7 @@ extension NodeView {
         f.textContainerInset = .zero
         f.textContainer.lineFragmentPadding = 0
         f.delegate = self
-        #if os(iOS)
+        #if os(iOS) || os(visionOS)
         // Not the screen's scroller: the status bar scrolls that (LLP 1115).
         f.scrollsToTop = false
         #endif
@@ -517,7 +517,7 @@ extension NodeView {
     }
     func configureMarkup() {
         guard let f = textArea as? TextArea else { return }
-        #if os(iOS)
+        #if os(iOS) || os(visionOS)
         f.pasteDelegate = props["markup"] == "markdown" ? nil : self
         #endif
         if props["markup"] == "markdown" {
