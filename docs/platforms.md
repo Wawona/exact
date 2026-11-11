@@ -119,6 +119,16 @@ Tiles and complications are out of scope for the first host: like watchOS's (LLP
 of their own. The host is committed when an LLP records the variant and `--wear` builds Caltrain, launches it on
 the Wear emulator, and an agent drive scrolls it with the crown.
 
+## Windows floor
+
+The Windows host supports Windows 11 and not Windows 10. Windows 10 left support on 2025-10-14, and its
+security updates continue only for PCs enrolled in Extended Security Updates, until 2027-10-12
+([Windows 10 ESU](https://www.microsoft.com/windows/extended-security-updates)). The API floor stays build
+22621 (`TargetPlatformMinVersion` in `host/windows/reference/Reference.csproj`), and builds are qualified on
+Windows 11 releases Microsoft still services
+([Windows 11 lifecycle](https://learn.microsoft.com/lifecycle/products/windows-11-home-and-pro)). Nothing in the
+host requires Windows 11: where DWM refuses Mica, `host/ink`'s composition presents an opaque frame instead.
+
 ## Windows delivery (sketch)
 
 What phase 4's signed delivery builds; nothing of it exists yet.
