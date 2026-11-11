@@ -35,11 +35,9 @@ export async function buildWatch(app, args, { runApple, appleArtifacts, appleBui
     const watch = { ...app, id: `${app.id}.watchkitapp` };
     const bundle = resolve(parent.bundle, 'Watch', `${executableName(app)}.app`);
     rmSync(resolve(parent.bundle, 'Watch'), { recursive: true, force: true });
-    // LLP 1126.002 D4: the watch entry of an app with `app.ts` waits for the bake to refuse
-    // only an entry that reaches TypeScript, which runs nowhere on the watch before §5 Q3's gate.
-    const typescript = existsSync(resolve(app.dir, 'app.ts'));
-    if (app.manifest.watch && typescript) console.log('host/apple: watchOS omits the watch entry of this TypeScript app until LLP 1126.001 §5 Q3 passes');
-    const live = !!app.manifest.watch && !typescript;
+    // LLP 1126.002 D4: the bake refuses a TypeScript app's watch entry that reaches app.ts,
+    // which runs nowhere on the watch before LLP 1126.001 §5 Q3's gate; the rest ship.
+    const live = !!app.manifest.watch;
     if (!entries.length && !live) {
       console.log(`host/apple: no watch entry and no Rust accessory entries; watch bundle omitted${args.includes('--run') ? '; --run skipped' : ''}`);
       return;
@@ -49,7 +47,13 @@ export async function buildWatch(app, args, { runApple, appleArtifacts, appleBui
     const directory = resolve(parent.namespace, 'watchos'), target = 'aarch64-apple-watchos-sim', triple = 'arm64-apple-watchos10.0-simulator';
     mkdirSync(directory, { recursive: true });
     const sdk = runApple('xcrun', ['--sdk', 'watchsimulator', '--show-sdk-path']).stdout.trim();
-    const env = { ...developmentBuildEnv(), EXACT_UPDATE_TRUST: production ? 'production' : 'development', WATCHOS_DEPLOYMENT_TARGET: '10.0', SDKROOT: sdk, EXACT_APPLE_LINK: 'plan' };
+    // Hermes has no watchOS build, and a watch plan the bake admitted calls nothing in app.ts,
+    // so a TypeScript app's watch binary links the engine that refuses to load.
+    const typescript = existsSync(resolve(app.dir, 'app.ts'));
+    const env = { ...developmentBuildEnv(), EXACT_UPDATE_TRUST: production ? 'production' : 'development', WATCHOS_DEPLOYMENT_TARGET: '10.0', SDKROOT: sdk, EXACT_APPLE_LINK: 'plan',
+      // The bake's host dependencies compile Objective-C++ for the Mac; cc-rs inherits SDKROOT.
+      HOST_CXXFLAGS: `${process.env.HOST_CXXFLAGS ?? ''} -isysroot ${runApple('xcrun', ['--sdk', 'macosx', '--show-sdk-path']).stdout.trim()}`,
+      ...(typescript ? { [`EXACT_JS_ENGINE_${target.replaceAll('-', '_')}`]: 'stub' } : {}) };
     const baked = buildBake({ ...app, hasGpu: false }, 'ios', target, { env, profile });
     const output = resolve(bakeOutput(app, env), `ios-${target}.entries`);
     const libDir = resolve(app.target, target, profile), crate = app.crate('ios');

@@ -16,7 +16,7 @@ in the commit that changes it.
 | Windows | partial: runs, answers `check`, refuses a stale build; no delivery | `bun host/windows/build.mjs <app> --run` (on Windows) | `windows` | Windows 11 22621, x64 | [1](https://github.com/Wawona/Wawona/issues/240), [4](https://github.com/Wawona/Wawona/issues/244) |
 | Android | partial: a release APK and an upload-signed App Bundle; Android TV qualified; no update stream | `bun scripts/agent-android.mjs build <app> --apk` ([the artifact](#android-release-artifact)) | `android` | API 31; 30 with `host.android.minimumOS: "11"`; 29 with `"10"` for an app whose data is Rust (the pinned Hermes bundle needs 30) | [1](https://github.com/Wawona/Wawona/issues/241), [5](https://github.com/Wawona/Wawona/issues/245) |
 | visionOS | early: the iOS presenter boots on the Apple Vision Pro simulator; no device build, agent target, smoke or delivery | `bun host/apple/build.mjs --visionos --run` | none | 2.0 | [2](https://github.com/Wawona/Wawona/issues/242) |
-| watchOS | snapshot only (`ExactWatch`, LLP 1126); no TypeScript apps | `bun host/apple/build.mjs --watchos` | none | 10 | [3](https://github.com/Wawona/Wawona/issues/243) |
+| watchOS | snapshot complications and a live entry (`ExactWatch`, LLP 1126); a TypeScript app's entry runs on a paired simulator when it reaches no `app.ts` source; no device run | `bun host/apple/build.mjs --watchos` | none | 10 | [3](https://github.com/Wawona/Wawona/issues/243) |
 | WearOS | absent: fork goal | | none | | [5](https://github.com/Wawona/Wawona/issues/245) |
 | AsteroidOS | absent: fork goal, a Qt6/QML host | | none | | [6](https://github.com/Wawona/Wawona/issues/246) |
 

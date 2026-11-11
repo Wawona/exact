@@ -6,7 +6,7 @@ import { randomBytes } from 'node:crypto';
 import { homedir, networkInterfaces, tmpdir } from 'node:os';
 import { createServer as createTCPServer } from 'node:net';
 import { basename, dirname, resolve } from 'node:path';
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, renameSync, rmSync, statSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, renameSync, rmSync, statSync, symlinkSync, writeFileSync } from 'node:fs';
 import { decodePng, encodePng } from '../../scripts/png.mjs';
 
 const root = resolve(new URL('../..', import.meta.url).pathname);
@@ -37,7 +37,12 @@ export function useXcode() {
   const onPath = spawnSync('/bin/sh', ['-c', 'command -v swift'], { encoding: 'utf8' }).stdout?.trim() ?? '';
   const xcodeSwift = resolve(developer, 'Toolchains/XcodeDefault.xctoolchain/usr/bin/swift');
   if (onPath && existsSync(xcodeSwift) && onPath !== '/usr/bin/swift' && onPath !== xcodeSwift) {
-    process.env.PATH = `${dirname(xcodeSwift)}:${process.env.PATH}`;
+    // Only `swift` and `swiftc`, as xcrun's shims: the toolchain's own bin also holds a `cc` and
+    // `c++` that know no SDK, which the build scripts' Mac C (ring, sqlite, ibex2) then took.
+    const shims = resolve(tmpdir(), 'exact-xcode-swift');
+    mkdirSync(shims, { recursive: true });
+    for (const tool of ['swift', 'swiftc']) if (!existsSync(resolve(shims, tool))) symlinkSync(`/usr/bin/${tool}`, resolve(shims, tool));
+    process.env.PATH = `${shims}:${process.env.PATH}`;
     console.error(`host/apple: ${onPath} is ahead of Xcode's swift on PATH; using ${xcodeSwift}`);
   }
 }

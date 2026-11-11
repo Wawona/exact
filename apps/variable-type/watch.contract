@@ -1,0 +1,17 @@
+// @ref LLP 1126.002 D4: Variable Type's watch entry (app.json `watch`): the word in
+// Roboto Flex, which a tap sets at its lightest or its heaviest and slanted.
+// It calls none of app.ts's sources, so it runs on the watch, where TypeScript does not.
+
+font "Roboto Flex" = "assets/RobotoFlex.ttf"
+
+component VariableTypeWatch
+  state heavy = false
+  action toggle
+    heavy = !heavy
+  view
+    main width="100%" height="100%" background-color="#2002f5" testId="watch-main"
+      button press=toggle aria-label=(heavy ? "Lighten the type" : "Embolden the type") testId="watch-poster"
+        width="100%" height="100%" align-items="center" justify-content="center" background-color="#2002f5"
+        text "EXACT" testId="watch-word" color="#f2f1f3" font-family="Roboto Flex" font-size="2.5em"
+          font-weight=(heavy ? 1000 : 100) font-stretch=(heavy ? "150%" : "100%")
+          font-variation-settings=(heavy ? "'slnt' -10" : "'slnt' 0")

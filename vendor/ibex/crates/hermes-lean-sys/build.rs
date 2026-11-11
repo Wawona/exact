@@ -19,6 +19,18 @@ const WINDOWS_ICU_UC: &str = "icuuc";
 const WINDOWS_ICU_I18N: &str = "icuin";
 const WINDOWS_OS_ICU_DLL: &str = "icu.dll";
 
+/// `EXACT_JS_ENGINE=stub` selects the refusing executor for every target;
+/// `EXACT_JS_ENGINE_<target>=stub` (`-` and `.` as `_`) for one, so a target
+/// with no Hermes build cross-compiles beside host build scripts that run it.
+fn stub_engine() -> bool {
+    let target = std::env::var("TARGET").expect("Cargo supplies TARGET");
+    let scoped = format!("EXACT_JS_ENGINE_{}", target.replace(['-', '.'], "_"));
+    println!("cargo:rerun-if-env-changed={scoped}");
+    ["EXACT_JS_ENGINE", scoped.as_str()]
+        .iter()
+        .any(|name| std::env::var(name).as_deref() == Ok("stub"))
+}
+
 fn main() {
     for name in [
         "HERMES_LEAN_SYS_DIR",
@@ -37,7 +49,7 @@ fn main() {
     // Exact's explicit refusing executor is used by Hermes-less CI and E1's
     // not-yet-supported targets. Keep the Cargo graph stable while selecting
     // no compiler, headers, archive, or native link line.
-    if std::env::var("EXACT_JS_ENGINE").as_deref() == Ok("stub") {
+    if stub_engine() {
         for key in [
             "include_dir",
             "hermesc_path",

@@ -99,7 +99,12 @@ pub fn compile_entries(
         }
     }
     if let Some(watch) = watch {
-        match crate::compile_watch(app, &watch) {
+        match crate::compile_watch(app, &watch).and_then(|plan| {
+            if app.join("app.ts").is_file() {
+                watch_reaches_no_typescript(&plan, &watch)?;
+            }
+            Ok(plan)
+        }) {
             Ok(mut plan) => {
                 plan.app_id.clone_from(&manifest.id);
                 entries.insert(
@@ -118,6 +123,42 @@ pub fn compile_entries(
     } else {
         Err(errors)
     }
+}
+
+/// The app sources a watch plan calls: its resources' and its commands', less
+/// the reserved `exact…` sources and the others the runner answers.
+pub fn watch_app_sources(plan: &Plan) -> Vec<String> {
+    let mut names: Vec<String> = plan
+        .sources
+        .iter()
+        .map(|row| plan.str(row.name))
+        .chain(plan.mutations.iter().map(|row| plan.str(row.name)))
+        .filter(|name| !name.starts_with("exact") && !exact_plan::runner_owned_source(name))
+        .map(str::to_owned)
+        .collect();
+    names.sort();
+    names.dedup();
+    names
+}
+
+/// In an app with `app.ts`, every app source is TypeScript's, and TypeScript
+/// runs nowhere on the watch (LLP 1126.001 §5 Q3), so a watch plan may call
+/// none of them (LLP 1126.002 D4).
+fn watch_reaches_no_typescript(plan: &Plan, watch: &WatchEntry) -> Result<(), Vec<CompileError>> {
+    let reached = watch_app_sources(plan);
+    if reached.is_empty() {
+        return Ok(());
+    }
+    Err(vec![refusal(
+        "watch-typescript",
+        format!(
+            "{}: `{}` calls {}, which app.ts answers, and TypeScript does not run on Apple Watch (LLP 1126.001 §5 Q3); answer the watch from the runner's sources (`exactTime()`, …) and its own state, or move these sources to a Rust data crate",
+            watch.source,
+            watch.component,
+            reached.iter().map(|n| format!("`{n}`")).collect::<Vec<_>>().join(", ")
+        ),
+        Span::default(),
+    )])
 }
 
 /// Write compiled entries beside the app plan, replacing the prior entry tree.

@@ -35,7 +35,14 @@ fn main() {
         println!("cargo:rerun-if-changed={source}");
     }
 
-    if env::var("EXACT_JS_ENGINE").as_deref() == Ok("stub") {
+    // The scoped form stubs one target (hermes-lean-sys's `stub_engine`).
+    let target = env::var("TARGET").expect("Cargo supplies TARGET");
+    let scoped = format!("EXACT_JS_ENGINE_{}", target.replace(['-', '.'], "_"));
+    println!("cargo:rerun-if-env-changed={scoped}");
+    if ["EXACT_JS_ENGINE", scoped.as_str()]
+        .iter()
+        .any(|name| env::var(name).as_deref() == Ok("stub"))
+    {
         println!("cargo:warning=exact-js: EXACT_JS_ENGINE=stub; the executor refuses to load");
         return;
     }

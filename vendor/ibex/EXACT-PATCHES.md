@@ -255,6 +255,9 @@ refreshing the vendored crates.
 `ibex2/build.rs` emits empty binding bytecode and hardening metadata only when
 `EXACT_JS_ENGINE=stub`. `hermes-lean-sys/build.rs` recognizes that same explicit
 configuration and emits empty engine/compiler metadata with no native link.
+Both also take `EXACT_JS_ENGINE_<target>=stub` (the triple's `-` and `.` as
+`_`), which stubs that target alone: a watchOS build, for which Hermes has no
+bundle, cross-compiles while its host build scripts bake with the real engine.
 Normal builds still validate and link the receipted lean VM. These remain
 Exact-only; paired `HERMESC_PATH` export is now generic upstream support.
 
