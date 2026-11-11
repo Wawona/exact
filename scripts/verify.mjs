@@ -164,7 +164,8 @@ export const answering = (url) => fetch(url, { signal: AbortSignal.timeout(1000)
  * server this did not start is never stopped, nor written to. */
 export function heldLine(server) {
   const pid = spawnSync('lsof', ['-nP', `-iTCP:${server.port}`, '-sTCP:LISTEN', '-Fp'], { encoding: 'utf8' }).stdout?.match(/^p(\d+)/m)?.[1];
-  const command = pid ? commandLine(pid).slice(0, 60) : '';
+  // The executable by its file name: a long interpreter path would leave no room for the script it runs.
+  const command = pid ? commandLine(pid).replace(/^("?)[^\s"]*[\\/]/, '$1').slice(0, 60) : '';
   return `${server.url} already answers${pid ? ` (pid ${pid}${command ? `: ${command}` : ''})` : ''}, and the tests would ${server.database ? "write into that server's database" : 'change that server\'s state'}: stop it (${pid ? `kill ${pid}` : 'Ctrl-C where it runs'}) and run this again, which starts ${server.entry} itself${server.database ? ' on an empty one' : ''}`;
 }
 
@@ -657,12 +658,6 @@ async function reloadEnd(s, t, persisted = []) {
 async function checkHere(s, { screen, sizes = [null], shot, state }) {
   const { checkOp } = await import('./agent-check.mjs');
   const failed = Object.entries(state?.failed ?? {}).map(([name, why]) => `  failed   resource ${name}: ${why}; the screen shows its placeholder or last value`);
-  // The Windows host has no `check` observation yet: the screen's capture alone, `unchecked`, its failed resources still said.
-  if (s.host === 'windows') {
-    const vp = (await s.layout().catch(() => null))?.viewport ?? {}, kept = shot?.(vp, 'light');
-    if (kept) await s.screenshot(kept);
-    return [{ screen, size: [vp.w, vp.h], scheme: 'light', unchecked: true, ...(kept ? { shot: kept } : {}), findings: [], accepted: [], lines: failed, hidden: 0, advice: [] }];
-  }
   const runs = [];
   if (s.host === 'android') return (await import('./agent-android.mjs')).androidCaptures(s, { screen, shot, failed });
   for (const size of sizes) {

@@ -255,7 +255,7 @@ export function report(runs, trees, host) {
 export async function checkOp(s, args = [], { shots, accept = [] } = {}) {
   const word = args[0] ?? 'current';
   if (!['current', 'light', 'dark', 'both'].includes(word) || args.length > 1) throw new MalformedOperation('check [light|dark|both]: the presented screen, judged in text; `check dark` under prefers-color-scheme dark, `check both` under each');
-  if (!['web', 'ios', 'host-ios'].includes(s.host)) throw new Error(`check: the web and iOS hosts carry it, not ${s.host}`);
+  if (!['web', 'ios', 'host-ios', 'linux', 'windows'].includes(s.host)) throw new Error(`check: the web, iOS, Linux and Windows hosts carry it, not ${s.host}`);
   const dir = mkdtempSync(resolve(tmpdir(), 'exact-check-'));
   const first = await s.op({ op: 'check' });
   const asked = word === 'both' ? ['light', 'dark'] : word === 'current' ? [first.scheme] : [word];
@@ -268,7 +268,7 @@ export async function checkOp(s, args = [], { shots, accept = [] } = {}) {
       const path = shots?.(obs.viewport, scheme) ?? resolve(dir, `${scheme}.png`);
       const taken = await s.carrier.screenshot(path, obs.capture?.window === true); // iOS observes in the window's points: a sheet is not in the viewport's picture
       const png = decodePng(readFileSync(path));
-      runs.push({ scheme: obs.scheme, asked: scheme, target: obs.target, viewport: obs.viewport, findings: judge(obs, png, { host: s.host === 'web' ? 'web' : 'ios' }), ...(obs.advice ? { advice: obs.advice } : {}) });
+      runs.push({ scheme: obs.scheme, asked: scheme, target: obs.target, viewport: obs.viewport, findings: judge(obs, png, { host: ['web', 'linux', 'windows'].includes(s.host) ? 'web' : 'ios' }), ...(obs.advice ? { advice: obs.advice } : {}) });
       // The tree as this scheme shows it: a view only one scheme shows is named, and accepted, by its own testId.
       trees.push(new Map(((await s.op({ op: 'tree' })).nodes ?? []).map((n) => [n.id, n])));
       // A capture kept for a person or an agent to look at is a pixel a point once judged, as `agent`'s are: a third of an iPhone's pixels each way.

@@ -196,6 +196,8 @@ fn answer_line<D: DataSource>(p: &mut Presenter<D>, line: &str) -> String {
     }
     match field_str(line, "op").as_deref() {
         Some("tree") => tree(p, line),
+        // LLP 1116.003 D8: the painted screen's observations, which the driver judges.
+        Some("check") => p.check_json().to_string(),
         // The agent's clock presents no frame (LLP 1079 D4); the display
         // loop's are sampled there (frames.rs). `perf <target>` is the runner's.
         Some("perf") if field_bool(line, "frames") => r#"{"virtual":true}"#.to_string(),

@@ -540,8 +540,8 @@ export async function apkBuildFirst(app) {
   return { ms: Date.now() - started, code: r.status ?? 1, said: r.status ? lines.slice(-20) : [`built the APK in ${((Date.now() - started) / 1000).toFixed(1)} s`], warnings: [] };
 }
 
-/** `verify android`'s look at a screen: the host has no `check` observation yet, so each scheme's screen is captured,
- * `unchecked`, as Windows' is (the device's pixels, shrunk to a pixel a point as check keeps an iOS capture). */
+/** `verify android`'s look at a screen: the host has no `check` observation yet, so each scheme's screen is captured
+ * `unchecked` (the device's pixels, shrunk to a pixel a point as check keeps an iOS capture). */
 export async function androidCaptures(s, { screen, shot, failed }) {
   const [{ decodePng, encodePng, shrink }, { tmpdir }] = await Promise.all([import('./png.mjs'), import('node:os')]);
   const seen = (await s.layout().catch(() => null))?.viewport ?? {}, vp = { w: Math.round(seen.w), h: Math.round(seen.h) }, runs = [];

@@ -7,6 +7,7 @@
 
 use std::time::Duration;
 
+#[cfg(unix)]
 fn clock(id: libc::clockid_t) -> f64 {
     let mut t = libc::timespec {
         tv_sec: 0,
@@ -26,18 +27,40 @@ pub fn boottime() -> f64 {
     {
         clock(libc::CLOCK_BOOTTIME)
     }
-    #[cfg(not(target_os = "linux"))]
+    #[cfg(all(unix, not(target_os = "linux")))]
     {
         clock(libc::CLOCK_MONOTONIC)
+    }
+    // Windows (the painted presenter's other host) has no display loop that
+    // marks a launch; its journal needs only a monotonic clock.
+    #[cfg(not(unix))]
+    {
+        static EPOCH: std::sync::OnceLock<std::time::Instant> = std::sync::OnceLock::new();
+        EPOCH
+            .get_or_init(std::time::Instant::now)
+            .elapsed()
+            .as_secs_f64()
     }
 }
 
 /// Converts a `CLOCK_MONOTONIC` instant, such as a DRM flip's, to BOOTTIME seconds.
+#[cfg(unix)]
 fn monotonic_to_boottime(t: Duration) -> f64 {
     t.as_secs_f64() + (boottime() - clock(libc::CLOCK_MONOTONIC))
 }
 
+#[cfg(not(unix))]
+fn monotonic_to_boottime(t: Duration) -> f64 {
+    t.as_secs_f64()
+}
+
+#[cfg(not(unix))]
+fn process_start() -> Option<(f64, f64)> {
+    None
+}
+
 /// The process start in seconds since boot, and the tick length in ms.
+#[cfg(unix)]
 fn process_start() -> Option<(f64, f64)> {
     let stat = std::fs::read_to_string("/proc/self/stat").ok()?;
     // Field 22 (starttime). Count from the last ')' since the command name may contain spaces.
