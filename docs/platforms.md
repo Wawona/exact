@@ -17,7 +17,7 @@ in the commit that changes it.
 | Android | partial: a release APK and an upload-signed App Bundle; Android TV qualified; no update stream | `bun scripts/agent-android.mjs build <app> --apk` ([the artifact](#android-release-artifact)) | `android` | API 31; 30 with `host.android.minimumOS: "11"`; 29 with `"10"` for an app whose data is Rust (the pinned Hermes bundle needs 30) | [1](https://github.com/Wawona/Wawona/issues/241), [5](https://github.com/Wawona/Wawona/issues/245) |
 | visionOS | early: the iOS presenter boots on the Apple Vision Pro simulator; no device build, agent target, smoke or delivery | `bun host/apple/build.mjs --visionos --run` | none | 2.0 | [2](https://github.com/Wawona/Wawona/issues/242) |
 | watchOS | snapshot complications and a live entry (`ExactWatch`, LLP 1126); a TypeScript app's entry runs on a paired simulator when it reaches no `app.ts` source; no device run | `bun host/apple/build.mjs --watchos` | none | 10 | [3](https://github.com/Wawona/Wawona/issues/243) |
-| WearOS | absent: fork goal | | none | | [5](https://github.com/Wawona/Wawona/issues/245) |
+| WearOS | absent: the phone APK runs unadapted; a host proposal below | | none | | [5](https://github.com/Wawona/Wawona/issues/245) |
 | AsteroidOS | absent: fork goal, a Qt6/QML host | | none | | [6](https://github.com/Wawona/Wawona/issues/246) |
 
 The Apple hosts build with Xcode 27: ExactKit calls the iOS and tvOS 27 SDKs' AVAudioSession life cycle, and
@@ -80,6 +80,44 @@ What a signed update stream for Android needs; nothing of it exists yet, and `sc
   ([Device and Network Abuse](https://support.google.com/googleplay/android-developer/answer/9888379)).
 - **The receipt.** As for Windows, an update-capable Android build's receipt follows the app's store rather than
   the platform's.
+
+## WearOS host (proposal)
+
+Wear OS runs Android apps, so the Wear host is a variant of the Android host, not a new one. On a Wear OS 34
+emulator (`wearos_small_round`, 384 × 384 round), Caltrain's unchanged release APK installed, launched and drew
+its page. Someone who knows the watch would notice four things:
+
+- The activity has no window background, so the watch face shows around the page. A watch app is black behind
+  its content.
+- The system reports no insets on the round display, so the host does not know the corners are cut off and the
+  page's edges were clipped. The shape is
+  [`Configuration.isScreenRound`](https://developer.android.com/reference/android/content/res/Configuration#isScreenRound()).
+- Neither a vertical swipe nor the crown scrolled the page. The crown arrives as a `MotionEvent` from
+  `InputDevice.SOURCE_ROTARY_ENCODER` with `AXIS_SCROLL`, and a Wear app scrolls its focused list with it
+  ([rotary input](https://developer.android.com/training/wearables/user-input/rotary-input)).
+- Frames ran slowly: Choreographer skipped 30 to 60 frames at a time on the emulator. That needs measuring on a
+  watch before anyone calls it the host's cost.
+
+The variant:
+
+- **Packaging.** Play delivers a Wear app as its own artifact, which declares
+  `android.hardware.type.watch` and the `com.google.android.wearable.standalone` metadata; the phone APK must
+  declare neither ([Wear app packaging](https://developer.android.com/training/wearables/packaging)). So
+  `scripts/agent-android.mjs` gains `--wear`, which builds the same `canvas` and Rust host with that manifest
+  overlay and a black window background.
+- **The round screen.** The host passes the shape to layout as
+  [CSS Round Display](https://www.w3.org/TR/css-round-display-1/)'s `shape: round` media feature, and the
+  inscribed square's margins as `env(safe-area-inset-*)`, so a page that says nothing keeps its text inside the
+  circle.
+- **The crown.** The host routes `AXIS_SCROLL` from the rotary encoder to the scroller that has focus, as a wheel
+  is routed on the desktop hosts.
+- **Back.** A swipe from the left edge did not dismiss the app on the emulator. The host registers a back
+  callback, and at the app's root it must leave the gesture to the system, which dismisses a watch app
+  ([swipe to dismiss](https://developer.android.com/training/wearables/views/exit)).
+
+Tiles and complications are out of scope for the first host: like watchOS's (LLP 1126), they need a decision
+of their own. The host is committed when an LLP records the variant and `--wear` builds Caltrain, launches it on
+the Wear emulator, and an agent drive scrolls it with the crown.
 
 ## Windows delivery (sketch)
 
