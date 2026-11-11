@@ -12,9 +12,9 @@ in the commit that changes it.
 | macOS | shipping | `bun host/apple/build.mjs --run` | `macos` | 14.0 (`host.macos.minimumOS`) | |
 | iOS, iPadOS | shipping | `bun host/apple/build.mjs --ios --run` | `ios` | 17.0 (`host.ios.minimumOS`) | |
 | Linux | shipping | `cargo build --profile host-dev -p <app>-linux` | `linux` | | |
-| tvOS | partial: builds and runs on the iOS presenter; no smoke | `bun host/apple/build.mjs --tvos --run` | `tvos` | 17.0 (the iOS floor) | [1](https://github.com/Wawona/Wawona/issues/239) |
+| tvOS | partial: driven and smoked on the iOS presenter (`bun scripts/smoke.mjs tvos`); XCTests do not build yet; no delivery | `bun host/apple/build.mjs --tvos --run` | `tvos` | 17.0 (the iOS floor) | [1](https://github.com/Wawona/Wawona/issues/239) |
 | Windows | partial: runs, answers `check`, refuses a stale build; no delivery | `bun host/windows/build.mjs <app> --run` (on Windows) | `windows` | Windows 11 22621, x64 | [1](https://github.com/Wawona/Wawona/issues/240), [4](https://github.com/Wawona/Wawona/issues/244) |
-| Android | early: no store delivery | `bun exact.mjs android` (a release APK under `target/android/`) | `android` | API 31; 30 with `host.android.minimumOS: "11"`; 29 with `"10"` for an app whose data is Rust (the pinned Hermes bundle needs 30) | [1](https://github.com/Wawona/Wawona/issues/241), [5](https://github.com/Wawona/Wawona/issues/245) |
+| Android | early: a debug-signed release APK; no AAB, no store delivery | `bun scripts/agent-android.mjs build <app> --apk` ([the artifact](#android-release-artifact)) | `android` | API 31; 30 with `host.android.minimumOS: "11"`; 29 with `"10"` for an app whose data is Rust (the pinned Hermes bundle needs 30) | [1](https://github.com/Wawona/Wawona/issues/241), [5](https://github.com/Wawona/Wawona/issues/245) |
 | visionOS | absent: declared in `Package.swift` only | | none | | [2](https://github.com/Wawona/Wawona/issues/242) |
 | watchOS | snapshot only (`ExactWatch`, LLP 1126); no TypeScript apps | `bun host/apple/build.mjs --watchos` | none | 10 | [3](https://github.com/Wawona/Wawona/issues/243) |
 | WearOS | absent: fork goal | | none | | [5](https://github.com/Wawona/Wawona/issues/245) |
@@ -26,6 +26,19 @@ Xcode 26's Swift does not compile it.
 A host is shipping when an app built for it can be driven by `scripts/agent.mjs`, smoked
 by `scripts/smoke.mjs` and delivered by `scripts/deploy.mjs`. Partial lacks one of those;
 early lacks more than one.
+
+## Android release artifact
+
+`bun scripts/agent-android.mjs build <app> --apk` runs `./gradlew :app:assembleRelease` and prints the APK's path,
+`host/android/app/build/<app>/outputs/apk/release/app-release.apk`, with the build's receipt (`exact-build.json`)
+beside it. The APK is minified and its `minSdkVersion` is the manifest's floor: `module-fixture` built with
+`minimumOS` `"10"` records 29, and with `"11"` records 30. Two things keep it from being a store artifact:
+
+- It is signed with the debug key (`signingConfigs.debug`, certificate `CN=Android Debug`), so it installs by
+  `adb` or sideload but cannot be published or updated in place under a release identity.
+- There is no Android App Bundle. Google Play requires one for new apps
+  ([About Android App Bundles](https://developer.android.com/guide/app-bundle)); `:app:bundleRelease` with an
+  upload key is phase 5's work ([Wawona/Wawona#245](https://github.com/Wawona/Wawona/issues/245)).
 
 ## Windows delivery (sketch)
 

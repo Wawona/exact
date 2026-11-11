@@ -16,14 +16,29 @@ const root = resolve(new URL('../..', import.meta.url).pathname);
  * driver that resolved Xcode apart from the build could not find `simctl`
  * where the build had just installed the app (shop F20, recipes F16). Every
  * `xcrun` here goes through it, the build's and the driver's alike; an
- * explicit `DEVELOPER_DIR` is kept. Said on stderr: a drive's stdout is its reply. */
+ * explicit `DEVELOPER_DIR` is kept. Said on stderr: a drive's stdout is its reply.
+ * A Swift toolchain ahead of Xcode's on PATH (swiftly's) is put behind it: its compiler is not the one the SDK's
+ * modules were built by, and the build ran `swift` by name (Swift 6.3 against Xcode 27's SDK crashed, signal 11). */
+let xcodeSwiftChecked = false;
 export function useXcode() {
-  if (process.platform !== 'darwin' || process.env.DEVELOPER_DIR) return;
-  const selected = spawnSync('xcode-select', ['-p'], { encoding: 'utf8' }).stdout?.trim() ?? '';
-  const xcode = '/Applications/Xcode.app/Contents/Developer';
-  if (selected.includes('CommandLineTools') && existsSync(xcode)) {
-    process.env.DEVELOPER_DIR = xcode;
-    console.error(`host/apple: xcode-select names the Command Line Tools (${selected}); using ${xcode}`);
+  if (process.platform !== 'darwin') return;
+  let developer = process.env.DEVELOPER_DIR;
+  if (!developer) {
+    const selected = spawnSync('xcode-select', ['-p'], { encoding: 'utf8' }).stdout?.trim() ?? '';
+    const xcode = '/Applications/Xcode.app/Contents/Developer';
+    developer = selected;
+    if (selected.includes('CommandLineTools') && existsSync(xcode)) {
+      process.env.DEVELOPER_DIR = developer = xcode;
+      console.error(`host/apple: xcode-select names the Command Line Tools (${selected}); using ${xcode}`);
+    }
+  }
+  if (xcodeSwiftChecked) return;
+  xcodeSwiftChecked = true;
+  const onPath = spawnSync('/bin/sh', ['-c', 'command -v swift'], { encoding: 'utf8' }).stdout?.trim() ?? '';
+  const xcodeSwift = resolve(developer, 'Toolchains/XcodeDefault.xctoolchain/usr/bin/swift');
+  if (onPath && existsSync(xcodeSwift) && onPath !== '/usr/bin/swift' && onPath !== xcodeSwift) {
+    process.env.PATH = `${dirname(xcodeSwift)}:${process.env.PATH}`;
+    console.error(`host/apple: ${onPath} is ahead of Xcode's swift on PATH; using ${xcodeSwift}`);
   }
 }
 const shellQuote = value => `'${value.replaceAll("'", "'\\''")}'`;

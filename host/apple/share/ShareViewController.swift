@@ -4,7 +4,7 @@
 // controller as Xcode's macOS template builds one. Post writes the inbox
 // (ShareInbox.swift) and ends; the extension never opens the app.
 import Foundation
-#if canImport(UIKit)
+#if canImport(Social) && canImport(UIKit)
 import Social
 import UIKit
 import UniformTypeIdentifiers

@@ -492,8 +492,14 @@ extension Agent {
 
         roots.forEach { walk($0, alpha: 1, held: false) }
         let dark = vp.traitCollection.userInterfaceStyle == .dark
+        // tvOS is driven by focus from a remote, not touched: its guidelines set no hit-target minimum.
+        #if os(tvOS)
+        let target = 0
+        #else
+        let target = 44
+        #endif
         var reply: [String: Any] = ["viewport": rect(port), "capture": ["window": true, "w": r2(win.bounds.width), "h": r2(win.bounds.height)],
-                                    "scheme": dark ? "dark" : "light", "target": 44, "items": items]
+                                    "scheme": dark ? "dark" : "light", "target": target, "items": items]
         if let keyboard { reply["keyboard"] = r2(keyboard) }
         return reply
     }

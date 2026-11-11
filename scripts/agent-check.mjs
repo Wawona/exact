@@ -238,7 +238,7 @@ export function report(runs, trees, host) {
   for (const [i, run] of runs.entries()) {
     const nodes = trees[i];
     const head = `check ${host} · ${run.scheme}${run.asked && run.asked !== run.scheme ? ` (asked ${run.asked}: the app keeps its own scheme)` : ''}${run.accepted?.length ? ` (${run.accepted.length} accepted)` : ''}`;
-    if (!run.findings.length) out.push(`${head}: no findings (text fits, nothing covered or overlapping, targets ≥ ${run.target}, no horizontal overflow, contrast ≥ 4.5:1 or 3:1 large, cards show)`);
+    if (!run.findings.length) out.push(`${head}: no findings (text fits, nothing covered or overlapping, ${run.target ? `targets ≥ ${run.target}, ` : ''}no horizontal overflow, contrast ≥ 4.5:1 or 3:1 large, cards show)`);
     else {
       out.push(`${head}: ${run.findings.length} finding${run.findings.length === 1 ? '' : 's'}`);
       for (const f of run.findings.slice(0, SHOWN)) out.push(line(f, nodes));
@@ -255,7 +255,7 @@ export function report(runs, trees, host) {
 export async function checkOp(s, args = [], { shots, accept = [] } = {}) {
   const word = args[0] ?? 'current';
   if (!['current', 'light', 'dark', 'both'].includes(word) || args.length > 1) throw new MalformedOperation('check [light|dark|both]: the presented screen, judged in text; `check dark` under prefers-color-scheme dark, `check both` under each');
-  if (!['web', 'ios', 'host-ios', 'linux', 'windows'].includes(s.host)) throw new Error(`check: the web, iOS, Linux and Windows hosts carry it, not ${s.host}`);
+  if (!['web', 'ios', 'tvos', 'host-ios', 'linux', 'windows'].includes(s.host)) throw new Error(`check: the web, iOS, tvOS, Linux and Windows hosts carry it, not ${s.host}`);
   const dir = mkdtempSync(resolve(tmpdir(), 'exact-check-'));
   const first = await s.op({ op: 'check' });
   const asked = word === 'both' ? ['light', 'dark'] : word === 'current' ? [first.scheme] : [word];

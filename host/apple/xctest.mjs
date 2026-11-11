@@ -172,17 +172,18 @@ export async function macTests(pkg, scratch, env, canvasGpu, only = null) {
  *  loaded (`canvasGpu`): loaded, every canvas draws on the GPU, and the others read the Core
  *  Graphics path a runner without it draws. `runApple` and `run` are build.mjs's: they throw on
  *  failure, and `runApple` refuses a mixed deployment target. `only`, when
- *  given, names the classes to run, and a run with none of them is left out. */
-export function iosTestRuns({ pkg, products, destination, udid, env, canvasGpu, hostSource, triple, runApple, run, only = null }) {
+ *  given, names the classes to run, and a run with none of them is left out. `tv`: the
+ *  same runs on an Apple TV simulator. */
+export function iosTestRuns({ pkg, products, destination, udid, env, canvasGpu, hostSource, triple, runApple, run, only = null, tv = false }) {
   const bare = withoutPerformanceChecker(products), host = resolve(products, 'ExactTestHost.app');
   rmSync(host, { recursive: true, force: true });
   mkdirSync(host, { recursive: true });
   writeFileSync(resolve(host, 'Info.plist.json'), JSON.stringify({ CFBundleIdentifier: 'com.exact.testhost', CFBundleExecutable: 'ExactTestHost', CFBundleName: 'ExactTestHost',
-    CFBundlePackageType: 'APPL', CFBundleVersion: '1', CFBundleShortVersionString: '1.0', CFBundleSupportedPlatforms: ['iPhoneSimulator'], MinimumOSVersion: '17.0',
-    LSRequiresIPhoneOS: true, UIDeviceFamily: [1, 2], UILaunchScreen: {}, UIApplicationSceneManifest: { UIApplicationSupportsMultipleScenes: false } }));
+    CFBundlePackageType: 'APPL', CFBundleVersion: '1', CFBundleShortVersionString: '1.0', CFBundleSupportedPlatforms: [tv ? 'AppleTVSimulator' : 'iPhoneSimulator'], MinimumOSVersion: '17.0',
+    ...(tv ? { UIDeviceFamily: [3] } : { LSRequiresIPhoneOS: true, UIDeviceFamily: [1, 2] }), UILaunchScreen: {}, UIApplicationSceneManifest: { UIApplicationSupportsMultipleScenes: false } }));
   run('plutil', ['-convert', 'xml1', '-o', resolve(host, 'Info.plist'), resolve(host, 'Info.plist.json')]);
   rmSync(resolve(host, 'Info.plist.json'));
-  runApple('xcrun', ['--sdk', 'iphonesimulator', 'swiftc', '-parse-as-library', '-target', triple, hostSource, '-o', resolve(host, 'ExactTestHost')]);
+  runApple('xcrun', ['--sdk', tv ? 'appletvsimulator' : 'iphonesimulator', 'swiftc', '-parse-as-library', '-target', triple, hostSource, '-o', resolve(host, 'ExactTestHost')]);
   const hosted = hostedIn(products, bare, 'ExactTestHost.app');
   run('codesign', ['-s', '-', '--force', '--deep', host], { stdio: 'ignore' });
   const gpuTests = 'ExactKitTests/Canvas2DGpuStressTests', classes = only?.map(c => `ExactKitTests/${c}`);
@@ -290,7 +291,7 @@ function chosen(classes, only, platform) {
   return only.map(name => `ExactKitTests.${name}`);
 }
 
-/** The test classes the files in `dir` declare for `platform`, 'iOS' or 'macOS', by name: a subclass
+/** The test classes the files in `dir` declare for `platform`, 'iOS', 'tvOS' or 'macOS', by name: a subclass
  *  of `XCTestCase`, of a fixture or of another test class, outside any `#if` branch that rules the
  *  platform out by `os()` or `canImport(UIKit|AppKit)`. A condition that names anything else is taken
  *  to hold either way. */
@@ -341,14 +342,14 @@ const DECLARES_NOTHING = /^\s*(?:(?:@\w+(?:\([^)]*\))?\s+)*import\b|#(?:warning|
  *  whether it declares at its top level, not `private`, anything else other files can use
  *  (`shared`). */
 function declarations(dir, platform) {
-  const ios = platform === 'iOS';
+  const ios = platform !== 'macOS'; // UIKit: iOS, or tvOS
   // 'yes', 'no' or 'maybe' for a condition, worked out with each condition it names that does not
   // depend on the platform taken first as true and then as false
   const holds = (condition) => {
     const as = (other) => {
-      const js = condition.replace(/\/\/.*$/, '').replace(/os\((\w+)\)/g, (_, os) => String(os === (ios ? 'iOS' : 'macOS')))
+      const js = condition.replace(/\/\/.*$/, '').replace(/os\((\w+)\)/g, (_, os) => String(os === platform))
         .replace(/canImport\((\w+)\)/g, (_, m) => m === 'UIKit' ? String(ios) : m === 'AppKit' ? String(!ios) : String(other))
-        // The iOS tests run on a simulator, and neither platform's in Mac Catalyst
+        // The UIKit tests run on a simulator, and neither platform's in Mac Catalyst
         .replace(/targetEnvironment\((\w+)\)/g, (_, e) => String(e === 'simulator' && ios))
         .replace(/\b(?!true\b|false\b)[A-Za-z_]\w*\b/g, String(other));
       // Only whole tokens of a condition reach the evaluation; one that does not parse is taken either way
