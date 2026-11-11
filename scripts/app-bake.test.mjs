@@ -652,6 +652,41 @@ test('ordinary bake metadata follows intermediate directory A, B and the unset d
   }
 },180000);
 
+test('the bake\'s own watches are binary inputs on Windows, whose executable carries the plan, and not on Linux', () => {
+  const dir=pinned(realpathSync(mkdtempSync(resolve(tmpdir(),'exact embedded plan-'))));
+  const write=(name,bytes)=>{mkdirSync(dirname(resolve(dir,name)),{recursive:true});writeFileSync(resolve(dir,name),bytes);};
+  try {
+    const target=bakeTarget('linux'), id='com.exact.embeddedplan';
+    write('rust-toolchain.toml',readFileSync(resolve(import.meta.dir,'../rust-toolchain.toml')));
+    write('Cargo.toml','[workspace]\nmembers=["linux","windows"]\nresolver="2"\n');
+    write('app.contract','component App\n  view\n    text "Embedded"\n');
+    for (const platform of ['linux','windows']) {
+      write(`${platform}/Cargo.toml`,`[package]\nname="embedded-${platform}"\nversion="0.1.0"\nedition="2021"\n`);
+      write(`${platform}/build.rs`,`fn main(){
+        println!("cargo:rerun-if-changed=build.rs");
+        println!("cargo:rerun-if-changed=../app.contract");
+        let out=std::path::PathBuf::from(std::env::var("OUT_DIR").unwrap());
+        std::fs::write(out.join("compat.json"),r#"${JSON.stringify({target,inputs:{platform,app:id,store:{L:'0'},keys:[]}})}"#).unwrap();
+        std::fs::write(out.join("artifacts.json"),r#"{"version":1,"artifacts":[],"sources":{}}"#).unwrap();
+        std::fs::write(out.join("app.plan"),std::fs::read("../app.contract").unwrap()).unwrap();
+      }`);
+      write(`${platform}/src/main.rs`,'fn main(){}');
+    }
+    const lock=spawnSync('cargo',['generate-lockfile','--offline'],{cwd:dir,encoding:'utf8'});
+    assert.equal(lock.status,0,lock.stderr);
+    const app={dir,workspace:dir,target:resolve(dir,'target'),name:'embedded',id,
+      manifest:{app:{id,name:'Embedded'},rust:false},crate:kind=>`embedded-${kind}`};
+    const contract=resolve(dir,'app.contract');
+    const [linux,windows]=['linux','windows'].map(platform=>buildBake(app,platform,target,{profile:'dev',output:resolve(dir,'bakes'),env:{EXACT_UPDATE_TRUST:'development'}}));
+    assert.ok(!linux.binary.inputs.some(f=>f.path===contract),'a replaceable plan\'s source is not a binary input');
+    const named=windows.binary.inputs.find(f=>f.path===contract)?.name;
+    assert.equal(named,'app/app.contract','the Windows receipt names the plan\'s source');
+    assert.deepEqual(pendingBuildInputs(windows),[]);
+    write('app.contract','component App\n  view\n    text "Edited"\n');
+    assert.deepEqual(pendingBuildInputs(windows),[named],'an edited plan leaves the Windows build stale');
+  } finally { rmSync(dir,{recursive:true,force:true}); }
+},180000);
+
 test('E11 partial bakes select only their graph and production retains GPU binding',async()=>{
   const {bakeSelection,bindGpuProduct}=await import('./app.mjs');
   const graph={root:{id:'host'},surface:{id:'gpu'}};

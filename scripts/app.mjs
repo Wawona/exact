@@ -1089,9 +1089,9 @@ function completeBuild(app, platform, target, graph, messages, roots, env, prepa
     const output = readFileSync([resolve(m.out_dir,'../output'), resolve(m.out_dir,'../run/stdout')].find(existsSync) ?? resolve(m.out_dir,'../output'),'utf8'); const environment = [];
     for (const line of output.split('\n')) {
       const changed = /^cargo::?rerun-if-changed=(.*)$/.exec(line);
-      // The app's plan/manifest/static watches are inputs of replaceable
-      // artifacts. Its generated entry and typed metadata are binary inputs.
-      if (changed && pkg.id !== graph.root.id) {
+      // The app's plan/manifest/static watches are inputs of replaceable artifacts, but a Windows
+      // executable carries its plan: there they are binary inputs, as its generated entry and typed metadata are.
+      if (changed && (pkg.id !== graph.root.id || platform === 'windows')) {
         const path = resolve(dirname(pkg.manifest_path), changed[1]);
         if (!shaderRoots(app).some(root => under(root, path))) add(path, true);
       }

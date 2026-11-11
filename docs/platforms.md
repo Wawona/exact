@@ -13,7 +13,7 @@ in the commit that changes it.
 | iOS, iPadOS | shipping | `bun host/apple/build.mjs --ios --run` | `ios` | 17.0 (`host.ios.minimumOS`) | |
 | Linux | shipping | `cargo build --profile host-dev -p <app>-linux` | `linux` | | |
 | tvOS | partial: builds and runs on the iOS presenter; no smoke | `bun host/apple/build.mjs --tvos --run` | `tvos` | 17.0 (the iOS floor) | [1](https://github.com/Wawona/Wawona/issues/239) |
-| Windows | partial: runs; no delivery | `bun host/windows/build.mjs <app> --run` (on Windows) | `windows` | Windows 11 22621, x64 | [1](https://github.com/Wawona/Wawona/issues/240), [4](https://github.com/Wawona/Wawona/issues/244) |
+| Windows | partial: runs, answers `check`, refuses a stale build; no delivery | `bun host/windows/build.mjs <app> --run` (on Windows) | `windows` | Windows 11 22621, x64 | [1](https://github.com/Wawona/Wawona/issues/240), [4](https://github.com/Wawona/Wawona/issues/244) |
 | Android | early: no store delivery | `bun exact.mjs android` (a release APK under `target/android/`) | `android` | API 31; 30 with `host.android.minimumOS: "11"`; 29 with `"10"` for an app whose data is Rust (the pinned Hermes bundle needs 30) | [1](https://github.com/Wawona/Wawona/issues/241), [5](https://github.com/Wawona/Wawona/issues/245) |
 | visionOS | absent: declared in `Package.swift` only | | none | | [2](https://github.com/Wawona/Wawona/issues/242) |
 | watchOS | snapshot only (`ExactWatch`, LLP 1126); no TypeScript apps | `bun host/apple/build.mjs --watchos` | none | 10 | [3](https://github.com/Wawona/Wawona/issues/243) |
@@ -26,6 +26,27 @@ Xcode 26's Swift does not compile it.
 A host is shipping when an app built for it can be driven by `scripts/agent.mjs`, smoked
 by `scripts/smoke.mjs` and delivered by `scripts/deploy.mjs`. Partial lacks one of those;
 early lacks more than one.
+
+## Windows delivery (sketch)
+
+What phase 4's signed delivery builds; nothing of it exists yet.
+
+- **The store.** `host/windows-update`, a sibling of `host/linux-update` above `exact-windows`, opens an
+  `exact_update::Client` before the boot, as Linux's does. It lives in the per-user local application data
+  folder ([`FOLDERID_LocalAppData`](https://learn.microsoft.com/windows/win32/shell/knownfolderid#FOLDERID_LocalAppData),
+  `%LOCALAPPDATA%\exact\<app id>\update`): it is a cache of the origin, so it is not roamed. `EXACT_UPDATE_DIR`,
+  `EXACT_UPDATE_ORIGIN` and the agent's temporary store behave as on Linux. The check runs over rustls.
+- **The wake.** Linux wakes its display loop with one byte on a socketpair. The Windows display loop is winit's,
+  so a finished check sends an event through the `EventLoopProxy` the host already holds, and the presenter drains
+  its line as Linux's `poll_update` does.
+- **What a stream carries.** `scripts/deploy.mjs` gains `windows` in its platforms: a plan and asset update per
+  compatibility id, signed with the app's update key as the other native streams are. A changed executable is
+  not an update; it is a new install, Authenticode-signed and packaged as MSIX so that Windows verifies and
+  replaces it ([App installer](https://learn.microsoft.com/windows/msix/app-installer/app-installer-root)).
+- **The receipt.** A Windows build's receipt records the bake's watches (the Contract, `app.ts` and what it
+  imports) as binary inputs, since a binary-only executable carries its plan. An update-capable Windows app
+  replaces its plan, so once `host/windows-update` lands that rule follows the app's store (`store.L == "0"`), as
+  `scripts/app.mjs` `completeBuild` decides it today for the platform as a whole.
 
 ## Phases
 
