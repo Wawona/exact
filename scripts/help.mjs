@@ -305,10 +305,11 @@ Ports    none. Runs to completion.`,
   },
   android: {
     line: 'build the APK and install it (test, agent and verify android drive it)',
-    usage: 'bun exact.mjs android [--run] [--headless]',
+    usage: 'bun exact.mjs android [--run] [--headless] [--aab]',
     flags: [
       ['--run', 'launch it once installed'],
       ['--headless', 'build the Linux host for Android instead (agent android --headless runs it under adb shell)'],
+      ['--aab', 'build a release Android App Bundle for Google Play instead, signed with the upload key EXACT_ANDROID_UPLOAD_KEYSTORE names (else the debug key); installs nothing'],
     ],
     // `--apk --install` are the verb's own; --release builds the release profile, for measuring; --write-locks writes
     // the Gradle lock and verification files of an app whose modules name Maven libraries.

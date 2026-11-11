@@ -14,7 +14,7 @@ in the commit that changes it.
 | Linux | shipping | `cargo build --profile host-dev -p <app>-linux` | `linux` | | |
 | tvOS | partial: driven and smoked on the iOS presenter (`bun scripts/smoke.mjs tvos`); XCTests do not build yet; no delivery | `bun host/apple/build.mjs --tvos --run` | `tvos` | 17.0 (the iOS floor) | [1](https://github.com/Wawona/Wawona/issues/239) |
 | Windows | partial: runs, answers `check`, refuses a stale build; no delivery | `bun host/windows/build.mjs <app> --run` (on Windows) | `windows` | Windows 11 22621, x64 | [1](https://github.com/Wawona/Wawona/issues/240), [4](https://github.com/Wawona/Wawona/issues/244) |
-| Android | early: a debug-signed release APK; no AAB, no store delivery | `bun scripts/agent-android.mjs build <app> --apk` ([the artifact](#android-release-artifact)) | `android` | API 31; 30 with `host.android.minimumOS: "11"`; 29 with `"10"` for an app whose data is Rust (the pinned Hermes bundle needs 30) | [1](https://github.com/Wawona/Wawona/issues/241), [5](https://github.com/Wawona/Wawona/issues/245) |
+| Android | partial: a release APK and an upload-signed App Bundle; Android TV qualified; no update stream | `bun scripts/agent-android.mjs build <app> --apk` ([the artifact](#android-release-artifact)) | `android` | API 31; 30 with `host.android.minimumOS: "11"`; 29 with `"10"` for an app whose data is Rust (the pinned Hermes bundle needs 30) | [1](https://github.com/Wawona/Wawona/issues/241), [5](https://github.com/Wawona/Wawona/issues/245) |
 | visionOS | early: the iOS presenter boots on the Apple Vision Pro simulator; no device build, agent target, smoke or delivery | `bun host/apple/build.mjs --visionos --run` | none | 2.0 | [2](https://github.com/Wawona/Wawona/issues/242) |
 | watchOS | snapshot only (`ExactWatch`, LLP 1126); no TypeScript apps | `bun host/apple/build.mjs --watchos` | none | 10 | [3](https://github.com/Wawona/Wawona/issues/243) |
 | WearOS | absent: fork goal | | none | | [5](https://github.com/Wawona/Wawona/issues/245) |
@@ -41,13 +41,45 @@ agent's accessibility snapshot does not answer on the visionOS simulator yet.
 `bun scripts/agent-android.mjs build <app> --apk` runs `./gradlew :app:assembleRelease` and prints the APK's path,
 `host/android/app/build/<app>/outputs/apk/release/app-release.apk`, with the build's receipt (`exact-build.json`)
 beside it. The APK is minified and its `minSdkVersion` is the manifest's floor: `module-fixture` built with
-`minimumOS` `"10"` records 29, and with `"11"` records 30. Two things keep it from being a store artifact:
+`minimumOS` `"10"` records 29, and with `"11"` records 30.
 
-- It is signed with the debug key (`signingConfigs.debug`, certificate `CN=Android Debug`), so it installs by
-  `adb` or sideload but cannot be published or updated in place under a release identity.
-- There is no Android App Bundle. Google Play requires one for new apps
-  ([About Android App Bundles](https://developer.android.com/guide/app-bundle)); `:app:bundleRelease` with an
-  upload key is phase 5's work ([Wawona/Wawona#245](https://github.com/Wawona/Wawona/issues/245)).
+`--aab` runs `./gradlew :app:bundleRelease` instead and prints
+`host/android/app/build/<app>/outputs/bundle/release/app-release.aab`, the Android App Bundle Google Play
+requires for new apps ([About Android App Bundles](https://developer.android.com/guide/app-bundle)). A bundle
+installs on nothing; Play splits it into APKs. The build reads its identity from the environment:
+
+- `EXACT_ANDROID_UPLOAD_KEYSTORE` names the upload keystore, with `EXACT_ANDROID_UPLOAD_STORE_PASSWORD`,
+  `EXACT_ANDROID_UPLOAD_KEY_ALIAS` (default `upload`) and `EXACT_ANDROID_UPLOAD_KEY_PASSWORD` (default the store
+  password). Play re-signs with the app signing key it holds
+  ([Sign your app](https://developer.android.com/studio/publish/app-signing#sign_release)). Unset, the APK and
+  the bundle are signed with the debug key (`CN=Android Debug`): they install by `adb` or sideload, and Play
+  refuses them.
+- `EXACT_BUILD_NUMBER` is the `versionCode` (default 1) and `EXACT_VERSION` the `versionName` (default `0.1.0`).
+  Play refuses a `versionCode` it has seen, so each upload needs a new one.
+
+The manifest declares the `LEANBACK_LAUNCHER` category, a banner, and touch as not required, so the same APK
+installs and launches on Android TV. On the Android TV emulator (API 36, `leanback_only`) Caltrain's release
+APK launched from the TV launcher's intent, D-pad Down moved focus between its buttons, Center activated the
+focused one and Back returned.
+
+## Android updates (sketch)
+
+What a signed update stream for Android needs; nothing of it exists yet, and `scripts/deploy.mjs` publishes none
+(its platforms are `web`, `ios`, `macos` and `linux`).
+
+- **The store.** The reader opens an `exact_update::Client` before the boot, as `host/linux-update` does for
+  Linux. It lives in the app's no-backup files directory
+  ([`Context.getNoBackupFilesDir`](https://developer.android.com/reference/android/content/Context#getNoBackupFilesDir())):
+  it is a cache of the origin, so Auto Backup must not restore it onto another install. The activity passes that
+  path to `Native.start` beside the plan directory it passes today.
+- **The wake.** A finished check posts to the owner thread's looper, which drains its line as Linux's
+  `poll_update` does and asks for a turn through the Choreographer.
+- **What a stream carries.** `deploy.mjs` gains `android`: a plan and asset update per compatibility id, signed
+  with the app's update key. A changed native library is not an update; it is a new bundle through Play. Play's
+  policy allows interpreted code that does not change the app's purpose
+  ([Device and Network Abuse](https://support.google.com/googleplay/android-developer/answer/9888379)).
+- **The receipt.** As for Windows, an update-capable Android build's receipt follows the app's store rather than
+  the platform's.
 
 ## Windows delivery (sketch)
 
