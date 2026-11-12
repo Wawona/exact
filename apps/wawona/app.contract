@@ -18,6 +18,9 @@ component Wawona
   action goSettings()
     nav = open(nav, path("settings"))
 
+  action goMachines()
+    nav = open(nav, path("machines"))
+
   view
     column width="100%" min-height="100%"
       if route == "machines"
@@ -43,6 +46,7 @@ component Wawona
         column testId="wawona-present" width="100%" min-height="100%" box-sizing="border-box" display="flex" flex-direction="column"
           header
             h1 title
+            button press=goMachines() testId="wawona-back-machines" "Machines"
           column flex=1 justify-content="center" align-items="center" gap=8 padding=24 testId="wawona-present-stub"
             text role="heading" aria-level=2 "Present"
             text color="-exact-secondary-label" "iland Present stub (M2). Wayland surface mounts here."
@@ -51,6 +55,7 @@ component Wawona
         column testId="wawona-settings" width="100%" min-height="100%" box-sizing="border-box" display="flex" flex-direction="column"
           header
             h1 "Settings"
+            button press=goMachines() testId="wawona-back-machines" "Machines"
           list appearance="auto" testId="wawona-settings-list" flex=1
             section
               column padding=12 gap=4 testId="settings-display"
