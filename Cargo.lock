@@ -6494,6 +6494,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "wawona-apple"
+version = "0.1.0"
+dependencies = [
+ "contract",
+ "exact-apple",
+ "exact-bake",
+ "exact-logic",
+ "wawona-data",
+]
+
+[[package]]
 name = "wawona-data"
 version = "0.1.0"
 dependencies = [
