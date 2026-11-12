@@ -1,0 +1,66 @@
+// Wawona Exact chrome (M1 vertical slice): Machines list, one Settings page,
+// Present stub. Parent: Wawona/Wawona#227 / #229.
+// Dual-run beside SwiftUI until Present (M2) and domain seam (M3) land.
+
+routes nav
+  tab machines "/"
+    present "/machine/:id"
+  tab settings "/settings"
+
+component Wawona
+  derive machineId = top(nav).params.id
+  derive route = top(nav).name
+  derive title = machineId == "" ? "Machines" : machineId
+
+  action openMachine(id: string)
+    nav = open(nav, path("present", id))
+
+  action goSettings()
+    nav = open(nav, path("settings"))
+
+  view
+    column width="100%" min-height="100%"
+      if route == "machines"
+        column testId="wawona-machines" width="100%" min-height="100%" box-sizing="border-box" display="flex" flex-direction="column"
+          header
+            h1 "Wawona"
+            button press=goSettings() testId="wawona-open-settings" "Settings"
+          list appearance="auto" testId="wawona-machine-list" flex=1
+            section
+              button press=openMachine("Native Shell") testId="machine-native-shell" width="100%"
+                column align-items="flex-start" gap=2 padding=12
+                  text "Native Shell"
+                  text font="-exact-footnote" color="-exact-secondary-label" "zsh · Wayland · local"
+              button press=openMachine("Weston") testId="machine-weston" width="100%"
+                column align-items="flex-start" gap=2 padding=12
+                  text "Weston"
+                  text font="-exact-footnote" color="-exact-secondary-label" "Nested compositor"
+              button press=openMachine("Relay Wasm") testId="machine-relay-wasm" width="100%"
+                column align-items="flex-start" gap=2 padding=12
+                  text "Relay Wasm"
+                  text font="-exact-footnote" color="-exact-secondary-label" "WASI · wpm"
+      else if route == "present"
+        column testId="wawona-present" width="100%" min-height="100%" box-sizing="border-box" display="flex" flex-direction="column"
+          header
+            h1 title
+          column flex=1 justify-content="center" align-items="center" gap=8 padding=24 testId="wawona-present-stub"
+            text role="heading" aria-level=2 "Present"
+            text color="-exact-secondary-label" "iland Present stub (M2). Wayland surface mounts here."
+            text font="-exact-footnote" color="-exact-secondary-label" machineId
+      else if route == "settings"
+        column testId="wawona-settings" width="100%" min-height="100%" box-sizing="border-box" display="flex" flex-direction="column"
+          header
+            h1 "Settings"
+          list appearance="auto" testId="wawona-settings-list" flex=1
+            section
+              column padding=12 gap=4 testId="settings-display"
+                text "Display"
+                text font="-exact-footnote" color="-exact-secondary-label" "Backend: Wayland · Present: Exact native view (planned)"
+              column padding=12 gap=4 testId="settings-input"
+                text "Input"
+                text font="-exact-footnote" color="-exact-secondary-label" "Touch Input Type · host keymap bridge"
+              column padding=12 gap=4 testId="settings-about"
+                text "About"
+                text font="-exact-footnote" color="-exact-secondary-label" "Exact Contract chrome · Wawona/Wawona#229"
+      else
+        text "Unknown route"

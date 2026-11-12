@@ -1,0 +1,27 @@
+# Wawona Exact chrome on Windows (M1 / M6). Built on the guest with
+# `bun host/windows/build.mjs wawona`.
+[package]
+name = "wawona-windows"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Wawona Exact Contract chrome on the Windows host"
+publish = false
+build = "build.rs"
+
+[[bin]]
+name = "wawona-windows"
+path = "src/main.rs"
+test = false
+bench = false
+
+[dependencies]
+exact-logic = { path = "../../../logic" }
+wawona-data = { path = "../data" }
+exact-windows = { path = "../../../host/windows" }
+exact-linux = { path = "../../../host/linux" }
+
+[build-dependencies]
+wawona-data = { path = "../data" }
+contract = { path = "../../../contract/cli" }
+exact-bake = { path = "../../../bake" }

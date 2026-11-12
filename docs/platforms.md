@@ -18,7 +18,7 @@ in the commit that changes it.
 | visionOS | early: the iOS presenter boots on the Apple Vision Pro simulator; no device build, agent target, smoke or delivery | `bun host/apple/build.mjs --visionos --run` | none | 2.0 | [2](https://github.com/Wawona/Wawona/issues/242) |
 | watchOS | snapshot complications and a live entry (`ExactWatch`, LLP 1126); a TypeScript app's entry runs on a paired simulator when it reaches no `app.ts` source; no device run | `bun host/apple/build.mjs --watchos` | none | 10 | [3](https://github.com/Wawona/Wawona/issues/243) |
 | WearOS | absent: the phone APK runs unadapted; a host proposal below | | none | | [5](https://github.com/Wawona/Wawona/issues/245) |
-| AsteroidOS | in progress: `exact-asteroid` + hello headless on macOS; Qt6/QML presenter planned; armv7 cross via AsteroidOS-SDK | `bun host/asteroid/build.mjs <app>` or `bun scripts/build-asteroid.mjs <app>` | `asteroid` | armv7 Linux (cross) | [6](https://github.com/Wawona/Wawona/issues/246) |
+| AsteroidOS | partial: headless hello + armv7hf cross ELF; Qt/QML image still open | `bun host/asteroid/build.mjs <app>` or `bun scripts/build-asteroid.mjs <app>` | `asteroid` | armv7 Linux (cross) | [6](https://github.com/Wawona/Wawona/issues/246) |
 
 The Apple hosts build with Xcode 27: ExactKit calls the iOS and tvOS 27 SDKs' AVAudioSession life cycle, and
 Xcode 26's Swift does not compile it.
