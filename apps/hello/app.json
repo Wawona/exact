@@ -33,7 +33,8 @@
   "deploy": {
     "store": {
       "macos": "0",
-      "ios": "0"
+      "ios": "0",
+      "asteroid": "0"
     }
   }
 }
