@@ -34,3 +34,13 @@ cross and on-image Qt remain follow-ups when the SDK toolchain finishes.
 
 Recheck 2026-11-11 evening: `EXACT_AGENT=1 bun scripts/agent.mjs asteroid
 --app hello tree state` still prints `Text#1 "Hello world"` at 240×240.
+
+## Armv7 cross (2026-11-12)
+
+- AsteroidOS-SDK `#toolchain` built on Darwin
+  (`armv7l-unknown-linux-gnueabihf-gcc` wrappers).
+- `host/asteroid/build.mjs` maps Rust target `armv7-unknown-linux-gnueabihf` to
+  the GNU `armv7l-…` linker prefix.
+- `ASTEROIDOS_SDK=… bun host/asteroid/build.mjs hello` →
+  `target/armv7-unknown-linux-gnueabihf/host-dev/hello-asteroid` (ELF 32-bit
+  ARM EABI5). `file` confirms; QEMU user-mode remains Linux-host-only.

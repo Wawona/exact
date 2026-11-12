@@ -11,7 +11,10 @@ import { fileURLToPath } from 'node:url';
 import { HOST_DEV, asteroidBuild, cargoEnvironment, resolveApp } from '../../scripts/app.mjs';
 
 const ROOT = resolve(fileURLToPath(new URL('../..', import.meta.url)));
+// Rust target triple (no "l"). AsteroidOS-SDK wrappers use armv7l-… for the
+// GNU toolchain prefix; map that when setting CC/CXX/AR/linker.
 const TARGET = 'armv7-unknown-linux-gnueabihf';
+const GNU_PREFIX = 'armv7l-unknown-linux-gnueabihf';
 const defaultSdk = resolve(ROOT, '..', 'AsteroidOS-SDK');
 
 const [name, ...rest] = process.argv.slice(2);
@@ -46,7 +49,7 @@ if (toolchain.status !== 0) {
   process.exit(toolchain.status ?? 1);
 }
 const tc = toolchain.stdout.trim().split(/\s+/).filter(Boolean).at(-1) ?? '';
-const gcc = `${tc}/bin/${TARGET}-gcc`;
+const gcc = `${tc}/bin/${GNU_PREFIX}-gcc`;
 if (!existsSync(gcc)) {
   console.error(`cross gcc missing at ${gcc}`);
   process.exit(1);
@@ -57,8 +60,8 @@ const env = cargoEnvironment({
   CARGO_TARGET_DIR: app.target,
   CARGO_TARGET_ARMV7_UNKNOWN_LINUX_GNUEABIHF_LINKER: gcc,
   CC_armv7_unknown_linux_gnueabihf: gcc,
-  CXX_armv7_unknown_linux_gnueabihf: `${tc}/bin/${TARGET}-g++`,
-  AR_armv7_unknown_linux_gnueabihf: `${tc}/bin/${TARGET}-ar`,
+  CXX_armv7_unknown_linux_gnueabihf: `${tc}/bin/${GNU_PREFIX}-g++`,
+  AR_armv7_unknown_linux_gnueabihf: `${tc}/bin/${GNU_PREFIX}-ar`,
 });
 
 const args = [
