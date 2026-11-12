@@ -37,14 +37,15 @@ if (!existsSync(resolve(sdkFlake, 'flake.nix'))) {
   process.exit(1);
 }
 
-const toolchain = spawnSync('nix', ['build', `${sdkFlake}#toolchain`, '--no-link', '--print-out-path'], {
+// Determinate Nix 2.35+: `--print-out-paths` (plural). Older nix had `--print-out-path`.
+const toolchain = spawnSync('nix', ['build', `${sdkFlake}#toolchain`, '--no-link', '--print-out-paths'], {
   encoding: 'utf8',
 });
 if (toolchain.status !== 0) {
-  console.error(toolchain.stderr || 'nix build toolchain failed');
+  console.error(toolchain.stderr || toolchain.stdout || 'nix build toolchain failed');
   process.exit(toolchain.status ?? 1);
 }
-const tc = toolchain.stdout.trim();
+const tc = toolchain.stdout.trim().split(/\s+/).filter(Boolean).at(-1) ?? '';
 const gcc = `${tc}/bin/${TARGET}-gcc`;
 if (!existsSync(gcc)) {
   console.error(`cross gcc missing at ${gcc}`);

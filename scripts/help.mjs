@@ -303,6 +303,16 @@ anywhere, macOS included, with no display.
 Ports    none. Runs to completion.`,
     example: 'bun exact.mjs linux && bun exact.mjs test linux',
   },
+  asteroid: {
+    line: 'build the AsteroidOS host (agent asteroid drives it headless at 240x240)',
+    usage: 'bun exact.mjs asteroid | bun scripts/build-asteroid.mjs <app>',
+    flags: [],
+    body: `A development build of the app's asteroid crate (cargo profile host-dev). Prints the
+binary path. Headless on the build machine; cross armv7 uses host/asteroid/build.mjs and
+AsteroidOS-SDK. agent asteroid defaults the viewport to 240x240.
+Ports    none. Runs to completion.`,
+    example: 'bun scripts/build-asteroid.mjs hello && bun scripts/agent.mjs asteroid --app hello tree',
+  },
   android: {
     line: 'build the APK and install it (test, agent and verify android drive it)',
     usage: 'bun exact.mjs android [--run] [--headless] [--aab]',
