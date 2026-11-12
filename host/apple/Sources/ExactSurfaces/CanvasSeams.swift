@@ -525,7 +525,7 @@ private enum CanvasAudio {
         guard !ExactEnv.agentMode else { return false }
         wanted = true
         guard !active else { return true }
-        #if os(iOS) || os(tvOS)
+        #if os(iOS) || os(visionOS) || os(tvOS)
         do { try AudioSession.activate() } catch { fputs("exact audio session: \(error)\n", stderr); return false }
         #endif
         active = true
@@ -563,7 +563,7 @@ final class CanvasLifecycle: NSObject {
                      UIApplication.willEnterForegroundNotification, UIApplication.didBecomeActiveNotification] {
             center.addObserver(self, selector: #selector(visibilityChanged), name: name, object: nil)
         }
-        #if os(iOS) || os(tvOS)
+        #if os(iOS) || os(visionOS) || os(tvOS)
         AudioSession.listen(ObjectIdentifier(CanvasLifecycle.self)) { Self.heard($0) }
         #endif
         #endif
@@ -670,7 +670,7 @@ final class CanvasLifecycle: NSObject {
             }
         }
     }
-    #if os(iOS) || os(tvOS)
+    #if os(iOS) || os(visionOS) || os(tvOS)
     /// What the session's owner hears, for every live canvas.
     /// The owner follows iOS 27's session life cycle; a canvas observing the
     /// interruption notification itself heard a began and never an end on

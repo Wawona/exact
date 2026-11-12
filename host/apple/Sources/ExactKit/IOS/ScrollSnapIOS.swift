@@ -1,7 +1,7 @@
 // CSS scroll snap on UIKit (LLP 1008, "Horizontal scroll snap"): UIKit
 // projects where a drag comes to rest; the nearest captured snap position
 // replaces it.
-#if os(iOS) || os(tvOS)
+#if os(iOS) || os(visionOS) || os(tvOS)
 import UIKit
 
 extension NodeView {
@@ -9,7 +9,7 @@ extension NodeView {
     /// the projected resting offset and owns the resulting deceleration.
     package func scrollViewWillEndDragging(_ scrollView: UIScrollView, withVelocity velocity: CGPoint, targetContentOffset: UnsafeMutablePointer<CGPoint>) {
         guard scrollView === self.scrollView else { return }
-        #if os(iOS)
+        #if os(iOS) || os(visionOS)
         // A painted swipe row's full swipe decides where it rests (PaintedSwipesIOS.swift).
         defer { if swipeOwner { presenter?.swipeActions.painted.willEnd(self, scrollView, target: targetContentOffset) } }
         #endif

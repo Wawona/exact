@@ -106,6 +106,15 @@
       "minimumOS": "14.0"
     },
     "linux": {},
+    "windows": {
+      "painter": "cpu",
+      "window": {
+        "width": 1024,
+        "height": 720,
+        "minWidth": 360,
+        "minHeight": 500
+      }
+    },
     "web": {}
   },
   "deploy": {
@@ -124,7 +133,8 @@
     "store": {
       "ios": "A",
       "macos": "A",
-      "linux": "A"
+      "linux": "A",
+      "windows": "0"
     },
     "channels": {
       "prod": "https://caltrain.exact.invalid"

@@ -620,6 +620,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "caltrain-windows"
+version = "0.1.0"
+dependencies = [
+ "caltrain-data",
+ "contract",
+ "exact-bake",
+ "exact-linux",
+ "exact-logic",
+ "exact-windows",
+]
+
+[[package]]
 name = "canvas-gallery-apple"
 version = "0.1.0"
 dependencies = [
@@ -1371,6 +1383,14 @@ dependencies = [
  "exact-update",
  "ibex2",
  "serde_json",
+]
+
+[[package]]
+name = "exact-asteroid"
+version = "0.1.0"
+dependencies = [
+ "exact-linux",
+ "exact-runner",
 ]
 
 [[package]]
@@ -2588,6 +2608,17 @@ dependencies = [
  "exact-apple",
  "exact-bake",
  "exact-logic",
+ "hello-data",
+]
+
+[[package]]
+name = "hello-asteroid"
+version = "0.1.0"
+dependencies = [
+ "contract",
+ "exact-asteroid",
+ "exact-bake",
+ "exact-linux",
  "hello-data",
 ]
 
@@ -6460,6 +6491,37 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c6eec44b0c80391b20fb7ad9ea440c72c5d382385bdf74444bb18321c425017e"
 dependencies = [
  "wast",
+]
+
+[[package]]
+name = "wawona-apple"
+version = "0.1.0"
+dependencies = [
+ "contract",
+ "exact-apple",
+ "exact-bake",
+ "exact-logic",
+ "wawona-data",
+]
+
+[[package]]
+name = "wawona-data"
+version = "0.1.0"
+dependencies = [
+ "exact-plan",
+ "exact-runner",
+]
+
+[[package]]
+name = "wawona-windows"
+version = "0.1.0"
+dependencies = [
+ "contract",
+ "exact-bake",
+ "exact-linux",
+ "exact-logic",
+ "exact-windows",
+ "wawona-data",
 ]
 
 [[package]]

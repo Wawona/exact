@@ -1,4 +1,4 @@
-#if os(iOS)
+#if os(iOS) || os(visionOS)
 import UIKit
 import CExact
 import ObjectiveC
@@ -558,7 +558,7 @@ final class FrameHealthCardView: UIView {
         detailsScroll.showsVerticalScrollIndicator = false
         detailsScroll.showsHorizontalScrollIndicator = false
         detailsScroll.contentInsetAdjustmentBehavior = .never
-        if #available(iOS 26.0, *) {
+        if #available(iOS 26.0, visionOS 26.0, *) {
             for edge in [detailsScroll.topEdgeEffect, detailsScroll.leftEdgeEffect, detailsScroll.bottomEdgeEffect, detailsScroll.rightEdgeEffect] {
                 edge.isHidden = true
             }
@@ -573,7 +573,7 @@ final class FrameHealthCardView: UIView {
         // The drawing fills the bounds; the content clips it to the card's rounded outline, which in a
         // corner of the screen follows the screen's own rounding, so that rounding never cuts the card
         for view in [self, content] {
-            if #available(iOS 26.0, *) {
+            if #available(iOS 26.0, visionOS 26.0, *) {
                 view.cornerConfiguration = .corners(radius: .containerConcentric(minimum: 12))
             } else {
                 view.layer.cornerRadius = 12
@@ -610,7 +610,7 @@ final class FrameHealthCardView: UIView {
         faceView.frame = bounds
         // Redraw the header only when a top corner's radius changes: UIKit lays the card out again when it moves, with
         // its corners already for where it is
-        if #available(iOS 26.0, *) {
+        if #available(iOS 26.0, visionOS 26.0, *) {
             let corners = (topLeft: (effectiveRadius(corner: .topLeft) / scale).rounded(),
                            topRight: (effectiveRadius(corner: .topRight) / scale).rounded())
             if corners != topCorners {
@@ -1016,8 +1016,10 @@ extension DevMenu {
     static func showFrameHealthDefinitions(_ source: FrameHealthCardText.Source) {
         let navigation = UINavigationController(rootViewController: FrameHealthDefinitionsController(source))
         navigation.modalPresentationStyle = .pageSheet
+        #if os(iOS)
         navigation.sheetPresentationController?.detents = [.medium(), .large()]
         navigation.sheetPresentationController?.prefersGrabberVisible = true
+        #endif
         present(navigation)
     }
 }

@@ -13,7 +13,7 @@
 // handler, a paint row, a child that is a view, motion other than opacity)
 // promotes it: it gets its `NodeView` at the same place, and so do the flat
 // boxes above it.
-#if os(iOS) || os(tvOS)
+#if os(iOS) || os(visionOS) || os(tvOS)
 import UIKit
 
 /// No implicit animations on a flat leaf's layer.

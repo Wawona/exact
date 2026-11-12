@@ -67,7 +67,7 @@ enum HeldState {
         dropped = nil
         if let held {
             if state == "active" { if !(held.pressed && !held.pressPaint.outside) { held.showPress(false) }; held.heldHighlight() } else { held.relook() }
-            #if os(iOS)
+            #if os(iOS) || os(visionOS)
             if state == "hover" { held.lookHover(NodeView.look("hover", in: held.pressPaint.lookBase ?? [:]) != nil) } // the hold's recognizer off again
             #endif
         }
@@ -168,7 +168,7 @@ enum HeldState {
         // Over it now: a live hit test of the resting pointer (a new generation's tree included), else the path last seen.
         #if os(macOS)
         over = presenter.pointerOver(node) ?? pointerPath.contains { $0.view === node }
-        #elseif os(iOS)
+        #elseif os(iOS) || os(visionOS)
         // As its look recognizer last said (one put on for the hold has said
         // nothing: the pointer is taken to be elsewhere, so it coming over the
         // node lets the hold go).
@@ -239,7 +239,7 @@ extension NodeView {
     /// A native button's highlight again, as the platform's tracking and a
     /// held press have it (`NativeButtonIOS`, `NativeButtonCellMac`).
     func heldHighlight() {
-        #if os(iOS) || os(tvOS)
+        #if os(iOS) || os(visionOS) || os(tvOS)
         if let button = presenter?.controls.controls[id] as? NativeButtonIOS { button.isHighlighted = button.isTracking && button.isTouchInside }
         #elseif os(macOS)
         (presenter?.controls.controls[id] as? NativeButtonMac)?.applyActiveState()
@@ -270,7 +270,7 @@ extension Presenter {
     /// flat leaf's parent (iOS), else as the runner says it.
     package func logicalParent(of id: UInt32) -> UInt32? {
         if let run = inlineText(id) { return run.parent }
-        #if os(iOS) || os(tvOS)
+        #if os(iOS) || os(visionOS) || os(tvOS)
         if let parent = flats.parent(of: id) { return parent }
         #endif
         if let view = views[id] { return logicalAncestry(of: view).dropFirst().first { $0 is NodeView }.map { ($0 as! NodeView).id } }

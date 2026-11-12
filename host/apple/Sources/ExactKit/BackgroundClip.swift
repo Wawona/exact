@@ -6,7 +6,7 @@
 // are the same lines the paragraph paints.
 import CoreGraphics
 import CoreText
-#if os(iOS) || os(tvOS)
+#if os(iOS) || os(visionOS) || os(tvOS)
 import UIKit
 #else
 import AppKit

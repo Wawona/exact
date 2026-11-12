@@ -64,7 +64,7 @@ extension WebArm {
             let (left, top, scale) = viewport.count == 3 ? (viewport[0], viewport[1], viewport[2]) : (0, 0, 1)
             let points = scale * Double(web.pageZoom)
             var rect = CGRect(x: (clip[0] - left) * points, y: (clip[1] - top) * points, width: clip[2] * points, height: clip[3] * points)
-            #if os(iOS)
+            #if os(iOS) || os(visionOS)
             rect.origin.y += web.scrollView.adjustedContentInset.top
             #endif
             rect = rect.intersection(web.bounds)

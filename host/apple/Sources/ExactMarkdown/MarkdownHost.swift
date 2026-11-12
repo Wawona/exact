@@ -34,7 +34,7 @@ final class MarkdownHost: MarkdownCapability {
     func publishSelection(_ node: NodeView, force: Bool) { node.markdownPublishSelection(force: force) }
     func restyle(_ node: NodeView) { node.markdownRestyle() }
     func formatElement(_ presenter: Presenter, _ args: [Any]) { presenter.markdownFormatElement(args) }
-    #if os(iOS) || os(tvOS)
+    #if os(iOS) || os(visionOS) || os(tvOS)
     func menu(_ node: NodeView, _ textView: UITextView, range: NSRange, suggested: [UIMenuElement]) -> UIMenu? {
         node.markdownMenu(textView, editMenuForTextIn: range, suggestedActions: suggested)
     }

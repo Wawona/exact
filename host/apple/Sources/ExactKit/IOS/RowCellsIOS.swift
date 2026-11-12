@@ -31,7 +31,7 @@
 // a row with a ground of its own is its author's card, whose press is a
 // custom pressable's (the dim); a row's own press (`-exact-press-scale`,
 // its pressed paint, `pointerdown`, `pointerup`) replaces the highlight.
-#if os(iOS) || os(tvOS)
+#if os(iOS) || os(visionOS) || os(tvOS)
 import UIKit
 
 extension NodeView {
@@ -160,7 +160,7 @@ final class RowCells {
     static let margin: CGFloat = 16
     /// The ground of a highlighted or selected cell of a plain list. (tvOS
     /// has no such grey and draws no row of this: its focus is the feedback.)
-    #if os(iOS)
+    #if os(iOS) || os(visionOS)
     static let highlight = UIColor.systemGray4
     #else
     static let highlight = UIColor.systemGray
@@ -204,7 +204,7 @@ final class RowCells {
     /// After a batch: the separators of each list it touched (a list is in
     /// `changed` when anything in it was), and of lists that came or went.
     func sync(changed: Set<UInt32>?) {
-        #if os(iOS)
+        #if os(iOS) || os(visionOS)
         guard let presenter else { return }
         for (id, view) in lines where presenter.listViews[id]?.hasRowCells != true {
             view.removeFromSuperview()
@@ -339,7 +339,7 @@ final class RowCells {
 
     // MARK: The press
 
-    #if os(iOS)
+    #if os(iOS) || os(visionOS)
     private func usesGround(_ node: NodeView, in row: NodeView) -> Bool {
         node.platformPressDims && row.rowPress === node && !row.hasOwnGround(pressing: node)
     }
@@ -348,7 +348,7 @@ final class RowCells {
     /// `node`'s `pressed` changed. True when it is a row's press, and its
     /// cell's ground stands in for the dim.
     func press(_ node: NodeView, _ down: Bool) -> Bool {
-        #if os(iOS)
+        #if os(iOS) || os(visionOS)
         guard let (row, list) = node.rowCell.map({ ($0.row, $0.list) }) else { return false }
         guard usesGround(node, in: row) else {
             if let held = shown, held.row === row, !held.selected { drop() }
@@ -370,7 +370,7 @@ final class RowCells {
     /// row's cell's (and not the author's own), the row is selected, so the
     /// ground stays while the press runs. Returns the row, for `ran`.
     func select(_ node: NodeView) -> NodeView? {
-        #if os(iOS)
+        #if os(iOS) || os(visionOS)
         guard let (row, list) = node.rowCell.map({ ($0.row, $0.list) }), usesGround(node, in: row) else { return nil }
         show(row, in: list, selected: true)
         return row

@@ -3,7 +3,7 @@
 // numeric content transition, per glyph and blurred as iOS's own numbers roll,
 // where the core would push its whole raster. An app's composition links this
 // module, and SwiftUI with it, only when its plan binds the row.
-#if os(iOS) || os(tvOS)
+#if os(iOS) || os(visionOS) || os(tvOS)
 import ExactKit
 import ObjectiveC
 import SwiftUI

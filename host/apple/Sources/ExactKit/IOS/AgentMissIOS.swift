@@ -1,7 +1,7 @@
 // @ref LLP 1143 D1 — why a target the agent names has no view on screen, from
 // what `state.navigation` already observes (its transition phase, the route,
 // the presentations) and whether the runner still has the node.
-#if os(iOS) || os(tvOS)
+#if os(iOS) || os(visionOS) || os(tvOS)
 import UIKit
 
 extension Agent {

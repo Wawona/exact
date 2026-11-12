@@ -12,7 +12,7 @@
 // size of a childless box and an authored gap for this (`kept_geometry`,
 // host/apple/src/style.rs). A native button has no such face: its title's
 // size and weight are the item's title font (`HeaderShape.Item.font`).
-#if os(iOS) || os(tvOS)
+#if os(iOS) || os(visionOS) || os(tvOS)
 import UIKit
 
 struct ChipFace: Equatable {
@@ -172,7 +172,7 @@ struct ChipFace: Equatable {
     /// item's title is drawn in before iOS 26; the label colour after).
     func image(tint: UIColor) -> UIImage {
         var bar = tint
-        if #available(iOS 26.0, tvOS 26.0, *) { bar = .label }
+        if #available(iOS 26.0, tvOS 26.0, visionOS 26.0, *) { bar = .label }
         return draw(bar: bar.resolvedColor(with: UITraitCollection(userInterfaceStyle: dark ? .dark : .light))).withRenderingMode(.alwaysOriginal)
     }
 

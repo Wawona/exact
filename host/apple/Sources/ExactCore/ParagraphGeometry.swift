@@ -254,7 +254,7 @@ extension Spec {
     package var automaticHyphens: Bool { Self.insertsHyphens(hyphens, wrap: overflowWrap) }
     package static func insertsHyphens(_ hyphens: Int, wrap: Int) -> Bool {
         if hyphens == 2 { return true }
-        #if os(iOS)
+        #if os(iOS) || os(visionOS)
         return hyphens == 0 && wrap == 1
         #else
         return false

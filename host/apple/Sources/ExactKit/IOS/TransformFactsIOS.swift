@@ -1,7 +1,7 @@
 // A transform drag's geometry facts on UIKit (`TransformGeometry`): the
 // core's, which reports them whether or not the Drag module is linked
 // (LLP 1047.001 D4).
-#if os(iOS) || os(tvOS)
+#if os(iOS) || os(visionOS) || os(tvOS)
 import UIKit
 
 /// The photo handle's one contact (LLP 1057.001 §4): the binding's pan, now up

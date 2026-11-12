@@ -36,7 +36,7 @@ final class FrameHealth {
     var nativeScrollActive = false
     var nativeSampleLoss: UInt64 = 0
     weak var publicationOwner: FrameHealth?
-    #if (os(iOS) || os(tvOS)) && !targetEnvironment(macCatalyst)
+    #if ((os(iOS) || os(visionOS)) || os(tvOS)) && !targetEnvironment(macCatalyst)
     var scrollObserver: AnyObject?
     #endif
     #if os(macOS)
@@ -139,7 +139,7 @@ final class FrameHealth {
             (requestedHertz, requestedPeriodNs) = (hertz, period)
             if period > 0 { exact_frame_health_requested_period(handle, period) }
         } else {
-            #if (os(iOS) || os(tvOS)) && !targetEnvironment(macCatalyst)
+            #if ((os(iOS) || os(visionOS)) || os(tvOS)) && !targetEnvironment(macCatalyst)
             stopScroll()
             #endif
             stop()
@@ -286,7 +286,7 @@ final class FrameHealth {
 
     func reset() {
         guard enabled else { return }
-        #if (os(iOS) || os(tvOS)) && !targetEnvironment(macCatalyst)
+        #if ((os(iOS) || os(visionOS)) || os(tvOS)) && !targetEnvironment(macCatalyst)
         stopScroll()
         #endif
         nativeHealth?.clockChanged(virtual: virtual)
@@ -324,7 +324,7 @@ final class FrameHealth {
         track = nil
         let native = nativeHealth
         nativeHealth = nil
-        #if (os(iOS) || os(tvOS)) && !targetEnvironment(macCatalyst)
+        #if ((os(iOS) || os(visionOS)) || os(tvOS)) && !targetEnvironment(macCatalyst)
         let observer = scrollObserver
         scrollObserver = nil
         #endif
@@ -341,7 +341,7 @@ final class FrameHealth {
         let closing = handle
         handle = 0
         let release = {
-            #if (os(iOS) || os(tvOS)) && !targetEnvironment(macCatalyst)
+            #if ((os(iOS) || os(visionOS)) || os(tvOS)) && !targetEnvironment(macCatalyst)
             if #available(iOS 18.0, tvOS 18.0, *) { (observer as? FrameHealthScrollObserver)?.stop() }
             #endif
             native?.destroy()

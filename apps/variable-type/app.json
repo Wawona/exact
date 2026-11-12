@@ -9,6 +9,7 @@
     "id": "com.exact.variabletype",
     "name": "Variable Type"
   },
+  "watch": { "source": "watch.contract", "component": "VariableTypeWatch" },
   "host": {
     "ios": {
       "minimumOS": "17.0",

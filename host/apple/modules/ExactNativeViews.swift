@@ -60,7 +60,7 @@ open class ExactNativeInstance {
     /// The view the host puts in the node's box; it fills the box, and
     /// observes its own bounds.
     open var view: ExactNativeView { fatalError("\(type(of: self)) has no view") }
-    #if os(iOS) || os(tvOS)
+    #if os(iOS) || os(visionOS) || os(tvOS)
     /// A native screen (LLP 1075.003 §3.6): a controller whose view is
     /// `view`, contained in the route's controller as a child while it shows.
     open var controller: UIViewController? { nil }
@@ -86,7 +86,7 @@ open class ExactNativeInstance {
     open func prepareForReuse() throws { throw ExactNativeRefusal("no reuse") }
 }
 
-#if os(iOS) || os(tvOS)
+#if os(iOS) || os(visionOS) || os(tvOS)
 /// A module view that is a whole screen (LLP 1075.003 §3.6): `screen`'s view
 /// fills the node's box, and `screen` is a child of the route's controller,
 /// with UIKit's appearance, safe-area and trait propagation.
@@ -270,7 +270,7 @@ enum ExactNativeViewABI {
     /// `platform_controller(handle) → UIViewController?`: a native screen's
     /// controller (the module keeps ownership), or nil for a plain view.
     static let platformController: @convention(c) (UnsafeMutableRawPointer?) -> UnsafeMutableRawPointer? = { raw in
-        #if os(iOS) || os(tvOS)
+        #if os(iOS) || os(visionOS) || os(tvOS)
         handle(raw)?.instance.controller.map { Unmanaged.passUnretained($0).toOpaque() }
         #else
         nil

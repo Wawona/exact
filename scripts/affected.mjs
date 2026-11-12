@@ -74,7 +74,7 @@ const WHOLE = new Set(['scripts/caps.mjs', 'scripts/metrics.mjs']);
 const WORKSPACES = ['Cargo.toml', 'game/Cargo.toml'];
 
 /** The hosts an app's crate directory serves; the directory is the platform's name. */
-const APP_HOSTS = { web: ['web'], apple: ['macos', 'ios'], linux: ['linux'], windows: ['windows'], android: ['android'] };
+const APP_HOSTS = { web: ['web'], apple: ['macos', 'ios'], linux: ['linux'], windows: ['windows'], android: ['android'], asteroid: ['asteroid'] };
 
 /**
  * The changed files that select each suite: `[{ suite, because: [file, …], only? }]`, in catalogue order. `changed`
@@ -136,9 +136,9 @@ export function suites(repo) {
   // An Apple build reads the platform's hosts but their tests (the Rust crate's test modules, the Bun files, the
   // XCTests); touch smoke also runs `link.test.mjs` over the app it built. `build.mjs --test` adds the XCTests,
   // links them against Caltrain's archive (its default app) and compiles the fixtures with `contract`; the iOS run
-  // also builds native-fixture's plan and modules (`host/apple/build.mjs`, `test`).
+  // also builds native-fixture's plan and modules (`host/apple/swift-tests.mjs`).
   const apple = ['platform:apple', 'js:host/apple/build.mjs', 'pkg:caltrain-apple', 'pkg:contract'];
-  const xctest = ['dir:host/apple/tests', 'tests:host/apple/tests', ...apple, 'pkg:exact-canvas-vello', 'dir:scripts/fixtures'];
+  const xctest = ['dir:host/apple/tests', 'tests:host/apple/tests', ...apple, 'js:host/apple/swift-tests.mjs', 'pkg:exact-canvas-vello', 'dir:scripts/fixtures'];
   out.push({ id: 'xctest:macos', kind: 'xctest', host: 'macos', roots: xctest });
   out.push({ id: 'xctest:ios', kind: 'xctest', host: 'ios', roots: [...xctest, 'appsrc:apps/native-fixture', 'pkg:native-fixture-apple'] });
   const caltrain = appBuild(repo, 'apps/caltrain', ['apple']);

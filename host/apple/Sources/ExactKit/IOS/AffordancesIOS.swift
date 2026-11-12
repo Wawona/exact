@@ -2,7 +2,7 @@
 // Invert leaving a node's pixels alone (D18), a scroll container's edge
 // effect (D16, iOS 26), the iPad pointer's effect over a node (D17), and
 // a text's numerals rolling as they change (D15).
-#if os(iOS) || os(tvOS)
+#if os(iOS) || os(visionOS) || os(tvOS)
 import ObjectiveC
 import UIKit
 
@@ -19,7 +19,7 @@ extension NodeView {
 
     /// D16: the edge effect where content meets a bar; `none` hides it.
     private func applyScrollEdge(_ sv: UIScrollView) {
-        guard #available(iOS 26.0, tvOS 26.0, *) else { return }
+        guard #available(iOS 26.0, tvOS 26.0, visionOS 26.0, *) else { return }
         let value = style["scroll_edge_effect"]?.string ?? "automatic"
         for edge in [sv.topEdgeEffect, sv.bottomEdgeEffect, sv.leftEdgeEffect, sv.rightEdgeEffect] {
             let hidden = value == "none"

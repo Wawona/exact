@@ -1,6 +1,6 @@
 // One display link for the app's life (iOS, tvOS); its users come and go.
 // @ref LLP 1009 D4 (frames only while something moves); LLP 1061 D4 (rate).
-#if os(iOS) || os(tvOS)
+#if os(iOS) || os(visionOS) || os(tvOS)
 import UIKit
 
 /// The app's one `CADisplayLink`. A user asks for frames with the rate it

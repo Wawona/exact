@@ -2,7 +2,7 @@ import Foundation
 import CExact
 import ExactCore
 
-#if os(iOS) || os(tvOS)
+#if os(iOS) || os(visionOS) || os(tvOS)
 extension ExactSession {
     /// The initial view needs its layout policy before resources settle.
     var launchCoversViewport: Bool {

@@ -1,6 +1,6 @@
 // @ref LLP 1126 D14 — development previews and agent reads use the same
 // headless entry and snapshot view. The running app keeps its presenter.
-#if EXACT_WIDGET_GALLERY && (os(iOS) || os(macOS))
+#if EXACT_WIDGET_GALLERY && ((os(iOS) || os(visionOS)) || os(macOS))
 import Foundation
 import SwiftUI
 import WidgetKit
@@ -8,7 +8,7 @@ import ImageIO
 import UniformTypeIdentifiers
 import ExactCore
 import ExactSnapshot
-#if os(iOS)
+#if os(iOS) || os(visionOS)
 import UIKit
 #else
 import AppKit
@@ -469,7 +469,7 @@ enum WidgetGallery {
     static func show() {
         MainActor.assumeIsolated {
             guard let appSession = DevMenu.session else { return }
-            #if os(iOS)
+            #if os(iOS) || os(visionOS)
             guard let controller = DevMenu.controller else { return }
             let host = UIHostingController(rootView: WidgetGalleryView(appSession: appSession) { [weak controller] in controller?.dismiss(animated: true) })
             // The action sheet finishes its dismissal before this presentation.

@@ -6,7 +6,7 @@
 // when it changes, as the web build writes an input's `value`: an action
 // that has not written it yet (a `send` whose reply is in flight) leaves the
 // person's choice showing (x2apps kanban2 #5).
-#if os(iOS)
+#if os(iOS) || os(visionOS)
 import UIKit
 
 extension ControlHost {

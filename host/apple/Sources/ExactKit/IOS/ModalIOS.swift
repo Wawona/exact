@@ -1,7 +1,7 @@
 // @ref LLP 1008 §9 — UIKit owns modal presentation and its keyboard guide.
 // @ref LLP 1123 D2 — a presentation mounts only its own navigation: the
 // session's viewport and the document stay in the session's view.
-#if os(iOS) || os(tvOS)
+#if os(iOS) || os(visionOS) || os(tvOS)
 import UIKit
 
 #if os(iOS)
@@ -46,7 +46,7 @@ private final class ModalController: UIViewController, UIGestureRecognizerDelega
     }
     private var detentValue: String?, cornerRadius: CGFloat?, grabberValue: String?
     func updateSheet(detent value: String?, cornerRadius radius: CGFloat?, grabber: String?) {
-        #if !os(tvOS)
+        #if os(iOS)
         // No detent selected yet: UIKit's own (`large`), never set here, as
         // when the sheet is made; a selection is set with every detent list.
         guard modalPresentationStyle == .pageSheet,
@@ -103,7 +103,7 @@ private final class ModalController: UIViewController, UIGestureRecognizerDelega
     /// The route's content extent changed: a `fit-content` detent resolves
     /// again, animated as UIKit animates a detent change, in the same sheet.
     func contentChanged() {
-        #if !os(tvOS)
+        #if os(iOS)
         guard modalPresentationStyle == .pageSheet, let sheet = sheetPresentationController,
               (detentValue ?? "").split(separator: " ").contains("fit-content") else { return }
         if viewIfLoaded?.window != nil { sheet.animateChanges { sheet.invalidateDetents() } }
@@ -161,8 +161,10 @@ private final class ModalController: UIViewController, UIGestureRecognizerDelega
         ThemeRoles.adopt(view, from: host?.presenter.root)
         // Its presenter's tint, as the root's (LLP 1095 D4): a sheet sits outside it.
         if let tint = ThemeRoles.color("AccentColor", in: view) { view.tintColor = tint }
+        #if os(iOS)
         paintSurface()
         registerForTraitChanges([UITraitHorizontalSizeClass.self]) { (controller: ModalController, _: UITraitCollection) in controller.paintSurface() }
+        #endif
         let probe = UIView()
         probe.isHidden = true
         probe.translatesAutoresizingMaskIntoConstraints = false
@@ -371,6 +373,13 @@ final class ModalHost: NSObject, UIAdaptivePresentationControllerDelegate {
     /// Every presented controller re-reads the style with the root (D6):
     /// UIKit asks the topmost one that covers, which a sheet over it may hide.
     func statusBarChanged() { for layer in layers { layer.controller.setNeedsStatusBarAppearanceUpdate() } }
+    #elseif os(visionOS)
+    // visionOS has no status bar and no detents; a full-screen presentation covers.
+    var statusBarScope: (covering: UIView?, presented: [UIView]) {
+        let covering = layers.last { $0.controller.modalPresentationStyle == .overFullScreen }
+        return (covering?.navigation.viewIfLoaded, layers.compactMap { $0.navigation.viewIfLoaded })
+    }
+    func statusBarChanged() {}
     #endif
 
     init(presenter: Presenter) { self.presenter = presenter }

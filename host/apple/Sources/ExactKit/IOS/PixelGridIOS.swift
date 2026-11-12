@@ -13,7 +13,7 @@
 // that is taken there, once, so two boxes' edges that meet in layout are one
 // value when rounded. A container UIKit places (a cell, the window) is an
 // origin on the grid.
-#if os(iOS) || os(tvOS)
+#if os(iOS) || os(visionOS) || os(tvOS)
 import UIKit
 
 /// An absolute origin: as layout placed it, in points, and drawn, in device

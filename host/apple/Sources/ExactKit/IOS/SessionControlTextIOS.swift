@@ -1,6 +1,6 @@
 // @ref LLP 1104 D4–D5: fonts are ready before the first runtime layout; a
 // field's chrome is measured when the first field of its kind is laid out.
-#if os(iOS) || os(tvOS)
+#if os(iOS) || os(visionOS) || os(tvOS)
 import UIKit
 import CExact
 extension ExactSession {

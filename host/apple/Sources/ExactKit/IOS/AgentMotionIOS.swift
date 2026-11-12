@@ -6,7 +6,7 @@
 // they stand. A native module's motion on the wall clock goes on under the
 // agent's: `clock` waits for its animations to end, and a tap for an overlay
 // the app laid over the screen to go.
-#if os(iOS) || os(tvOS)
+#if os(iOS) || os(visionOS) || os(tvOS)
 import UIKit
 
 extension Agent {
@@ -24,7 +24,7 @@ extension Agent {
     /// A share sheet or document picker shown for real (`--touch platform`)
     /// still arriving: UIKit presents it on a later turn, then animates it in.
     var systemSheetArriving: Bool {
-        #if os(iOS)
+        #if os(iOS) || os(visionOS)
         ShareSheet.arriving(in: session) || session.picker.documentArriving
         #else
         false
@@ -228,7 +228,7 @@ extension Agent {
         var union: CGRect? = nil, pending: [UIView] = [window]
         while let v = pending.popLast() {
             guard !v.isHidden, v.alpha > 0.01 else { continue }
-            #if os(iOS)
+            #if os(iOS) || os(visionOS)
             let moves = v is UISegmentedControl || v is UISwitch || v is UISlider || v is UIStepper || v is UITabBar
             #else
             let moves = v is UISegmentedControl

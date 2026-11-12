@@ -390,6 +390,40 @@ fn caltrain_entry_reaches_only_its_departure_card() {
     assert_eq!(entry.slots.len(), 1);
 }
 
+/// LLP 1126.002 D4: a TypeScript app ships its watch entry when the watch
+/// plan calls none of app.ts's sources, and is refused, naming them, when it does.
+#[test]
+fn a_typescript_apps_watch_entry_is_refused_only_when_it_reaches_app_ts() {
+    let temp = TempDir::new();
+    let dir = &temp.0;
+    std::fs::write(dir.join("app.contract"), source("    text title", "", "")).unwrap();
+    std::fs::write(dir.join("app.ts"), "export {};\n").unwrap();
+    std::fs::write(
+        dir.join("app.json"),
+        json!({"app":{"id":"test.watch","name":"Test"},"watch":{"source":"watch.contract","component":"Wrist"}}).to_string(),
+    )
+    .unwrap();
+    let watch = |extra: &str| {
+        format!("shape Clock\n  epochAtZero: number\n\nshape Train\n  id: string\n\ncomponent Wrist\n  resource clock = exactTime() as shape Clock\n{extra}  view\n    text \"Next train\"\n")
+    };
+    std::fs::write(dir.join("watch.contract"), watch("")).unwrap();
+    let manifest = Manifest::read(dir).unwrap();
+    let entries = compile_entries(dir, &manifest).unwrap();
+    assert!(super::entry::watch_app_sources(&entries["watch"].plan).is_empty());
+    std::fs::write(
+        dir.join("watch.contract"),
+        watch("  resource trains = board(\"mv\") as shape Train[]\n"),
+    )
+    .unwrap();
+    let refused = compile_entries(dir, &manifest).unwrap_err();
+    assert_eq!(refused[0].id, "watch-typescript", "{refused:?}");
+    assert!(
+        refused[0].message.contains("`board`"),
+        "{}",
+        refused[0].message
+    );
+}
+
 struct TempDir(std::path::PathBuf);
 impl TempDir {
     fn new() -> Self {

@@ -6,7 +6,7 @@
 // (D5): window dispatch only — never a recognizer's outcome, a cancellation
 // or a handled press, which `state` and `tree` answer — and beside it which
 // touches down have reached the view they landed on (`reached`).
-#if os(iOS) || os(tvOS)
+#if os(iOS) || os(visionOS) || os(tvOS)
 import UIKit
 
 /// The app's window: an ordinary `UIWindow` that, under the agent only,
@@ -20,7 +20,7 @@ public final class ExactWindow: UIWindow {
         // Inspect mode takes every touch and press (InspectIOS.swift), and
         // knows the touches down when it begins. (It reached this window,
         // so the agent's touch log still has it.)
-        #if EXACT_INSPECT && os(iOS)
+        #if EXACT_INSPECT && (os(iOS) || os(visionOS))
         InspectHost.see(event)
         if Inspect.on || InspectHost.owning, InspectHost.take(event, in: self) {
             if ExactEnv.agentMode, event.type == .touches { TouchLog.record(event, in: self, gone: gone, dispatched: dispatched) }

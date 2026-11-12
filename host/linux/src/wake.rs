@@ -1,7 +1,7 @@
 //! Unix keeps pollable sockets; macOS also wakes its window loop. Windows
 //! posts the event-loop wake and retains one coalesced readiness bit.
 #[cfg(all(unix, not(target_os = "macos")))]
-pub(crate) use std::os::unix::net::UnixStream as Stream;
+pub use std::os::unix::net::UnixStream as Stream;
 
 #[cfg(target_os = "macos")]
 mod macos {
@@ -15,7 +15,8 @@ mod macos {
     };
     type Notify = Arc<dyn Fn() + Send + Sync>;
     static NOTIFY: Mutex<Option<Notify>> = Mutex::new(None);
-    pub(crate) struct Stream(UnixStream);
+    /// A socket pair end whose writes also post the window loop's wake.
+    pub struct Stream(UnixStream);
     impl std::ops::Deref for Stream {
         type Target = UnixStream;
         fn deref(&self) -> &Self::Target {
@@ -27,10 +28,12 @@ mod macos {
         pub(crate) fn try_clone(&self) -> io::Result<Self> {
             self.0.try_clone().map(Self)
         }
-        pub(crate) fn pair() -> io::Result<(Self, Self)> {
+        /// Two connected ends: one the worker writes, one the loop drains.
+        pub fn pair() -> io::Result<(Self, Self)> {
             UnixStream::pair().map(|(a, b)| (Self(a), Self(b)))
         }
-        pub(crate) fn set_nonblocking(&self, value: bool) -> io::Result<()> {
+        /// The socket's own mode, as `UnixStream::set_nonblocking`.
+        pub fn set_nonblocking(&self, value: bool) -> io::Result<()> {
             self.0.set_nonblocking(value)
         }
     }
@@ -74,7 +77,9 @@ mod macos {
     }
 }
 #[cfg(target_os = "macos")]
-pub(crate) use macos::{install, Stream};
+pub(crate) use macos::install;
+#[cfg(target_os = "macos")]
+pub use macos::Stream;
 
 #[cfg(windows)]
 mod windows {
@@ -87,13 +92,16 @@ mod windows {
     type Notify = Arc<dyn Fn() + Send + Sync>;
     static NOTIFY: Mutex<Option<Notify>> = Mutex::new(None);
 
-    pub(crate) struct Stream(Arc<AtomicBool>);
+    /// One readiness bit shared by both ends; a write that sets it posts the wake.
+    pub struct Stream(Arc<AtomicBool>);
     impl Stream {
-        pub(crate) fn pair() -> io::Result<(Self, Self)> {
+        /// Two connected ends: one the worker writes, one the loop drains.
+        pub fn pair() -> io::Result<(Self, Self)> {
             let ready = Arc::new(AtomicBool::new(false));
             Ok((Self(ready.clone()), Self(ready)))
         }
-        pub(crate) fn set_nonblocking(&self, _: bool) -> io::Result<()> {
+        /// Reads never block on this platform's ends; kept for the socket's signature.
+        pub fn set_nonblocking(&self, _: bool) -> io::Result<()> {
             Ok(())
         }
     }
@@ -141,7 +149,9 @@ mod windows {
     }
 }
 #[cfg(windows)]
-pub(crate) use windows::{install, Stream};
+pub(crate) use windows::install;
+#[cfg(windows)]
+pub use windows::Stream;
 
 #[cfg(all(test, windows))]
 mod tests {

@@ -515,22 +515,22 @@ impl Mixer {
     }
 }
 
-#[cfg(any(target_os = "macos", target_os = "ios", target_os = "tvos", test))]
+#[cfg(any(target_os = "macos", target_os = "ios", target_os = "tvos", target_os = "visionos", test))]
 use std::ffi::c_void;
-#[cfg(any(target_os = "macos", target_os = "ios", target_os = "tvos", test))]
+#[cfg(any(target_os = "macos", target_os = "ios", target_os = "tvos", target_os = "visionos", test))]
 #[repr(C)]
 struct Buffer {
     channels: u32,
     bytes: u32,
     data: *mut c_void,
 }
-#[cfg(any(target_os = "macos", target_os = "ios", target_os = "tvos", test))]
+#[cfg(any(target_os = "macos", target_os = "ios", target_os = "tvos", target_os = "visionos", test))]
 #[repr(C)]
 struct Buffers {
     count: u32,
     first: Buffer,
 }
-#[cfg(any(target_os = "macos", target_os = "ios", target_os = "tvos", test))]
+#[cfg(any(target_os = "macos", target_os = "ios", target_os = "tvos", target_os = "visionos", test))]
 // AudioBufferList has a flexible tail; the caller owns count valid buffer records.
 unsafe extern "C" fn render(
     context: *mut c_void,
@@ -600,12 +600,12 @@ unsafe extern "C" fn render(
     0
 }
 
-#[cfg(any(target_os = "macos", target_os = "ios", target_os = "tvos", test))]
+#[cfg(any(target_os = "macos", target_os = "ios", target_os = "tvos", target_os = "visionos", test))]
 const CLIENT_RATE: f64 = 48_000.0;
 /// The rate the mixer renders at: the device's, else `CLIENT_RATE`. An
 /// iPhone's RemoteIO reports 0 Hz before it is initialized, and its
 /// converter takes any client rate to the hardware's.
-#[cfg(any(target_os = "macos", target_os = "ios", target_os = "tvos", test))]
+#[cfg(any(target_os = "macos", target_os = "ios", target_os = "tvos", target_os = "visionos", test))]
 fn client_rate(reported: f64) -> f64 {
     if reported.is_finite() && reported > 0.0 {
         reported
@@ -614,7 +614,7 @@ fn client_rate(reported: f64) -> f64 {
     }
 }
 
-#[cfg(any(target_os = "macos", target_os = "ios", target_os = "tvos"))]
+#[cfg(any(target_os = "macos", target_os = "ios", target_os = "tvos", target_os = "visionos"))]
 mod device {
     use super::*;
     use crate::Output;
@@ -701,7 +701,7 @@ mod device {
             };
             #[cfg(target_os = "macos")]
             let subtype = u32::from_be_bytes(*b"def ");
-            #[cfg(any(target_os = "ios", target_os = "tvos"))]
+            #[cfg(any(target_os = "ios", target_os = "tvos", target_os = "visionos"))]
             let subtype = u32::from_be_bytes(*b"rioc");
             let desc = Description {
                 kind: u32::from_be_bytes(*b"auou"),
@@ -836,7 +836,7 @@ mod device {
         }
     }
 }
-#[cfg(any(target_os = "macos", target_os = "ios", target_os = "tvos"))]
+#[cfg(any(target_os = "macos", target_os = "ios", target_os = "tvos", target_os = "visionos"))]
 pub use device::AppleOutput;
 
 #[cfg(test)]

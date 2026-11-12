@@ -786,7 +786,7 @@ export function developmentBuildEnv() {
 /** Rust replacement capability baked into this platform/environment, independent
  * of release cadence and rebuild triggers. @ref LLP 1029.000 §2. */
 export function rustPolicy(manifest, platform, environment = 'dev') {
-  if (!['web', 'ios', 'macos', 'linux', 'android', 'windows'].includes(platform)) throw new Error(`unknown Rust replacement platform: ${platform}`);
+  if (!['web', 'ios', 'macos', 'linux', 'android', 'windows', 'asteroid'].includes(platform)) throw new Error(`unknown Rust replacement platform: ${platform}`);
   if (!['dev', 'prod'].includes(environment)) throw new Error(`unknown Rust replacement environment: ${environment}`);
   const policy = manifest.rust;
   if (policy !== undefined) {
@@ -957,6 +957,8 @@ export const linuxBinary = (app, bin = app.crate('linux')) => resolve(app.target
 /** The command that builds it. An app outside this repo gets the root's
  * profiles on the command line, as its Apple build does (injectedProfiles). */
 export const linuxBuild = (app, bin = null) => ['cargo', 'build', ...injectedProfiles(app), '--profile', HOST_DEV, '-p', app.crate('linux'), ...(bin ? ['--bin', bin] : [])];
+export const asteroidBinary = (app, bin = app.crate('asteroid')) => resolve(app.target, HOST_DEV, bin);
+export const asteroidBuild = (app, bin = null) => ['cargo', 'build', ...injectedProfiles(app), '--profile', HOST_DEV, '-p', app.crate('asteroid'), ...(bin ? ['--bin', bin] : [])];
 /** The executable (and Apple bundle) as Xcode and Visual Studio name a project's: the app's name, less what a file name cannot carry (LLP 1030 D2); `windowsFile` is a Windows build's name for a Cargo product. */
 export const executableName = (app) => app.displayName.replace(/[<>:"/\\|?*\x00-\x1f]/g, '-').replace(/^[. ]+|[. ]+$/g, '') || app.id.split('.').pop();
 export const windowsFile = (app, path) => basename(path) === `${app.crate('windows')}.exe` ? `${executableName(app)}.exe` : basename(path);
@@ -1056,6 +1058,9 @@ function completeBuild(app, platform, target, graph, messages, roots, env, prepa
     if (under(app.dir,path)) return `app/${relative(app.dir,path)}`;
     if (under(ROOT,path)) return `exact/${relative(ROOT,path)}`;
     if (under(graph.metadata.workspace_root,path)) return `workspace/${relative(graph.metadata.workspace_root,path)}`;
+    // A private CARGO_TARGET_DIR outside the checkout (assertOwnTarget allows it) still
+    // holds compiler artifacts a Windows bake may list; name them under target/.
+    if (under(app.target,path)) return `target/${relative(app.target,path)}`;
     throw new Error(`compiler input has no captured source identity: ${path}`);
   };
   const inputs = new Map(), absent = new Map(), directories = new Map(), hashes = inputHashes(app, env);
@@ -1089,9 +1094,9 @@ function completeBuild(app, platform, target, graph, messages, roots, env, prepa
     const output = readFileSync([resolve(m.out_dir,'../output'), resolve(m.out_dir,'../run/stdout')].find(existsSync) ?? resolve(m.out_dir,'../output'),'utf8'); const environment = [];
     for (const line of output.split('\n')) {
       const changed = /^cargo::?rerun-if-changed=(.*)$/.exec(line);
-      // The app's plan/manifest/static watches are inputs of replaceable
-      // artifacts. Its generated entry and typed metadata are binary inputs.
-      if (changed && pkg.id !== graph.root.id) {
+      // The app's plan/manifest/static watches are inputs of replaceable artifacts, but a binary-only Windows
+      // executable carries its plan: there they are binary inputs, as its generated entry and typed metadata are.
+      if (changed && (pkg.id !== graph.root.id || (platform === 'windows' && compat.inputs.store?.L === '0'))) {
         const path = resolve(dirname(pkg.manifest_path), changed[1]);
         if (!shaderRoots(app).some(root => under(root, path))) add(path, true);
       }

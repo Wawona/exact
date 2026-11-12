@@ -249,7 +249,7 @@ fn build_sources(
     composer: Option<Composer<'_>>,
     outside: bool,
 ) -> Result<(), String> {
-    if !matches!(platform, "web" | "macos" | "ios" | "linux" | "windows") {
+    if !matches!(platform, "web" | "macos" | "ios" | "linux" | "windows" | "asteroid") {
         return Err(format!(
             "module client executor is not yet implemented for {platform}"
         ));
@@ -382,7 +382,7 @@ fn build_sources(
         // entry is otherwise the bare embedded source, which has none. A
         // replacement-free `Swappable::off` gives it one and links no executor
         // (LLP 1047.001 D7), as Apple's `host!` gets from `app_data()`.
-        let mut entry = if mode == "off" && matches!(platform, "linux" | "android" | "windows") {
+        let mut entry = if mode == "off" && matches!(platform, "linux" | "android" | "windows" | "asteroid") {
             "exact_logic::configured!(AppData, ExactEmbeddedData, || exact_logic::Swappable::off(embedded_data()));\n#[allow(dead_code)]\nfn app_data() -> AppData { Default::default() }\n".to_string()
         } else {
             contract::rust_entry("ExactEmbeddedData", "embedded_data()", mode)?

@@ -1,6 +1,6 @@
 // @ref LLP 1126.001 WP8 — one Codable contract for every app and state shape.
 import Foundation
-#if os(iOS)
+#if os(iOS) || os(visionOS)
 import ActivityKit
 #endif
 
@@ -121,6 +121,6 @@ public struct ExactActivityAttributes: Codable, Hashable, Sendable {
     }
 }
 
-#if os(iOS)
+#if os(iOS) || os(visionOS)
 extension ExactActivityAttributes: ActivityAttributes {}
 #endif

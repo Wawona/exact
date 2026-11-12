@@ -1,5 +1,5 @@
 import ExactKit
-#if os(iOS) || os(tvOS)
+#if os(iOS) || os(visionOS) || os(tvOS)
 import UIKit
 
 // Keep the detail button while UIKit refreshes the cell for accessibility.
@@ -17,7 +17,7 @@ final class GroupedCell: UICollectionViewListCell {
         state.isHighlighted = state.isHighlighted || forcedPressed
         return state
     }
-    #if os(iOS)
+    #if os(iOS) || os(visionOS)
     weak var menuSource: NodeView?
     private var detailButton: UIButton?
     private var detailAction: (() -> Void)?
@@ -86,7 +86,7 @@ final class GroupedCell: UICollectionViewListCell {
         }
         contentConfiguration = c
     }
-    #if os(iOS)
+    #if os(iOS) || os(visionOS)
     /// A touch its row leaves to no control goes to the row's one field: the
     /// cell is the field (LLP 1116.005 D2).
     override func hitTest(_ point: CGPoint, with event: UIEvent?) -> UIView? {
@@ -122,6 +122,6 @@ extension UICollectionViewListCell {
 }
 #endif
 
-#if os(iOS)
+#if os(iOS) || os(visionOS)
 extension GroupedCell: GroupedMenuSurface {}
 #endif

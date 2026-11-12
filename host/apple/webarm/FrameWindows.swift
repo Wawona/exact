@@ -303,7 +303,7 @@ class FrameUI: NSObject, WKUIDelegate {
         }
         let origin = Self.origin(frame.securityOrigin)
         guard !asked(web, origin).suppressed else { return done(nil) }
-        #if os(iOS)
+        #if os(iOS) || os(visionOS)
         // iOS offers no suppression box: past three dialogs in ten seconds
         // from one origin, the rest answer Cancel unshown, so a loop cannot
         // hold the app.
@@ -355,7 +355,7 @@ class FrameUI: NSObject, WKUIDelegate {
         #endif
     }
 
-    #if os(iOS)
+    #if os(iOS) || os(visionOS)
     /// The view controller to present over: the frame window's topmost.
     static func presenter(_ web: UIView) -> UIViewController? {
         var top = web.window?.rootViewController
@@ -407,14 +407,14 @@ class FrameUI: NSObject, WKUIDelegate {
         decisionHandler(.deny)
     }
 
-    @available(macOS 27.0, iOS 27.0, *)
+    @available(macOS 27.0, iOS 27.0, visionOS 27.0, *)
     func webView(_ web: WKWebView, requestGeolocationPermissionFor origin: WKSecurityOrigin, initiatedByFrame frame: WKFrameInfo,
                  decisionHandler: @escaping (WKPermissionDecision) -> Void) {
         log("\(GuestScheme.speaker(frame)) asked for its location: denied")
         decisionHandler(.deny)
     }
 
-    #if os(iOS)
+    #if os(iOS) || os(visionOS)
     func webView(_ web: WKWebView, requestDeviceOrientationAndMotionPermissionFor origin: WKSecurityOrigin, initiatedByFrame frame: WKFrameInfo,
                  decisionHandler: @escaping (WKPermissionDecision) -> Void) {
         log("\(GuestScheme.speaker(frame)) asked for device motion and orientation: denied")
@@ -486,7 +486,7 @@ class FrameUI: NSObject, WKUIDelegate {
     }
 }
 
-#if os(iOS)
+#if os(iOS) || os(visionOS)
 /// Under the agent on iOS, a file input is the drive's `open-file`
 /// request. Without this delegate method WebKit shows its own picker, as
 /// Safari does (`WKUIDelegate.h`), which a person outside the agent gets.
@@ -510,7 +510,7 @@ final class FramePopup: NSObject, WKUIDelegate, WKNavigationDelegate {
     weak var ui: FrameUI?
     private var title: NSKeyValueObservation?
     private var finished = false
-    #if os(iOS)
+    #if os(iOS) || os(visionOS)
     private var agentPanel: FramePopupAgentPanel?
     #endif
     #if os(macOS)
@@ -538,7 +538,7 @@ final class FramePopup: NSObject, WKUIDelegate, WKNavigationDelegate {
         #endif
         super.init()
         web.uiDelegate = self
-        #if os(iOS)
+        #if os(iOS) || os(visionOS)
         if ui.arm?.agent == true {
             agentPanel = FramePopupAgentPanel(self)
             web.uiDelegate = agentPanel
@@ -669,13 +669,13 @@ final class FramePopup: NSObject, WKUIDelegate, WKNavigationDelegate {
         decisionHandler(.deny)
     }
 
-    @available(macOS 27.0, iOS 27.0, *)
+    @available(macOS 27.0, iOS 27.0, visionOS 27.0, *)
     func webView(_ web: WKWebView, requestGeolocationPermissionFor origin: WKSecurityOrigin, initiatedByFrame frame: WKFrameInfo,
                  decisionHandler: @escaping (WKPermissionDecision) -> Void) {
         decisionHandler(.deny)
     }
 
-    #if os(iOS)
+    #if os(iOS) || os(visionOS)
     func webView(_ web: WKWebView, requestDeviceOrientationAndMotionPermissionFor origin: WKSecurityOrigin, initiatedByFrame frame: WKFrameInfo,
                  decisionHandler: @escaping (WKPermissionDecision) -> Void) {
         decisionHandler(.deny)
@@ -683,7 +683,7 @@ final class FramePopup: NSObject, WKUIDelegate, WKNavigationDelegate {
     #endif
 }
 
-#if os(iOS)
+#if os(iOS) || os(visionOS)
 /// A popup's UI delegate under the agent on iOS: its file input is the
 /// drive's `open-file` request, as its opener's is (`FrameUIAgent`). It adds
 /// that one method and hands every other to the popup.
@@ -716,7 +716,7 @@ final class FrameDownloads: NSObject, WKDownloadDelegate {
     struct Item { var url: String; var name = ""; var path: URL?; var temp: URL?; var shown = ""; weak var web: WKWebView? }
     weak var ui: FrameUI?
     var items: [ObjectIdentifier: Item] = [:]
-    #if os(iOS)
+    #if os(iOS) || os(visionOS)
     /// The export picker's downloads, by picker.
     var exporting: [ObjectIdentifier: ObjectIdentifier] = [:]
     var exportSheets: [ObjectIdentifier: Int] = [:]
@@ -818,7 +818,7 @@ final class FrameDownloads: NSObject, WKDownloadDelegate {
             ui?.log("a download of \(item.name) was interrupted: it could not be put at \(path.path): \(reason)")
             return report(item, "interrupted")
         }
-        #if os(iOS)
+        #if os(iOS) || os(visionOS)
         if !(ui?.arm?.agent ?? true), let path = item.path, let web = item.web, let presenter = FrameUI.presenter(web) {
             let picker = UIDocumentPickerViewController(forExporting: [path], asCopy: false)
             picker.delegate = self
@@ -844,7 +844,7 @@ final class FrameDownloads: NSObject, WKDownloadDelegate {
     }
 }
 
-#if os(iOS)
+#if os(iOS) || os(visionOS)
 extension FrameDownloads: UIDocumentPickerDelegate {
     func documentPicker(_ controller: UIDocumentPickerViewController, didPickDocumentsAt urls: [URL]) {
         if let id = exportSheets.removeValue(forKey: ObjectIdentifier(controller)) { ui?.ended(id) }

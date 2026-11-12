@@ -1,4 +1,4 @@
-#if os(iOS)
+#if os(iOS) || os(visionOS)
 import UIKit
 
 /// What VoiceOver reads for an empty compact picker in place of one of

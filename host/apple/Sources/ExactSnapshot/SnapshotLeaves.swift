@@ -208,7 +208,7 @@ struct SnapshotProgressView: View {
     /// The ring: a circular capacity gauge, the value's fraction of the
     /// circle, in the box's colour.
     @ViewBuilder private func gauge(_ value: Double, total: Double) -> some View {
-        #if os(iOS) || os(watchOS)
+        #if os(iOS) || os(visionOS) || os(watchOS)
         Gauge(value: value, in: 0...total) { EmptyView() }
             .gaugeStyle(.accessoryCircularCapacity)
             .tint(SnapshotColor.color(SnapshotStyle(node).color("accent_color") ?? SnapshotStyle(node).color("text_color"), dark: scheme == .dark))

@@ -1,7 +1,7 @@
 // CSS scroll anchoring on a plain UIKit scroller (`ScrollAnchoring.swift`,
 // #138 X23d). A `scrollFollowEnd` scroller keeps its own reading anchor
 // (`NodeViewIOS.captureScrollPosition`); every other one takes the spec's.
-#if os(iOS) || os(tvOS)
+#if os(iOS) || os(visionOS) || os(tvOS)
 import UIKit
 
 extension ScrollAnchoring.Changes {

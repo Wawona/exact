@@ -1,5 +1,5 @@
 // @ref LLP 1123 D2 — session ownership and presentation crossings.
-#if os(iOS) || os(tvOS)
+#if os(iOS) || os(visionOS) || os(tvOS)
 import UIKit
 
 /// Every node a press traversed, with the inertness rule from that side of
@@ -180,7 +180,7 @@ extension Presenter {
 }
 #endif
 
-#if os(iOS) || os(tvOS)
+#if os(iOS) || os(visionOS) || os(tvOS)
 /// The view whose UIKit placement orders a top-layer box (LLP 1123 D2).
 struct TopLayerBox {
     let view: UIView
@@ -324,8 +324,8 @@ final class OwnerBlocks {
             }
             now[id] = (.size(block.size), presented ? nil : placement(of: route, block: block, in: view))
         }
-        #if os(iOS)
-        if #available(iOS 27.1, *) { now.merge(presenter.arrangements.blocks) { _, pane in pane } }
+        #if os(iOS) || os(visionOS)
+        if #available(iOS 27.1, visionOS 27.1, *) { now.merge(presenter.arrangements.blocks) { _, pane in pane } }
         #endif
         var blocks: [(UInt32, HostBlock?)] = [], placements: [(UInt32, BlockPlacement?)] = []
         for (id, entry) in now {

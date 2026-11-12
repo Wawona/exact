@@ -6,7 +6,7 @@ import AppKit
 import UIKit
 #endif
 
-#if os(iOS) || os(tvOS)
+#if os(iOS) || os(visionOS) || os(tvOS)
 extension NodeView {
     /// A button with no name that shows only a symbol is named by it, as a
     /// `UIButton` whose image is an SF Symbol is: UIKit's own name for the
@@ -1009,7 +1009,7 @@ extension Presenter {
             .max { inFront($1, of: $0) }
     }
     #endif
-    #if os(iOS) || os(tvOS)
+    #if os(iOS) || os(visionOS) || os(tvOS)
     /// `aria-modal` (LLP 1080.003), after a batch and after a native
     /// transition settles. A view is modal while its prop is true and it is
     /// exposed: attached, displayed, not hidden, inert or leaving, with no
@@ -1173,7 +1173,7 @@ extension Agent {
         var reply = reply
         reply["pending"] = pendingRequests()
         let focus = (stateSections()["focus"] as? [String: Any])?["logical"] as? Int
-        #if os(iOS) || os(tvOS)
+        #if os(iOS) || os(visionOS) || os(tvOS)
         // A header node the navigation bar leaves out (LLP 1116 D2).
         let unshown = presenter.navigation.unshownByBar()
         #endif
@@ -1182,7 +1182,7 @@ extension Agent {
             if let id = row["id"] as? Int, let node = presenter.views[UInt32(id)] {
                 row["focused"] = focus == id
                 if node.props["popover"] != nil { row["open"] = presenter.menus.isOpen(node) }
-                #if os(iOS) || os(tvOS)
+                #if os(iOS) || os(visionOS) || os(tvOS)
                 if let why = unshown[node.id] { row["unshown"] = why }
                 #endif
             }

@@ -12,7 +12,7 @@
 // — Core Animation's own properties when it can say the box (one border, one
 // radius, no gradient), else drawn, as the node's `draw(_:)` draws it — and a
 // node that clips its children clips them to the shown box through a mask.
-#if os(iOS) || os(tvOS)
+#if os(iOS) || os(visionOS) || os(tvOS)
 import UIKit
 #else
 import AppKit
@@ -59,7 +59,7 @@ extension NodeView {
         let laid = layoutBounds.size
         let box = CGRect(x: 0, y: 0, width: max(0, laid.width + layoutResize.width), height: max(0, laid.height + layoutResize.height))
         if s.frame != box { s.frame = box }
-        #if os(iOS) || os(tvOS)
+        #if os(iOS) || os(visionOS) || os(tvOS)
         s.contentsScale = traitCollection.displayScale
         #else
         s.contentsScale = pixelScale ?? 2
@@ -84,7 +84,7 @@ extension NodeView {
 
     private func surfaceChanged() {
         applyShadow(outline: roundedPath(in: bounds).cgPath)
-        #if os(iOS) || os(tvOS)
+        #if os(iOS) || os(visionOS) || os(tvOS)
         applyBoxLayer()
         applyGradientLayer()
         setNeedsDisplay()
@@ -121,7 +121,7 @@ extension NodeView {
             for (r, mask) in zip(radii, masks) where r > 0 { corners.insert(mask) }
             // The design's Field under a field's own bezel: on the bezel's corners (BoxLayerIOS.swift).
             var radius = radius
-            #if os(iOS)
+            #if os(iOS) || os(visionOS)
             if authored == nil, fill != nil, radius == 0, !isCellField {
                 radius = FieldChromeCache.textareaRadius
                 corners = [.layerMinXMinYCorner, .layerMaxXMinYCorner, .layerMaxXMaxYCorner, .layerMinXMaxYCorner]

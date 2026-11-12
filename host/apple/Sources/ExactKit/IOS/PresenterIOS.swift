@@ -1,7 +1,7 @@
 // The UIKit presenter (LLP 1008 §9): a viewport scroll view over a content-sized
 // document, one `NodeView` per kernel node, host batches, keyboard insets and
 // field reveal, owned by one session (LLP 1031 D1).
-#if os(iOS) || os(tvOS)
+#if os(iOS) || os(visionOS) || os(tvOS)
 import UIKit
 import CoreText
 import os
@@ -127,9 +127,9 @@ package final class Presenter {
     #endif
     lazy var modals = ModalHost(presenter: self)
     lazy var owners = OwnerBlocks(self)
-    #if os(iOS)
+    #if os(iOS) || os(visionOS)
     private var arrangementHost: AnyObject?
-    @available(iOS 27.1, *)
+    @available(iOS 27.1, visionOS 27.1, *)
     var arrangements: ArrangementHost {
         if let host = arrangementHost as? ArrangementHost { return host }
         let host = ArrangementHost(self); arrangementHost = host
@@ -230,7 +230,9 @@ package final class Presenter {
         // after the commit, or they show without it (LLP 1050.000 D1).
         collections.rescued = { [unowned self] in paintVisibleText() }
         textRasters.slotFreed = { [unowned self] in scrollPump.requestText() }
+        #if !os(visionOS)
         viewport.keyboardDismissMode = .interactive
+        #endif
         viewport.contentInsetAdjustmentBehavior = .never
         viewport.backgroundColor = .platformBackground(in: root)
     }
@@ -256,12 +258,6 @@ package final class Presenter {
                       curve: n.userInfo?[UIResponder.keyboardAnimationCurveUserInfoKey] as? UInt ?? 7)
     }
     #endif
-
-    var interactiveKeyboardDrag: Bool {
-        let drags = { (sv: UIScrollView) in sv.keyboardDismissMode == .interactive && (sv.isTracking || sv.isDragging) }
-        return drags(viewport) || scrollers.contains { views[$0]?.scrollView.map(drags) ?? false }
-            || navigation.primaryRoutes.contains { $0.contentViewport.map(drags) ?? false }
-    }
 
     /// Reconcile through UIKit layout in the keyboard's animation, after batches finish.
     /// Deferred work captures timing only and reads current ownership and geometry.
@@ -335,8 +331,8 @@ package final class Presenter {
         pool.reset()
         leaves.reset()
         flats.reset()
-        #if os(iOS)
-        if #available(iOS 27.1, *) { arrangements.reset() }
+        #if os(iOS) || os(visionOS)
+        if #available(iOS 27.1, visionOS 27.1, *) { arrangements.reset() }
         #endif
         owners.reset {
             modals.reset()
@@ -832,13 +828,13 @@ package final class Presenter {
                 for (id, f) in q where id.map({ textHost($0) != nil }) ?? true { f() }
                 scrollPump.batchApplied()
                 ApplyProfile.time("pass.leaves") { leaves.batchApplied(moved: moved) }
-                #if os(iOS)
+                #if os(iOS) || os(visionOS)
                 resolveStatusBar()
                 textSelection.batchEnded()
                 #endif
                 if moved { session?.natives.refreshWorldGeometry() }
                 flushPendingFocus(); elementScrolls.flush()
-                #if os(iOS)
+                #if os(iOS) || os(visionOS)
                 session?.view?.syncKeyboardFocus()
                 #endif
             }
@@ -887,7 +883,7 @@ package final class Presenter {
                 if let reused, !fieldsWaiting.contains(id) { reused.makeWaitingField() }
                 let v = reused ?? NodeView(id: id, kind: op.kind, presenter: self)
                 unshown(v) // a reused view too: it is another node
-                #if os(iOS)
+                #if os(iOS) || os(visionOS)
                 v.groupedOwner = op.kind == "list" && op.props["listStyle"] != nil
                 #endif
                 v.handlers = op.handlers
@@ -1091,8 +1087,8 @@ package final class Presenter {
         afterBatch { [weak self] in
             guard let self else { return }
             navigation.batchApplied(batch, rowsOnly: rowsOnly)
-            #if os(iOS)
-            if #available(iOS 27.1, *) { arrangements.sync() }
+            #if os(iOS) || os(visionOS)
+            if #available(iOS 27.1, visionOS 27.1, *) { arrangements.sync() }
             #endif
             keyboardToolbars.finishBackendChange()
             for id in scrollers.union(pendingScrolls).union(materialNodes) {
@@ -1108,7 +1104,7 @@ package final class Presenter {
             pendingScrolls = pendingScrolls.filter { self.views[$0]?.pendingScrollTop != nil || self.views[$0]?.pendingScrollLeft != nil }
             syncAccessibility(changed: named.union(ariaMoved), disabledRoots: disabledRoots)
         }
-        #if os(iOS)
+        #if os(iOS) || os(visionOS)
         syncScrollsToTop()
         #endif
     }
@@ -1118,8 +1114,8 @@ package final class Presenter {
     /// parked row, `NodePool`).
     @discardableResult
     func release(_ id: UInt32, _ leaving: (NodeView) -> Void) -> NodeView? {
-        #if os(iOS)
-        if #available(iOS 27.1, *) { arrangements.remove(id) }
+        #if os(iOS) || os(visionOS)
+        if #available(iOS 27.1, visionOS 27.1, *) { arrangements.remove(id) }
         #endif
         focusEvents.removed(id)
         session?.canvases.destroy(view: id)
@@ -1140,8 +1136,8 @@ package final class Presenter {
     /// `parent`'s children, in order: its views as subviews of its container,
     /// then its flat leaves' layers among them (LLP 1068 §6.1).
     func placeChildren(_ parent: NodeView, _ ids: [UInt32]) {
-        #if os(iOS)
-        if #available(iOS 27.1, *) { arrangements.record(parent, children: ids) }
+        #if os(iOS) || os(visionOS)
+        if #available(iOS 27.1, visionOS 27.1, *) { arrangements.record(parent, children: ids) }
         #endif
         // Make any views required by this holder before assembling its list.
         for id in flats.place(parent, ids) { flats.promote(id) }
@@ -1160,8 +1156,8 @@ package final class Presenter {
         // it when it is already there. One already there stays.
         for child in want where child.superview !== container { placedAnew.append(child.id) }
         let heldByArrangement: (NodeView) -> Bool = { node in
-            #if os(iOS)
-            if #available(iOS 27.1, *) { return self.arrangements.owns(node, under: parent) }
+            #if os(iOS) || os(visionOS)
+            if #available(iOS 27.1, visionOS 27.1, *) { return self.arrangements.owns(node, under: parent) }
             #endif
             return false
         }
@@ -1435,7 +1431,7 @@ package final class Presenter {
     /// The head's title (LLP 1048.003 D1), for the app adapter that owns the scene; an embedded view never claims it.
     private(set) var title: String?
     var onTitle: ((String?) -> Void)?
-    #if os(iOS)
+    #if os(iOS) || os(visionOS)
     lazy var textSelection = TextSelectionHost(self) // `user-select: text` (LLP 1115.000 D11.6)
     /// The status bar's resolved style (LLP 1105), and who is told of a change.
     var statusBar = StatusBarChoice()

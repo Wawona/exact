@@ -6,7 +6,7 @@
 // those with native layers and the displayed screen (UI Gallery).
 import CoreGraphics
 import QuartzCore
-#if os(iOS) || os(tvOS)
+#if os(iOS) || os(visionOS) || os(tvOS)
 import UIKit
 #else
 import AppKit
@@ -21,14 +21,14 @@ extension Agent {
             return CGPoint(x: x, y: y)
         }
         guard !points.isEmpty else { return ["malformed": true, "error": "sample needs points: sample <x> <y> [<x> <y>…], in view points"] }
-        #if os(iOS) || os(tvOS)
+        #if os(iOS) || os(visionOS) || os(tvOS)
         let view = presenter.viewport
         let layer = presenter.documentHost.layer // in the viewport's place (`DocumentMountIOS.swift`)
         #else
         let view = presenter.navigation.split.agentRoot
         guard let layer = view.layer else { return ["error": "the session's view has no layer"] }
         #endif
-        #if os(iOS) || os(tvOS)
+        #if os(iOS) || os(visionOS) || os(tvOS)
         let size = view.pageSize // the page's area, a box's space (LLP 1130)
         #else
         let area = presenter.navigation.split.agentCaptureArea
@@ -43,7 +43,7 @@ extension Agent {
         // Rows top-down, as view points are.
         ctx.translateBy(x: 0, y: CGFloat(h)); ctx.scaleBy(x: 1, y: -1)
         CATransaction.flush()
-        #if os(iOS) || os(tvOS)
+        #if os(iOS) || os(visionOS) || os(tvOS)
         // A presentation mounts beside the viewport (LLP 1123 D2): the
         // viewport's area is read from the window, sheets composited
         if presenter.surfaces(includingRetiring: true).contains(where: { $0.kind != .document }), let window = view.window {

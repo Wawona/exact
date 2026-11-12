@@ -108,7 +108,7 @@ public enum TransferCarrier {
         if let s = sessions[discretionary] { return s }
         let c = URLSessionConfiguration.background(withIdentifier: identifier(discretionary))
         c.isDiscretionary = discretionary
-        #if os(iOS)
+        #if os(iOS) || os(visionOS)
         c.sessionSendsLaunchEvents = true
         #endif
         let s = URLSession(configuration: c, delegate: delegate, delegateQueue: .main)

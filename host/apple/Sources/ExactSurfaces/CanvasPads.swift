@@ -1,4 +1,4 @@
-#if os(macOS) || os(iOS) || os(tvOS)
+#if os(macOS) || os(iOS) || os(visionOS) || os(tvOS)
 import Foundation
 import GameController
 import ExactKit

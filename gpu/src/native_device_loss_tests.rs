@@ -58,7 +58,12 @@ fn device_loss_guards_each_gpu_entry_before_any_other_call() {
             4 => assert!(!m.sync()),
             5 => assert!(m.gpu().is_none()),
             _ => {
-                #[cfg(any(target_os = "macos", target_os = "ios", target_os = "tvos"))]
+                #[cfg(any(
+                    target_os = "macos",
+                    target_os = "ios",
+                    target_os = "tvos",
+                    target_os = "visionos"
+                ))]
                 // A sentinel must never be retained/imported after loss.
                 assert!(!unsafe { m.texture_from_metal(id, 1, 1, std::ptr::dangling_mut()) });
             }

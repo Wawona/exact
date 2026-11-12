@@ -11,10 +11,6 @@ use exact_update::Check;
 /// damaged, and the client carries on updating rather than freezing as it
 /// does for a newer binary's (numeric) codec.
 #[test]
-#[cfg_attr(
-    windows,
-    ignore = "Windows durable store is not qualified (LLP 1026 D11a)"
-)]
 fn a_record_without_an_integer_codec_is_damaged_not_foreign() {
     for codec in ["\"2\"", "null", "\"newer\"", "2.5", "-1", "{}"] {
         let temp = Temp::new("codec-damaged");
@@ -43,10 +39,6 @@ fn a_record_without_an_integer_codec_is_damaged_not_foreign() {
 /// or a file where another needs a directory, is refused before anything is
 /// downloaded, and so is a name a filesystem may normalize.
 #[test]
-#[cfg_attr(
-    windows,
-    ignore = "Windows durable store is not qualified (LLP 1026 D11a)"
-)]
 fn colliding_or_unportable_asset_names_are_refused_before_download() {
     let refused: [(&[&str], &str); 7] = [
         (&["Logo.png", "logo.png"], "differ only by case"),
@@ -102,10 +94,6 @@ fn colliding_or_unportable_asset_names_are_refused_before_download() {
 /// stage again, or the client is stranded on entry zero until a later seq
 /// exists. Another bundle at that seq is still equivocation.
 #[test]
-#[cfg_attr(
-    windows,
-    ignore = "Windows durable store is not qualified (LLP 1026 D11a)"
-)]
 fn a_corrupted_selection_is_restaged_from_the_head_it_accepted() {
     let temp = Temp::new("restage");
     let bundle = Bundle::new(4, b"plan four").asset("mark.png", b"a mark");
@@ -141,10 +129,6 @@ fn a_corrupted_selection_is_restaged_from_the_head_it_accepted() {
 /// the origin, was accepted again. The floor now comes back from the signed
 /// entries on disk, and is written back.
 #[test]
-#[cfg_attr(
-    windows,
-    ignore = "Windows durable store is not qualified (LLP 1026 D11a)"
-)]
 fn a_crash_truncated_record_keeps_the_rollback_floor() {
     let temp = Temp::new("truncated");
     let four = Bundle::new(4, b"plan four");
@@ -175,10 +159,6 @@ fn a_crash_truncated_record_keeps_the_rollback_floor() {
 }
 
 #[test]
-#[cfg_attr(
-    windows,
-    ignore = "Windows durable store is not qualified (LLP 1026 D11a)"
-)]
 fn oversized_local_plan_falls_back_without_losing_the_floor() {
     let temp = Temp::new("oversized-plan");
     let six = Bundle::new(6, b"plan six");
@@ -206,10 +186,6 @@ fn oversized_local_plan_falls_back_without_losing_the_floor() {
 }
 
 #[test]
-#[cfg_attr(
-    windows,
-    ignore = "Windows durable store is not qualified (LLP 1026 D11a)"
-)]
 fn oversized_record_and_envelope_recover_with_bounded_reads() {
     let temp = Temp::new("oversized-metadata");
     let six = Bundle::new(6, b"plan six");
@@ -309,7 +285,6 @@ fn an_unchanged_asset_is_stored_once_and_old_entries_are_collected() {
 }
 
 #[test]
-#[cfg_attr(windows, ignore = "Windows durable store is not qualified")]
 fn current_heads_keep_the_signed_floor_and_notice_after_record_loss() {
     for removed in [false, true] {
         let temp = Temp::new(if removed {
@@ -369,7 +344,6 @@ fn current_heads_keep_the_signed_floor_and_notice_after_record_loss() {
 }
 
 #[test]
-#[cfg_attr(windows, ignore = "Windows durable store is not qualified")]
 fn a_current_witness_can_later_supply_a_binary_with_different_embedded_bytes() {
     let temp = Temp::new("current-materialize");
     let key = ed25519_dalek::SigningKey::from_bytes(&[7; 32]);

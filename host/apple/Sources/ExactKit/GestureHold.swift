@@ -61,13 +61,13 @@ struct SwipeIndicator {
 package enum SwipeInput {
     package static func allows(_ view: NodeView) -> Bool {
         guard view.window != nil, !view.disabled, !view.inert, !view.isHidden else { return false }
-        #if os(iOS) || os(tvOS)
+        #if os(iOS) || os(visionOS) || os(tvOS)
         guard view.isUserInteractionEnabled else { return false }
         #endif
         var ancestor = view.superview
         while let parent = ancestor {
             if parent.isHidden || (parent as? NodeView)?.disabled == true { return false }
-            #if os(iOS) || os(tvOS)
+            #if os(iOS) || os(visionOS) || os(tvOS)
             if !parent.isUserInteractionEnabled { return false }
             // Through a presented route's logical parents (LLP 1123 D2)
             ancestor = view.presenter?.eventParent(of: parent) ?? parent.superview

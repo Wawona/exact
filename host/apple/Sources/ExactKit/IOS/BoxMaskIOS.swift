@@ -13,7 +13,7 @@
 // under its node's layer, which UIKit requires of a `UIVisualEffectView`
 // (masking an ancestor draws the effect wrong): the blur fades and the
 // node's children, unlike CSS's, do not (declared in LLP 1001).
-#if os(iOS) || os(tvOS)
+#if os(iOS) || os(visionOS) || os(tvOS)
 import UIKit
 
 extension NodeView {

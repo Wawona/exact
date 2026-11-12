@@ -56,7 +56,7 @@ enum AgentPasteboard {
     private static func release(_ name: String) {
         #if os(macOS)
         NSPasteboard(name: NSPasteboard.Name(name)).releaseGlobally()
-        #elseif os(iOS)
+        #elseif os(iOS) || os(visionOS)
         UIPasteboard.remove(withName: UIPasteboard.Name(name))
         #endif
     }

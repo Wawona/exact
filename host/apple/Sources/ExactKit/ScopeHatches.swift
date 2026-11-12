@@ -125,7 +125,7 @@ extension NativeViews {
     /// The window's angle as the web's `screen.orientation.angle` (LLP
     /// 1133.013 D12 item 4): its scene's interface orientation; 0 on the Mac.
     static func angle(_ window: FocusWindow) -> Int {
-        #if os(iOS)
+        #if os(iOS) || os(visionOS)
         switch window.windowScene?.effectiveGeometry.interfaceOrientation {
         case .landscapeRight: return 90
         case .portraitUpsideDown: return 180

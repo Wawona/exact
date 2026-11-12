@@ -11,7 +11,7 @@
 // second model; the background under a text is the nearest fill painted
 // under it (LLP 1116.006 D5), else the driver's, from a capture of the
 // window, taken at rest (`settleMotion`, AgentMotionIOS.swift).
-#if os(iOS) || os(tvOS)
+#if os(iOS) || os(visionOS) || os(tvOS)
 import UIKit
 
 extension Agent {
@@ -155,7 +155,7 @@ extension Agent {
                     if cur !== v, !n.convert(n.bounds, to: nil).contains(p) { continue }
                     if n.backgroundClip != "text", let c = n.channels("background_color"), c.count >= 4, c[3] > 0 { fill = [c[0], c[1], c[2], c[3] / 255] }
                 } else {
-                    #if os(iOS)
+                    #if os(iOS) || os(visionOS)
                     if cur is UIToolbar { return nil }
                     #endif
                     if cur is UIControl || cur is UIVisualEffectView || cur is UICollectionReusableView || cur is UITableViewCell
@@ -492,15 +492,21 @@ extension Agent {
 
         roots.forEach { walk($0, alpha: 1, held: false) }
         let dark = vp.traitCollection.userInterfaceStyle == .dark
+        // tvOS is driven by focus from a remote, not touched: its guidelines set no hit-target minimum.
+        #if os(tvOS)
+        let target = 0
+        #else
+        let target = 44
+        #endif
         var reply: [String: Any] = ["viewport": rect(port), "capture": ["window": true, "w": r2(win.bounds.width), "h": r2(win.bounds.height)],
-                                    "scheme": dark ? "dark" : "light", "target": 44, "items": items]
+                                    "scheme": dark ? "dark" : "light", "target": target, "items": items]
         if let keyboard { reply["keyboard"] = r2(keyboard) }
         return reply
     }
 
     /// UIKit's bars: what a finger at the top or the bottom of a screen meets.
     static func isBar(_ v: UIView) -> Bool {
-        #if os(iOS)
+        #if os(iOS) || os(visionOS)
         if v is UIToolbar || isFloatingBar(v) { return true }
         #endif
         return v is UINavigationBar || v is UITabBar

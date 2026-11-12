@@ -109,7 +109,7 @@ extension Agent {
     func canvasType(_ view: NodeView, _ request: [String: Any]) -> [String: Any] { session.canvases.type(self, view, request) }
 }
 
-#if os(iOS) || os(tvOS)
+#if os(iOS) || os(visionOS) || os(tvOS)
 /// Whether a hit view's touches are a surface's (a scroll or a modal lets them go).
 enum CanvasInputs {
     static func owns(_ hit: UIView?) -> Bool {
@@ -205,7 +205,7 @@ extension Agent {
 }
 #endif
 
-#if os(iOS) || os(tvOS)
+#if os(iOS) || os(visionOS) || os(tvOS)
 extension NodeView {
     func pressedControls(_ presses: Set<UIPress>, down: Bool) -> Set<UIPress> {
         Set(presses.filter { press in

@@ -94,6 +94,22 @@ export function androidHermesDir(env = process.env, local = hermesAndroidBundle(
   return pinned.installed ? pinned.root : null;
 }
 
+/** The API level of the oldest Android the app runs on, from its manifest's `host.android.minimumOS` (Android 12
+ * without one), as host/android/app/build.gradle.kts maps it; undefined for a release it does not name. */
+export const androidMinimumApi = (manifest) =>
+  ({ 10: 29, 11: 30, 12: 31, 13: 33, 14: 34, 15: 35, 16: 36 })[String(manifest?.host?.android?.minimumOS ?? '12')];
+
+/** Why a TypeScript app cannot be built for its minimum Android, or null: the Hermes bundle it links calls bionic at
+ * the API level it was compiled for (`-DANDROID_PLATFORM` in its receipt; the pinned one's is 30, which references
+ * `pthread_cond_clockwait`), and an APK whose minSdk is below that fails to load its library there. */
+export function hermesFloorRefusal(app, hermes) {
+  const minimum = androidMinimumApi(app.manifest);
+  let platform = null;
+  try { platform = Number(/-DANDROID_PLATFORM=android-(\d+)/.exec(readFileSync(resolve(hermes, 'hermes-input-receipt.json'), 'utf8'))?.[1]) || null; } catch { /* no receipt: nothing to compare */ }
+  if (!minimum || !platform || minimum >= platform) return null;
+  return `${app.name}: host.android.minimumOS "${app.manifest.host.android.minimumOS}" is API ${minimum}, but its TypeScript links the Android Hermes bundle at ${hermes}, built for API ${platform}: its library would not load below that. Raise minimumOS, or build a bundle for API ${minimum} from an Ibex checkout (scripts/hermes-android.mjs build, with Ibex's release script's ANDROID_PLATFORM lowered)`;
+}
+
 /** The device a drive uses: ANDROID_SERIAL, else the one adb lists as ready. With several and none named it refuses to
  * choose: another lane's emulator or a person's phone may be among them. */
 export function androidDevice(env = process.env) {
@@ -351,8 +367,9 @@ function bakedOut(dir, crate) {
  * packages them (host/android/app), then `:app:assembleRelease`. An app with a GPU module (LLP 1009) is built as a
  * Linux bake is (`buildBake`): the module first, then the library with the module's digest baked in, so the module
  * ships beside it and must reach the device byte for byte (the Gradle shell extracts it and keeps its symbols).
- * Gradle wants a JDK (17 or newer) and the SDK's platform. The APK's path, or null. */
-function buildApk(app, env, profile, writeLocks = false) {
+ * Gradle wants a JDK (17 or newer) and the SDK's platform. The APK's path, or null; with `bundle`, the Android App
+ * Bundle's (`:app:bundleRelease`) instead. */
+function buildApk(app, env, profile, writeLocks = false, bundle = false) {
   const crate = app.crate('android');
   if (!app.manifest.game && !crateManifest(app, 'android')) throw new Error(`${app.dir} has no android/ crate, the app's library for the Canvas host: bun exact.mjs update adds one to an app that names android in app.json (apps/shelf/android is one)`);
   const built = (name) => resolve(app.target, ANDROID_TARGET, profile, `lib${name.replaceAll('-', '_')}.so`);
@@ -402,7 +419,7 @@ function buildApk(app, env, profile, writeLocks = false) {
   if (!graph) return null;
   let gradle;
   try {
-    gradle = spawnSync(resolve(READER, 'gradlew'), [':app:assembleRelease', `-Papp=${app.name}`, `-PappDir=${app.manifest.game ? app.workspace : app.dir}`,
+    gradle = spawnSync(resolve(READER, 'gradlew'), [bundle ? ':app:bundleRelease' : ':app:assembleRelease', `-Papp=${app.name}`, `-PappDir=${app.manifest.game ? app.workspace : app.dir}`,
       `-PexactDevelopment=${development ? '1' : '0'}`,
       `-PappBuildDir=${dirs.app}`, `-PcanvasBuildDir=${dirs.canvas}`, `-PndkPath=${env.ANDROID_NDK_HOME}`, '--project-cache-dir', dirs.cache, `-Pkotlin.project.persistent.dir=${dirs.kotlin}`,
       ...(gpu ? [`-PgpuModule=${basename(gpu)}`] : []), ...compose, ...extensionArgs(app, out, config), ...graph.args], { cwd: READER, env: { ...env, ANDROID_HOME: androidSdk(env) }, stdio: 'inherit' });
@@ -411,7 +428,7 @@ function buildApk(app, env, profile, writeLocks = false) {
     graph.done();
   }
   if (gradle.status !== 0) return null;
-  const apk = readerApk(app);
+  const apk = bundle ? resolve(apkDirs(app).app, 'outputs/bundle/release/app-release.aab') : readerApk(app);
   writeFileSync(resolve(dirname(apk), 'exact-build.json'), JSON.stringify({ started, library: built(crate), workspace: app.workspace ?? app.dir,
     sources: [...READER_SOURCES, ...[resolve(app.dir, 'modules/android')].filter(existsSync)] }) + '\n');
   // What its bake inlined of each setting (LLP 1153 D4), bound to the APK, for a drive to compare with their sources.
@@ -524,8 +541,8 @@ export async function apkBuildFirst(app) {
   return { ms: Date.now() - started, code: r.status ?? 1, said: r.status ? lines.slice(-20) : [`built the APK in ${((Date.now() - started) / 1000).toFixed(1)} s`], warnings: [] };
 }
 
-/** `verify android`'s look at a screen: the host has no `check` observation yet, so each scheme's screen is captured,
- * `unchecked`, as Windows' is (the device's pixels, shrunk to a pixel a point as check keeps an iOS capture). */
+/** `verify android`'s look at a screen: the host has no `check` observation yet, so each scheme's screen is captured
+ * `unchecked` (the device's pixels, shrunk to a pixel a point as check keeps an iOS capture). */
 export async function androidCaptures(s, { screen, shot, failed }) {
   const [{ decodePng, encodePng, shrink }, { tmpdir }] = await Promise.all([import('./png.mjs'), import('node:os')]);
   const seen = (await s.layout().catch(() => null))?.viewport ?? {}, vp = { w: Math.round(seen.w), h: Math.round(seen.h) }, runs = [];
@@ -566,16 +583,20 @@ if (import.meta.main && process.argv[2] === 'relay') {
   const app = resolveApp(name), env = { ...androidToolchainEnv(), ...bakeWatchEnv(app), CARGO_TARGET_DIR: app.target };
   // A TypeScript app's library links the Android Hermes bundle: said before minutes of compiling, not at the link.
   const crateToml = crateManifest(app, apkWanted ? 'android' : 'linux');
-  if (!androidHermesDir() && crateToml && /^exact-js\s*=/m.test(readFileSync(crateToml, 'utf8'))) {
+  const typescript = crateToml && /^exact-js\s*=/m.test(readFileSync(crateToml, 'utf8'));
+  if (!androidHermesDir() && typescript) {
     console.error(`${app.name}'s TypeScript needs the Android Hermes bundle, which is not installed: ${hermesBundle(ANDROID_TARGET).fix} (once; exact setup does it where the Android SDK is)`);
     process.exit(1);
   }
-  if (apkWanted) {
-    const started = Date.now();
-    const apk = buildApk(app, env, args.includes('--release') ? 'release' : HOST_DEV, args.includes('--write-locks'));
+  const floor = typescript && apkWanted ? hermesFloorRefusal(app, androidHermesDir()) : null;
+  if (floor) { console.error(floor); process.exit(1); }
+  if (apkWanted || args.includes('--aab')) {
+    const started = Date.now(), bundle = args.includes('--aab');
+    const apk = buildApk(app, env, bundle || args.includes('--release') ? 'release' : HOST_DEV, args.includes('--write-locks'), bundle);
     if (!apk) process.exit(1);
     console.log(apk);
-    if (args.includes('--install') || args.includes('--run')) process.exit(installApk(app, apk, { run: args.includes('--run'), built: Date.now() - started }));
+    // A bundle is Google Play's to split into APKs; it installs on nothing.
+    if (!bundle && (args.includes('--install') || args.includes('--run'))) process.exit(installApk(app, apk, { run: args.includes('--run'), built: Date.now() - started }));
     process.exit(0);
   }
   const [cmd, ...rest] = androidBuild(app);

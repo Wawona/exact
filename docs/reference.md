@@ -662,14 +662,18 @@ companion inside the iOS bundle. `--watchos --run --sim <iPhone udid>
 --watch-sim <watch udid>` installs it on an existing, booted pair and opens it.
 An app whose `app.json` declares a `watch` entry (`{"source", "component"}`:
 its own Contract file and root component, LLP 1126.002 D4) runs that entry live
-on the watch; the bake refuses what the watch does not draw. An app with none
+on the watch; the bake refuses what the watch does not draw. TypeScript does
+not run on the watch (LLP 1126.001 §5 Q3), so in an app with `app.ts` the bake
+also refuses a watch entry that calls a source `app.ts` answers
+(`watch-typescript`); one that reads only its own state and the runtime's
+sources (`exactTime()`, …) ships, as Variable Type's does. An app with none
 opens its complications' placeholders. Add a complication through the watch
 face's editor.
 The watch extension keeps the accessory families (`accessoryCircular`,
 `accessoryRectangular`, `accessoryInline`, `accessoryCorner`); iOS drops
 `accessoryCorner`. An optional `watchFamilies` on an entry overrides its watchOS
 families; `families` still names its iOS families. An app with `app.ts` has all
-watch entries omitted with a message, including its Rust refreshes, until the
+watch complication entries omitted with a message, including its Rust refreshes, until the
 watch Hermes gate passes (LLP 1126.001 §5 Q3). Rust-only apps' entries
 refresh against the watch's own App Group and store. No account transfer is
 performed.

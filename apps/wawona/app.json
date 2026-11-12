@@ -1,0 +1,49 @@
+{
+  "$schema": "../../scripts/app.schema.json",
+  "name": "Wawona",
+  "short_name": "Wawona",
+  "id": "com.aspauldingcode.wawona.exact",
+  "start_url": "/",
+  "display": "standalone",
+  "theme_color": "#ffffff",
+  "background_color": "#ffffff",
+  "app": {
+    "id": "com.aspauldingcode.wawona.exact",
+    "name": "Wawona"
+  },
+  "host": {
+    "ios": {
+      "minimumOS": "17.0",
+      "deviceFamily": ["iphone", "ipad"]
+    },
+    "macos": {
+      "minimumOS": "14.0",
+      "window": {
+        "width": 1100,
+        "height": 760,
+        "minWidth": 720,
+        "minHeight": 520
+      }
+    },
+    "windows": {
+      "window": {
+        "width": 1100,
+        "height": 760,
+        "minWidth": 720,
+        "minHeight": 520
+      },
+      "painter": "cpu"
+    },
+    "web": {},
+    "asteroid": {}
+  },
+  "deploy": {
+    "store": {
+      "web": "0",
+      "macos": "0",
+      "ios": "0",
+      "windows": "0",
+      "asteroid": "0"
+    }
+  }
+}

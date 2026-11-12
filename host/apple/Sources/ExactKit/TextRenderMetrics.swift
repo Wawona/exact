@@ -77,7 +77,7 @@ final class TextRenderMetrics {
     }
 }
 
-#if os(iOS) || os(tvOS)
+#if os(iOS) || os(visionOS) || os(tvOS)
 extension TextRasterJob {
     func renderDiagnosed(node: UInt32) -> TextRasterImage? {
         let stamp = TextRenderMetrics.shared.begin()

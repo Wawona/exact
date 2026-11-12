@@ -112,7 +112,7 @@ extension Presenter {
         }
     }
 }
-#elseif os(iOS) || os(tvOS)
+#elseif os(iOS) || os(visionOS) || os(tvOS)
 import UIKit
 
 /// A target's box in a scroller: where it is now and where it will be once

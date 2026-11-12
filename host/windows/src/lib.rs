@@ -13,6 +13,8 @@ mod caret;
 mod clicks;
 #[cfg(windows)]
 mod clipboard;
+#[cfg(windows)]
+mod delivery;
 #[cfg_attr(not(windows), allow(dead_code))]
 mod desktop;
 #[cfg(windows)]

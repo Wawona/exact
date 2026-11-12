@@ -1119,6 +1119,12 @@ What Android 10 and 11 do in its place is in `Legacy.kt` and `LegacyGlyphs.kt`, 
 it (`app/proguard-legacy.pro`); for any other, R8 folds each `SDK_INT` check against the app's minSdk and leaves none.
 The Rust of it (12 KB) is in every app's library: the host's Rust is the same for every app.
 
+An app with a TypeScript data module also links the Android Hermes bundle, which calls bionic at the API level it was
+compiled for: the pinned one's is 30 (`-DANDROID_PLATFORM` in its `hermes-input-receipt.json`), and its library
+references `pthread_cond_clockwait`, which Android 10 lacks, so it fails to load there. The build refuses such an app
+at `"10"` before compiling (`hermesFloorRefusal`); at `"11"` it runs (measured on an API 30 emulator, 2026-11-10). An
+app whose data is Rust links no Hermes and keeps Android 10.
+
 | | Android 12 and later | Android 10 and 11 |
 |---|---|---|
 | A glyph run | `Canvas.drawGlyphs` (API 31) | each glyph's outline, which the Rust reads with swash from the file the reader's `Font` maps (`LegacyGlyphs.glyph`, a JNI call once per face and glyph), kept as a `Path` in ems; a run's outlines are filled as one path with the run's paint. A colour glyph is its image: a bitmap strike's (Noto Color Emoji's) at its own size, a COLR version 0 glyph's at 128 pixels an em; the 128 most recently drawn are kept. A COLRv1 glyph is its plain outline |

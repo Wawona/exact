@@ -9,7 +9,7 @@
 // so they move with its duration and curve, finger-driven dismissal
 // included. This is how UIKit apps (Signal's input toolbar, pinned to the
 // keyboard layout guide over a collection view's bottom inset) do it.
-#if os(iOS) || os(tvOS)
+#if os(iOS) || os(visionOS) || os(tvOS)
 import UIKit
 
 final class KeyboardToolbars {

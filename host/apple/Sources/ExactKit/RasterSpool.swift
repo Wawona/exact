@@ -36,7 +36,7 @@ final class RasterSpool: @unchecked Sendable {
     func directory() throws -> URL {
         guarded.lock(); defer { guarded.unlock() }
         if let established { return established.url }
-        #if os(iOS) || os(tvOS)
+        #if os(iOS) || os(visionOS) || os(tvOS)
         // Before this directory, spools were loose `tmp/exact-raster-<uuid>`
         // files; an app's own sandboxed temporary directory holds no one else's.
         Self.sweepLoose(tmp, now: Date())

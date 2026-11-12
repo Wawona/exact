@@ -17,7 +17,7 @@
 // so UIKit dims its minus at the floor and its plus at the top as it does a
 // hand-built stepper's; each step is computed from the field's text and the
 // value put back, whatever UIKit did to its own.
-#if os(iOS)
+#if os(iOS) || os(visionOS)
 import UIKit
 
 /// The stepper in a number input: `UIStepper`, which keeps what it last showed.

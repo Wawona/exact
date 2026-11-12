@@ -40,6 +40,7 @@ mod arrive;
 mod back;
 pub mod bars;
 mod build_channel;
+mod check;
 pub mod clipboard;
 mod clock;
 mod collection;
@@ -125,6 +126,8 @@ mod window;
 #[cfg(windows)]
 mod word;
 
+#[cfg(test)]
+mod check_tests;
 #[cfg(test)]
 mod collection_tests;
 #[cfg(test)]

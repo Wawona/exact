@@ -154,7 +154,7 @@ final class SvgFilterLive {
     /// running animation (iOS: the picture follows its content there; macOS
     /// draws islands).
     private func animate(_ on: Bool) {
-        #if os(iOS) || os(tvOS)
+        #if os(iOS) || os(visionOS) || os(tvOS)
         // A nested filter is updated inside its outer one's encode, on the
         // queue; the app's clock is the main thread's.
         guard Thread.isMainThread else { DispatchQueue.main.async { [weak self] in self?.animate(on) }; return }

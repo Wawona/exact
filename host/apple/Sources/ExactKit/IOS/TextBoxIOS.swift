@@ -4,7 +4,7 @@
 // can replace resize animations with retimed copies while scrubbing or continuing;
 // update the fade's clock when UIKit adds or removes those animations, without
 // per-frame main-thread work.
-#if os(iOS) || os(tvOS)
+#if os(iOS) || os(visionOS) || os(tvOS)
 import UIKit
 
 /// A paragraph's text box (`NodeView.makeTextBox`): it moves and resizes in

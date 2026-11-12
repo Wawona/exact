@@ -1,6 +1,6 @@
 #[cfg(all(
     not(test),
-    any(target_os = "macos", target_os = "ios", target_os = "tvos")
+    any(target_os = "macos", target_os = "ios", target_os = "tvos", target_os = "visionos")
 ))]
 use crate::AppleOutput as Device;
 #[cfg(all(not(test), target_arch = "wasm32"))]
@@ -13,7 +13,7 @@ use crate::WindowsOutput as Device;
     target_arch = "wasm32",
     target_os = "macos",
     target_os = "ios",
-    target_os = "tvos"
+    target_os = "tvos", target_os = "visionos"
 ))]
 use crate::{Listener, Output, Player, Transport};
 use exact_game::World;
@@ -27,7 +27,7 @@ pub struct SurfacePlayer {
         target_arch = "wasm32",
         target_os = "macos",
         target_os = "ios",
-        target_os = "tvos"
+        target_os = "tvos", target_os = "visionos"
     ))]
     device: Option<Player<Device>>,
     #[cfg(any(
@@ -36,7 +36,7 @@ pub struct SurfacePlayer {
         target_arch = "wasm32",
         target_os = "macos",
         target_os = "ios",
-        target_os = "tvos"
+        target_os = "tvos", target_os = "visionos"
     ))]
     retry_frames: u32,
     #[cfg(any(
@@ -45,7 +45,7 @@ pub struct SurfacePlayer {
         target_arch = "wasm32",
         target_os = "macos",
         target_os = "ios",
-        target_os = "tvos"
+        target_os = "tvos", target_os = "visionos"
     ))]
     warned: bool,
     seekable: bool,
@@ -62,7 +62,7 @@ impl Default for SurfacePlayer {
                 target_arch = "wasm32",
                 target_os = "macos",
                 target_os = "ios",
-                target_os = "tvos"
+                target_os = "tvos", target_os = "visionos"
             ))]
             device: None,
             #[cfg(any(
@@ -71,7 +71,7 @@ impl Default for SurfacePlayer {
                 target_arch = "wasm32",
                 target_os = "macos",
                 target_os = "ios",
-                target_os = "tvos"
+                target_os = "tvos", target_os = "visionos"
             ))]
             retry_frames: 0,
             #[cfg(any(
@@ -80,7 +80,7 @@ impl Default for SurfacePlayer {
                 target_arch = "wasm32",
                 target_os = "macos",
                 target_os = "ios",
-                target_os = "tvos"
+                target_os = "tvos", target_os = "visionos"
             ))]
             warned: false,
             seekable: true,
@@ -101,7 +101,7 @@ impl SurfacePlayer {
                 target_arch = "wasm32",
                 target_os = "macos",
                 target_os = "ios",
-                target_os = "tvos"
+                target_os = "tvos", target_os = "visionos"
             ))]
             {
                 self.device = None;
@@ -124,7 +124,7 @@ impl SurfacePlayer {
             target_arch = "wasm32",
             target_os = "macos",
             target_os = "ios",
-            target_os = "tvos"
+            target_os = "tvos", target_os = "visionos"
         ))]
         if let Some(player) = &mut self.device {
             let result = if suspended {
@@ -150,7 +150,7 @@ impl SurfacePlayer {
         target_arch = "wasm32",
         target_os = "macos",
         target_os = "ios",
-        target_os = "tvos"
+        target_os = "tvos", target_os = "visionos"
     ))]
     fn ensure_device(&mut self) {
         if self.seekable || self.suspended || self.device.is_some() || self.retry_frames != 0 {
@@ -177,7 +177,7 @@ impl SurfacePlayer {
             target_arch = "wasm32",
             target_os = "macos",
             target_os = "ios",
-            target_os = "tvos"
+            target_os = "tvos", target_os = "visionos"
         ))]
         {
             if !seekable && !self.suspended {
@@ -215,7 +215,7 @@ impl SurfacePlayer {
             target_arch = "wasm32",
             target_os = "macos",
             target_os = "ios",
-            target_os = "tvos"
+            target_os = "tvos", target_os = "visionos"
         ))]
         {
             if self.seekable || self.suspended {
@@ -258,7 +258,7 @@ mod tests {
             target_arch = "wasm32",
             target_os = "macos",
             target_os = "ios",
-            target_os = "tvos"
+            target_os = "tvos", target_os = "visionos"
         ))]
         assert!(surface.device.is_none() && surface.retry_frames == 0);
     }

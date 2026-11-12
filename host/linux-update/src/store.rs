@@ -3,11 +3,13 @@
 //! lock the check's thread shares with the presenter, the check over
 //! ibex2's transport — rustls off Apple, the platform's on a Mac, the
 //! executor's own (`executor.rs`) — and its outcome delivered like a reply:
-//! one byte on a socketpair the display loop polls beside the executor's,
+//! one byte on a socketpair the display loop polls beside the executor's
+//! (on Windows, a bit whose write posts the window loop's wake),
 //! the line on a channel the presenter drains (`Presenter::poll_update`).
 //!
 //! Where the store lives: `$XDG_DATA_HOME/exact/<app id>/update`, else
-//! `~/.local/share/exact/<app id>/update`; `EXACT_UPDATE_DIR` and
+//! `~/.local/share/exact/<app id>/update` (on Windows
+//! `%LOCALAPPDATA%\exact\<app id>\update`); `EXACT_UPDATE_DIR` and
 //! `EXACT_UPDATE_ORIGIN` as `exact_update::client` documents, and under
 //! `EXACT_AGENT=1` a fresh temporary directory. The store is opened before
 //! the boot, since the boot is what it selects (`app.rs`); first pixel is
@@ -19,8 +21,9 @@
 use exact_runner::Delivery;
 use exact_update::{Client, Generation, PreparedSelection, Status};
 use std::io::{Read, Write};
+use exact_linux::WakeStream;
+#[cfg(unix)]
 use std::os::unix::io::{AsRawFd, RawFd};
-use std::os::unix::net::UnixStream;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::mpsc::{channel, Receiver, Sender};
@@ -39,8 +42,8 @@ pub struct Updates {
     checking: Arc<AtomicBool>,
     lines: Receiver<String>,
     tx: Sender<String>,
-    wake: UnixStream,
-    signal: UnixStream,
+    wake: WakeStream,
+    signal: Arc<WakeStream>,
     /// A boot's note — the selected entry refused at boot — taken once.
     note: Option<String>,
     generation: Generation,
@@ -50,8 +53,14 @@ fn lock<T>(m: &Mutex<T>) -> MutexGuard<'_, T> {
     m.lock().unwrap_or_else(|e| e.into_inner())
 }
 
-/// The platform's data directory: `$XDG_DATA_HOME`, else `~/.local/share`.
+/// The platform's data directory: `$XDG_DATA_HOME`, else `~/.local/share`;
+/// on Windows `%LOCALAPPDATA%`, since a bundle pairs with this machine's
+/// binary and never roams with the profile.
 fn data_dir() -> PathBuf {
+    #[cfg(windows)]
+    if let Some(dir) = std::env::var_os("LOCALAPPDATA").filter(|v| !v.is_empty()) {
+        return PathBuf::from(dir);
+    }
     if let Some(dir) = std::env::var_os("XDG_DATA_HOME").filter(|v| !v.is_empty()) {
         return PathBuf::from(dir);
     }
@@ -84,7 +93,7 @@ impl Updates {
         let status = client.status();
         let generation = client.generation();
         let (tx, lines) = channel();
-        let (wake, signal) = UnixStream::pair().map_err(|e| format!("the update wake: {e}"))?;
+        let (wake, signal) = WakeStream::pair().map_err(|e| format!("the update wake: {e}"))?;
         wake.set_nonblocking(true)
             .map_err(|e| format!("the update wake: {e}"))?;
         Ok(Updates {
@@ -94,7 +103,7 @@ impl Updates {
             lines,
             tx,
             wake,
-            signal,
+            signal: Arc::new(signal),
             note: None,
             generation,
         })
@@ -163,6 +172,7 @@ impl Updates {
     }
 
     /// The wake's reading end: readable when a check ended (for `poll`).
+    #[cfg(unix)]
     pub fn fd(&self) -> RawFd {
         self.wake.as_raw_fd()
     }
@@ -176,17 +186,14 @@ impl Updates {
         let status = Arc::clone(&self.status);
         let checking = Arc::clone(&self.checking);
         let tx = self.tx.clone();
-        let Ok(mut signal) = self.signal.try_clone() else {
-            self.checking.store(false, Ordering::SeqCst);
-            return false;
-        };
+        let signal = Arc::clone(&self.signal);
         let spawned = std::thread::Builder::new()
             .name("exact-update".into())
             .spawn(move || {
                 let line = run_check(&client, &status);
                 checking.store(false, Ordering::SeqCst);
                 let _ = tx.send(line);
-                let _ = signal.write_all(&[1]);
+                let _ = (&*signal).write_all(&[1]);
             });
         if spawned.is_err() {
             self.checking.store(false, Ordering::SeqCst);
@@ -478,7 +485,7 @@ mod tests {
         let _ = std::fs::remove_dir_all(&base);
         let client = Client::open_at(&base, &base, COMPAT, b"embedded plan", Some(ORIGIN)).unwrap();
         let (tx, lines) = channel();
-        let (wake, signal) = UnixStream::pair().unwrap();
+        let (wake, signal) = WakeStream::pair().unwrap();
         let mut updates = Updates {
             client: Arc::new(Mutex::new(client)),
             status: Arc::new(Mutex::new(stale_status())),
@@ -486,7 +493,7 @@ mod tests {
             lines,
             tx,
             wake,
-            signal,
+            signal: Arc::new(signal),
             note: None,
             generation: Generation {
                 entry: None,

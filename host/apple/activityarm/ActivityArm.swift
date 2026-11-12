@@ -44,7 +44,7 @@ public typealias ActivityReport = @convention(c) (UnsafeMutableRawPointer?, Unsa
     }
     private func hex(_ data: Data) -> String { data.map { String(format: "%02x", $0) }.joined() }
     private func state(_ activity: Live) -> String {
-        if #available(iOS 26.0, *), activity.activityState == .pending { return "pending" }
+        if #available(iOS 26.0, visionOS 26.0, *), activity.activityState == .pending { return "pending" }
         switch activity.activityState {
         case .active: return "active"
         case .stale: return "stale"

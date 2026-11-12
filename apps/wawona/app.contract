@@ -1,0 +1,425 @@
+// Wawona Exact chrome: Machines configuration grid + Global Settings catalog.
+// Machines grid mirrors product `WWNMachinesGridView` / `WWNMachineCardView`.
+// Settings catalog mirrors Rust `settings_catalog` / `docs/settings.md` (#227).
+// Prefs + profiles persist in Exact storage until M3 wires `wawona.pref.*` /
+// machine profiles through `wawona-data`.
+
+routes nav
+  tab machines "/"
+    present "/machine/:id"
+  tab settings "/settings"
+    section "/settings/:id"
+
+component Wawona
+  // Display
+  state colorOperations = true persist
+  state forceSsd = false persist
+  state respectSafeArea = true persist
+  state compositorBackend = "auto" persist
+  state nestedCompositors = true persist
+  state multipleClients = true persist
+  // Input
+  state touchInputType = "multi-touch" persist
+  state showVirtualCursor = false persist
+  state touchPointerEmulation = false persist
+  state touchpadMode = false persist
+  state swapCmdWithAlt = true persist
+  state universalClipboard = true persist
+  state shakeToClose = true persist
+  state swipeBackToClose = true persist
+  // Graphics
+  state vulkanDriver = "kosmickrisp" persist
+  state openglDriver = "angle" persist
+  state sessionThumbnails = true persist
+  // iCloud / Desktop / About
+  state iCloudSync = true persist
+  state iCloudDriveHome = false persist
+  state desktopReplacement = false persist
+  state logLevel = "info" persist
+  // Waypipe
+  state waypipeCompress = "lz4" persist
+  state waypipeUseSsh = true persist
+  state waypipeDebug = false persist
+  state waypipeNoGpu = false persist
+  // SSH
+  state sshHost = "" persist
+  state sshUser = "" persist
+  state sshPort = "22" persist
+  state sshAuthMethod = "password" persist
+  state sshEnabled = true persist
+  // Demo chrome notice until M3 machine-profile store lands.
+  state machinesNotice = ""
+
+  derive machineId = top(nav).params.id
+  derive sectionId = top(nav).params.id
+  derive title = machineId == "" ? "Machines" : machineId
+  derive sectionTitle = sectionId == "display" ? "Display" : sectionId == "input" ? "Input" : sectionId == "graphics" ? "Graphics" : sectionId == "environment" ? "Env Vars" : sectionId == "icloudSync" ? "iCloud Sync" : sectionId == "desktop" ? "Desktop" : sectionId == "waypipe" ? "Waypipe" : sectionId == "ssh" ? "SSH" : sectionId == "about" ? "About" : sectionId == "dependencies" ? "Dependencies" : "Settings"
+
+  action pickTab(name: string)
+    nav = select(nav, name)
+  action follow(url: string)
+    nav = go(nav, url)
+  // Platform Back / Escape / header. navigationBack="back" needs this action.
+  action back
+    nav = back(nav)
+  action openMachine(id: string)
+    nav = open(nav, path("present", id))
+  action startMachine(id: string)
+    nav = open(nav, path("present", id))
+  action editMachine(id: string)
+    nav = open(nav, path("present", id))
+  action deleteMachine(id: string)
+    machinesNotice = `Delete ${id} waits on M3 machine profiles.`
+  action clearMachinesNotice
+    machinesNotice = ""
+  action openSection(id: string)
+    nav = open(nav, path("section", id))
+
+  action setColorOperations(on: bool)
+    colorOperations = on
+  action setForceSsd(on: bool)
+    forceSsd = on
+  action setRespectSafeArea(on: bool)
+    respectSafeArea = on
+  action setCompositorBackend(v: string)
+    compositorBackend = v
+  action setNestedCompositors(on: bool)
+    nestedCompositors = on
+  action setMultipleClients(on: bool)
+    multipleClients = on
+  action setTouchInputType(v: string)
+    touchInputType = v
+  action setShowVirtualCursor(on: bool)
+    showVirtualCursor = on
+  action setTouchPointerEmulation(on: bool)
+    touchPointerEmulation = on
+  action setTouchpadMode(on: bool)
+    touchpadMode = on
+  action setSwapCmdWithAlt(on: bool)
+    swapCmdWithAlt = on
+  action setUniversalClipboard(on: bool)
+    universalClipboard = on
+  action setShakeToClose(on: bool)
+    shakeToClose = on
+  action setSwipeBackToClose(on: bool)
+    swipeBackToClose = on
+  action setVulkanDriver(v: string)
+    vulkanDriver = v
+  action setOpenglDriver(v: string)
+    openglDriver = v
+  action setSessionThumbnails(on: bool)
+    sessionThumbnails = on
+  action setICloudSync(on: bool)
+    iCloudSync = on
+  action setICloudDriveHome(on: bool)
+    iCloudDriveHome = on
+  action setDesktopReplacement(on: bool)
+    desktopReplacement = on
+  action setLogLevel(v: string)
+    logLevel = v
+  action setWaypipeCompress(v: string)
+    waypipeCompress = v
+  action setWaypipeUseSsh(on: bool)
+    waypipeUseSsh = on
+  action setWaypipeDebug(on: bool)
+    waypipeDebug = on
+  action setWaypipeNoGpu(on: bool)
+    waypipeNoGpu = on
+  action setSshHost(v: string)
+    sshHost = v
+  action setSshUser(v: string)
+    sshUser = v
+  action setSshPort(v: string)
+    sshPort = v
+  action setSshAuthMethod(v: string)
+    sshAuthMethod = v
+  action setSshEnabled(on: bool)
+    sshEnabled = on
+
+  view
+    main testId="wawona-root" navigationKey=`${top(nav).id}` navigationBack="back" navigate=follow
+      width="100%" height="100%" display="flex" flex-direction="column" box-sizing="border-box"
+      column flex=1 min-height=0 position="relative"
+        for t in nav.tabs key=t.name
+          column role="tabpanel" id=`panel-${t.name}` position="absolute" inset=0
+            for e in t.stack key=e.id
+              column navigationKey=`${e.id}` navigationScroll=`content-${e.id}` position="absolute" inset=0 display="flex" flex-direction="column"
+                if e.name == "machines"
+                  header testId="wawona-machines-header"
+                    row align-items="center" gap=12 width="100%"
+                      column flex=1 min-width=0 gap=2
+                        h1 "Machines"
+                        text font="-exact-footnote" color="-exact-secondary-label" "6 configured · Native Shell · Virtual Machine · Container"
+                      button press=openMachine("Add New Machine") testId="machine-add" aria-label="Add New Machine" padding="8px 12px"
+                        image "symbol:add"
+                        text "Add"
+                  scroll id=`content-${e.id}` flex=1 min-height=0 testId="wawona-machines" background-color="-exact-grouped-background"
+                    column padding=16 gap=16 testId="wawona-machines-grid-wrap"
+                      if machinesNotice != ""
+                        row align-items="center" gap=8 padding=12 border-radius=12 background-color="-exact-secondary-grouped-background" testId="machines-notice"
+                          text flex=1 color="-exact-secondary-label" machinesNotice
+                          button press=clearMachinesNotice aria-label="Dismiss" padding=6
+                            image "symbol:close"
+                      // Adaptive card grid (product WWNMachinesGridView LazyVGrid).
+                      column display="grid" grid-template-columns="repeat(auto-fill, minmax(min(100%, 18rem), 1fr))" gap=14 testId="wawona-machines-grid" role="grid"
+                        MachineCard(id="native-shell", name="Native Shell", subtitle="zsh · Wayland · local", kind="NATIVE", scope="LOCAL", summary="In-process zsh + Wawona Terminal. Mode A PTY on Apple mobile / Play; system login shell on macOS / Linux / Mode B.", icon="symbol:document", running=false, start=startMachine, edit=editMachine, remove=deleteMachine)
+                        MachineCard(id="weston", name="Weston", subtitle="Nested compositor", kind="NATIVE", scope="LOCAL", summary="Weston nested on Wawona Wayland. Display Backend auto to wayland. Session compositor, not a VM.", icon="symbol:layers", running=false, start=startMachine, edit=editMachine, remove=deleteMachine)
+                        MachineCard(id="niri", name="Niri", subtitle="Nested compositor", kind="NATIVE", scope="LOCAL", summary="Niri nested (NIRI_BACKEND=nested). Same Wayland client path as product Machines Start.", icon="symbol:list", running=false, start=startMachine, edit=editMachine, remove=deleteMachine)
+                        MachineCard(id="relay-wasm", name="Relay Wasm", subtitle="WASI · wpm", kind="NATIVE", scope="LOCAL", summary="Relay Runtime package via wpm. Native Shell session, not a Virtual Machine or Container kind.", icon="symbol:package", running=false, start=startMachine, edit=editMachine, remove=deleteMachine)
+                        MachineCard(id="demo-vm", name="NixOS MicroVM", subtitle="Linux · Relay", kind="VM", scope="LOCAL", summary="Virtual Machine kind (planned). NixOS prebuilt guest. Wayland into Wawona (iland). Not UTM.", icon="symbol:home", running=false, start=startMachine, edit=editMachine, remove=deleteMachine)
+                        MachineCard(id="demo-container", name="Dev Container", subtitle="OCI-in-VM", kind="CONTAINER", scope="LOCAL", summary="Container kind (planned). OCI image in a Relay VM. Same guest Wayland path as VMs.", icon="symbol:download", running=false, start=startMachine, edit=editMachine, remove=deleteMachine)
+                      // Add card spans full width under the grid.
+                      button press=openMachine("Add New Machine") testId="machine-add-card" width="100%" padding=16 border-radius=16 border-style="dashed" border-width=1 border-color="-exact-separator" background-color="-exact-secondary-grouped-background"
+                        row align-items="center" gap=12
+                          image "symbol:add" font-size=28 color="AccentColor"
+                          column align-items="flex-start" gap=2 flex=1
+                            text font-weight=600 "Add New Machine"
+                            text font="-exact-footnote" color="-exact-secondary-label" "Native Shell · Virtual Machine · Container"
+                else if e.name == "present"
+                  header
+                    h1 title
+                  scroll id=`content-${e.id}` flex=1 min-height=0 testId="wawona-present"
+                    column flex=1 justify-content="center" align-items="center" gap=8 padding=24 testId="wawona-present-stub"
+                      text role="heading" aria-level=2 "Present"
+                      text color="-exact-secondary-label" "iland Present stub (M2). Wayland surface mounts here."
+                      text font="-exact-footnote" color="-exact-secondary-label" machineId
+                else if e.name == "settings"
+                  header testId="wawona-settings-header"
+                    h1 "Settings"
+                  scroll id=`content-${e.id}` flex=1 min-height=0 testId="wawona-settings"
+                    list appearance="auto" listStyle="inset-grouped" testId="wawona-settings-catalog"
+                      section
+                        header
+                          text "Catalog"
+                        link href=path("section", "display") testId="settings-section-display"
+                          text "Display"
+                        link href=path("section", "input") testId="settings-section-input"
+                          text "Input"
+                        link href=path("section", "graphics") testId="settings-section-graphics"
+                          text "Graphics"
+                        link href=path("section", "environment") testId="settings-section-environment"
+                          text "Env Vars"
+                        link href=path("section", "icloudSync") testId="settings-section-icloudSync"
+                          text "iCloud Sync"
+                        link href=path("section", "desktop") testId="settings-section-desktop"
+                          text "Desktop"
+                        link href=path("section", "waypipe") testId="settings-section-waypipe"
+                          text "Waypipe"
+                        link href=path("section", "ssh") testId="settings-section-ssh"
+                          text "SSH"
+                        link href=path("section", "about") testId="settings-section-about"
+                          text "About"
+                        link href=path("section", "dependencies") testId="settings-section-dependencies"
+                          text "Dependencies"
+                        footer
+                          text "Order matches Rust settings_catalog (macOS dual-run)."
+                else if e.name == "section"
+                  header testId="wawona-settings-section-header"
+                    row align-items="center" gap=8
+                      button press=back testId="settings-section-back" aria-label="Back" padding=8
+                        image "symbol:back"
+                        text "Settings"
+                      h1 sectionTitle flex=1
+                  scroll id=`content-${e.id}` flex=1 min-height=0 testId=`wawona-settings-${sectionId}`
+                    list appearance="auto" listStyle="inset-grouped"
+                      if sectionId == "display"
+                        section
+                          header
+                            text "Display"
+                          PrefSwitch(id="colorOperations", title="Color Operations / HDR", on=colorOperations, set=setColorOperations)
+                          PrefSwitch(id="forceSsd", title="Force Server-Side Decorations", on=forceSsd, set=setForceSsd)
+                          PrefSwitch(id="respectSafeArea", title="Respect Safe Area", on=respectSafeArea, set=setRespectSafeArea)
+                          PrefSelect(id="compositorBackend", title="Display Backend", value=compositorBackend, set=setCompositorBackend)
+                            option "Auto" value="auto"
+                            option "Wayland" value="wayland"
+                            option "DRM" value="drm"
+                          PrefSwitch(id="nestedCompositors", title="Nested Compositors", on=nestedCompositors, set=setNestedCompositors)
+                          PrefSwitch(id="multipleClients", title="Multiple Clients", on=multipleClients, set=setMultipleClients)
+                          footer
+                            text "No Advanced row. Nested compositors and Display Backend live here."
+                      else if sectionId == "input"
+                        section
+                          header
+                            text "Input"
+                          PrefSelect(id="touchInputType", title="Touch Input Type", value=touchInputType, set=setTouchInputType)
+                            option "Multi-Touch" value="multi-touch"
+                            option "Touchpad" value="touchpad"
+                          PrefSwitch(id="showVirtualCursor", title="Show Virtual Cursor", on=showVirtualCursor, set=setShowVirtualCursor)
+                          PrefSwitch(id="touchPointerEmulation", title="Pointer Emulation for Touch", on=touchPointerEmulation, set=setTouchPointerEmulation)
+                          PrefSwitch(id="touchpadMode", title="Touchpad Mode", on=touchpadMode, set=setTouchpadMode)
+                          PrefSwitch(id="swapCmdWithAlt", title="Swap CMD with ALT", on=swapCmdWithAlt, set=setSwapCmdWithAlt)
+                          PrefSwitch(id="universalClipboard", title="Universal Clipboard", on=universalClipboard, set=setUniversalClipboard)
+                          PrefSwitch(id="shakeToClose", title="Shake to Exit Machine", on=shakeToClose, set=setShakeToClose)
+                          PrefSwitch(id="swipeBackToClose", title="Swipe Back to Exit Machine", on=swipeBackToClose, set=setSwipeBackToClose)
+                          footer
+                            text "Host keymap bridge. No layout picker."
+                      else if sectionId == "graphics"
+                        section
+                          header
+                            text "Graphics"
+                          PrefSelect(id="vulkanDriver", title="Vulkan Driver", value=vulkanDriver, set=setVulkanDriver)
+                            option "KosmicKrisp" value="kosmickrisp"
+                            option "MoltenVK" value="moltenvk"
+                            option "SwiftShader" value="swiftshader"
+                            option "System" value="system"
+                            option "None" value="none"
+                          PrefSelect(id="openglDriver", title="OpenGL Driver", value=openglDriver, set=setOpenglDriver)
+                            option "ANGLE" value="angle"
+                            option "System" value="system"
+                            option "None" value="none"
+                          PrefSwitch(id="sessionThumbnails", title="Session Thumbnails", on=sessionThumbnails, set=setSessionThumbnails)
+                      else if sectionId == "environment"
+                        section
+                          header
+                            text "Env Vars"
+                          row padding=16
+                            text color="-exact-secondary-label" "Environment variable inventory (New / Edit / Reset) wires through wawona-data in M3."
+                          footer
+                            text "Full table editor lands with the domain seam."
+                      else if sectionId == "icloudSync"
+                        section
+                          header
+                            text "iCloud Sync"
+                          PrefSwitch(id="iCloudSync", title="iCloud Sync", on=iCloudSync, set=setICloudSync)
+                          PrefSwitch(id="iCloudDriveHome", title="iCloud Drive HOME", on=iCloudDriveHome, set=setICloudDriveHome)
+                          row padding=16
+                            text color="-exact-secondary-label" "Status / Sync Now need CloudKit transport (Swift WWNCloudSync)."
+                          footer
+                            text "Apple only. Hidden on Android / Linux / Windows when domain seam lands."
+                      else if sectionId == "desktop"
+                        section
+                          header
+                            text "Desktop"
+                          PrefSwitch(id="desktopReplacement", title="Enable Desktop Replacement", on=desktopReplacement, set=setDesktopReplacement)
+                          row padding=16
+                            text color="-exact-secondary-label" "Replace now / Desktop Machine picker need Mode B host + SIP / IOMFB."
+                          footer
+                            text "macOS + Android planned. App Store iOS forbidden."
+                      else if sectionId == "waypipe"
+                        section
+                          header
+                            text "Waypipe"
+                          PrefSelect(id="waypipeCompress", title="Compression", value=waypipeCompress, set=setWaypipeCompress)
+                            option "None" value="none"
+                            option "lz4" value="lz4"
+                            option "zstd" value="zstd"
+                          PrefSwitch(id="waypipeUseSsh", title="Use SSH Config", on=waypipeUseSsh, set=setWaypipeUseSsh)
+                          PrefSwitch(id="waypipeDebug", title="Debug Mode", on=waypipeDebug, set=setWaypipeDebug)
+                          PrefSwitch(id="waypipeNoGpu", title="Disable GPU", on=waypipeNoGpu, set=setWaypipeNoGpu)
+                      else if sectionId == "ssh"
+                        section
+                          header
+                            text "SSH"
+                          PrefSwitch(id="sshEnabled", title="Enable SSH", on=sshEnabled, set=setSshEnabled)
+                          row box-sizing="border-box" align-items="center" min-height=44 padding="10px 16px" gap=12 testId="pref-sshHost"
+                            text "SSH Host" flex=1
+                            input type="text" value=sshHost change=setSshHost aria-label="SSH Host" testId="input-sshHost" flex-shrink=0
+                          row box-sizing="border-box" align-items="center" min-height=44 padding="10px 16px" gap=12 testId="pref-sshUser"
+                            text "SSH User" flex=1
+                            input type="text" value=sshUser change=setSshUser aria-label="SSH User" testId="input-sshUser" flex-shrink=0
+                          row box-sizing="border-box" align-items="center" min-height=44 padding="10px 16px" gap=12 testId="pref-sshPort"
+                            text "SSH Port" flex=1
+                            input type="text" value=sshPort change=setSshPort aria-label="SSH Port" testId="input-sshPort" flex-shrink=0
+                          PrefSelect(id="sshAuthMethod", title="Auth Method", value=sshAuthMethod, set=setSshAuthMethod)
+                            option "Password" value="password"
+                            option "Public Key" value="public-key"
+                      else if sectionId == "about"
+                        section
+                          header
+                            text "About"
+                          PrefSelect(id="logLevel", title="Log Level", value=logLevel, set=setLogLevel)
+                            option "Error" value="error"
+                            option "Warn" value="warn"
+                            option "Info" value="info"
+                            option "Debug" value="debug"
+                          row padding=16
+                            text color="-exact-secondary-label" "Exact Contract chrome · Wawona/Wawona#227 · dual-run until M8"
+                      else if sectionId == "dependencies"
+                        section
+                          header
+                            text "Dependencies"
+                          row padding=16
+                            text color="-exact-secondary-label" "Dependencies detail ports with M3. Open product Settings for live slice status."
+                          footer
+                            text "Slice inventory stays product-side (cargo xtask deps)."
+                      else
+                        section
+                          row padding=16
+                            text "Unknown section"
+                else
+                  text "Unknown route"
+      row role="tablist" testId="wawona-tabs" appearance="none"
+        button role="tab" aria-controls="panel-machines" aria-selected=(nav.tab == "machines") press=pickTab("machines")
+          testId="tab-machines" flex=1
+          image "symbol:layers"
+          text "Machines"
+        button role="tab" aria-controls="panel-settings" aria-selected=(nav.tab == "settings") press=pickTab("settings")
+          testId="tab-settings" flex=1
+          image "symbol:settings"
+          text "Settings"
+
+// One Settings switch row: title | platform switch (docs/settings.md row layout).
+component PrefSwitch
+  props
+    id: string
+    title: string
+    on: bool
+    set: action
+  view
+    row box-sizing="border-box" align-items="center" min-height=44 padding="10px 16px" gap=12 testId=`pref-${id}`
+      text title flex=1 min-width=0 line-clamp=1
+      input type="checkbox" switch checked=on change=set testId=`switch-${id}` aria-label=title margin=0 flex-shrink=0
+
+// One Settings picker row: title | select (macOS pop-up / iOS disclosure).
+component PrefSelect
+  props
+    id: string
+    title: string
+    value: string
+    set: action
+  slot
+  view
+    row box-sizing="border-box" align-items="center" min-height=44 padding="10px 16px" gap=12 testId=`pref-${id}`
+      text title flex=1 min-width=0 line-clamp=1
+      select value=value change=set aria-label=title testId=`select-${id}` flex-shrink=0
+        children
+
+// Machine configuration card (product WWNMachineCardView shape).
+component MachineCard
+  props
+    id: string
+    name: string
+    subtitle: string
+    kind: string
+    scope: string
+    summary: string
+    icon: string
+    running: bool
+    start: action
+    edit: action
+    remove: action
+  view
+    column testId=`wwn.machines.card.${id}` role="gridcell" gap=12 padding=16 border-radius=20 background-color="-exact-secondary-grouped-background" border-style="solid" border-width=1 border-color="-exact-separator" box-sizing="border-box" width="100%"
+      // Banner
+      row align-items="center" gap=12 padding=12 border-radius=16 background-color="AccentColor" min-height=90
+        column flex=1 min-width=0 gap=4
+          text font="-exact-title3" color="AccentColorText" line-clamp=1 name
+          text font="-exact-subheadline" color="AccentColorText" line-clamp=1 subtitle
+        image icon font-size=22 color="AccentColor" padding=8 border-radius=10 background-color="-exact-fill"
+      // Chips
+      row align-items="center" gap=6 flex-wrap="wrap"
+        text font="-exact-caption1" padding="2px 8px" border-radius=8 background-color="-exact-fill" (running ? "RUNNING" : "STOPPED")
+        text font="-exact-caption1" padding="2px 8px" border-radius=8 background-color="-exact-fill" scope
+        text font="-exact-caption1" padding="2px 8px" border-radius=8 background-color="-exact-fill" kind
+      text font="-exact-footnote" color="-exact-secondary-label" line-clamp=3 summary
+      // Actions (Start / Edit / Delete). Wrap inside the card.
+      row align-items="center" gap=8 flex-wrap="wrap" testId=`wwn.machines.actions.${id}`
+        button press=start(id) testId="wwn.machines.start" aria-label=`Start ${name}` padding="8px 12px" buttonStyle="filled"
+          image "symbol:play-fill"
+          text (running ? "Focus" : "Start")
+        button press=edit(id) testId="wwn.machines.edit" aria-label=`Edit ${name}` padding="8px 12px"
+          image "symbol:adjust"
+          text "Edit"
+        button press=remove(id) testId="wwn.machines.delete" aria-label=`Delete ${name}` padding="8px 12px" disabled=running
+          image "symbol:delete"
+          text "Delete"

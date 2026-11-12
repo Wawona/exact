@@ -139,7 +139,7 @@ final class FieldSelections {
     /// yet (`NodeView.makeWaitingField`): a command on its value or
     /// selection makes it, so both stand when the box opens.
     static func makeField(_ node: NodeView) {
-        #if os(iOS) || os(tvOS)
+        #if os(iOS) || os(visionOS) || os(tvOS)
         node.makeWaitingField()
         #endif
     }

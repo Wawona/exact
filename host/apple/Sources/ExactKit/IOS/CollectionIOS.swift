@@ -1,5 +1,5 @@
 // UIKit keeps gesture recognition; this recognizer only observes a bounded pin.
-#if os(iOS) || os(tvOS)
+#if os(iOS) || os(visionOS) || os(tvOS)
 import UIKit
 
 private final class CollectionContact: UIGestureRecognizer {
@@ -477,7 +477,7 @@ extension CollectionHost {
 }
 #endif
 
-#if os(iOS) || os(tvOS)
+#if os(iOS) || os(visionOS) || os(tvOS)
 /// One smooth correction's frames: ease-in-out from where the port was to
 /// where it is headed, the offset set each display frame. A retarget once a
 /// frame has shown begins a fresh ease from where the port is; one before

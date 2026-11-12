@@ -1,5 +1,5 @@
 // @ref LLP 1104 D3–D6: native field chrome around the kernel's content box.
-#if os(iOS) || os(tvOS)
+#if os(iOS) || os(visionOS) || os(tvOS)
 import UIKit
 
 extension NodeView {
@@ -52,7 +52,7 @@ extension NodeView {
     }
     /// The props an `input`'s field shows: `set` and `clear` are what changed.
     func applyField(_ f: UITextField, set: [String: String], clear: [String]) {
-        #if os(iOS)
+        #if os(iOS) || os(visionOS)
         f.pasteDelegate = FieldSelections.tracks(self) ? self : nil
         #endif
         f.tintColor = props["emojiPicker"] == "true" ? .clear : nil
@@ -253,7 +253,7 @@ extension NodeView {
     }
 }
 
-#if os(iOS)
+#if os(iOS) || os(visionOS)
 extension NodeView {
     /// The cell is the field (LLP 1116.005 D2): a touch in a grouped list's
     /// cell that its row leaves to no control of its own (the cell's margins,
@@ -331,7 +331,7 @@ extension TextArea {
 }
 #endif
 
-#if os(iOS) || os(tvOS)
+#if os(iOS) || os(visionOS) || os(tvOS)
 extension Presenter {
     /// Applies a `fieldContent` op. A content box touches its node here,
     /// where it takes effect: the paragraph laid out in it, and a native

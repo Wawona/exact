@@ -498,7 +498,12 @@ struct Instance {
     acquire: acquire::Acquire,
     #[cfg(not(target_arch = "wasm32"))]
     readback: Option<readback::Readback>,
-    #[cfg(any(target_os = "macos", target_os = "ios", target_os = "tvos"))]
+    #[cfg(any(
+        target_os = "macos",
+        target_os = "ios",
+        target_os = "tvos",
+        target_os = "visionos"
+    ))]
     layer: Option<usize>,
     outstanding: BTreeSet<String>,
     answered: BTreeSet<String>,
@@ -929,7 +934,12 @@ impl Module {
                 acquire: Default::default(),
                 #[cfg(not(target_arch = "wasm32"))]
                 readback: None,
-                #[cfg(any(target_os = "macos", target_os = "ios", target_os = "tvos"))]
+                #[cfg(any(
+                    target_os = "macos",
+                    target_os = "ios",
+                    target_os = "tvos",
+                    target_os = "visionos"
+                ))]
                 layer: None,
                 outstanding: BTreeSet::new(),
                 answered: BTreeSet::new(),
@@ -1229,7 +1239,12 @@ impl Module {
     /// # Safety
     /// `raw` is a live `MTLTexture` of that size and format, valid until
     /// the canvas is destroyed or another texture replaces it.
-    #[cfg(any(target_os = "macos", target_os = "ios", target_os = "tvos"))]
+    #[cfg(any(
+        target_os = "macos",
+        target_os = "ios",
+        target_os = "tvos",
+        target_os = "visionos"
+    ))]
     pub unsafe fn texture_from_metal(
         &mut self,
         id: u32,

@@ -1,7 +1,7 @@
 // A text field's editing as NodeView hears it from UIKit (UITextFieldDelegate):
 // a value written through composition with the caret carried, each change's
 // `input`, and the focus, reveal, commit and blur as editing begins and ends.
-#if os(iOS) || os(tvOS)
+#if os(iOS) || os(visionOS) || os(tvOS)
 import UIKit
 
 extension NodeView {

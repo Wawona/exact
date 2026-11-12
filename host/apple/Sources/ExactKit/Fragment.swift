@@ -51,7 +51,7 @@ extension Presenter {
             #if !os(macOS)
             fragmentHeld = elementScrolls.names.contains(name) ? name : nil
             #endif
-            #if os(iOS)
+            #if os(iOS) || os(visionOS)
             UIAccessibility.post(notification: .layoutChanged, argument: target)
             #elseif os(macOS)
             NSAccessibility.post(element: target, notification: .layoutChanged, userInfo: [.uiElements: [target]])

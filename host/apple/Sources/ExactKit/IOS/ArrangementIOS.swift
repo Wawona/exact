@@ -1,8 +1,8 @@
-#if os(iOS)
+#if os(iOS) || os(visionOS)
 import UIKit
 
 /// UIKit containment for two retained authored panes
-@available(iOS 27.1, *)
+@available(iOS 27.1, visionOS 27.1, *)
 final class ArrangementHost {
     private unowned let presenter: Presenter
     private var requests: [UInt32: UIArrangementViewController] = [:]
@@ -346,7 +346,7 @@ final class ArrangementHost {
 }
 #endif
 
-#if os(iOS) || os(tvOS)
+#if os(iOS) || os(visionOS) || os(tvOS)
 import UIKit
 
 extension NavigationHost {
@@ -372,8 +372,8 @@ extension NavigationHost {
     }
 
     func arrangementScrollers(in route: RouteController, top: Bool) -> [NodeView] {
-        #if os(iOS)
-        if #available(iOS 27.1, *), !Self.transparentBar(route.node) { return presenter.arrangements.scrollers(in: route.node, top: top) }
+        #if os(iOS) || os(visionOS)
+        if #available(iOS 27.1, visionOS 27.1, *), !Self.transparentBar(route.node) { return presenter.arrangements.scrollers(in: route.node, top: top) }
         #endif
         return []
     }
@@ -389,8 +389,8 @@ extension NavigationHost {
 
 extension Presenter {
     func arrangementHides(_ id: UInt32) -> Bool {
-        #if os(iOS)
-        if #available(iOS 27.1, *) { return arrangements.hiddenPanes.contains(id) }
+        #if os(iOS) || os(visionOS)
+        if #available(iOS 27.1, visionOS 27.1, *) { return arrangements.hiddenPanes.contains(id) }
         #endif
         return false
     }

@@ -1,7 +1,7 @@
 // The agent's `reveal` on UIKit (ledger F7, shop F11; LLP 1116.003): before
 // a tap or a type, a target out of what a person sees is scrolled into it, as
 // a finger would scroll it, and the press then measures where it rests.
-#if os(iOS) || os(tvOS)
+#if os(iOS) || os(visionOS) || os(tvOS)
 import UIKit
 
 extension Agent {
@@ -177,7 +177,7 @@ extension Agent {
             }
             if let tabs = responder as? UITabBarController {
                 out.append(tabs.tabBar)
-                #if os(iOS)
+                #if os(iOS) || os(visionOS)
                 if let list = tabs.floatingTabList { out.append(list) }
                 #endif
             }

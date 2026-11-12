@@ -85,7 +85,7 @@ extension ExactSession {
         guard dataPreparing, !Owner.shared.isServingMain else { return tellPreferences() }
         let bits = preferenceBits()
         var calls: [(Runtime) -> Batch] = [{ $0.setPreferences(bits) }]
-        #if os(iOS) || os(tvOS)
+        #if os(iOS) || os(visionOS) || os(tvOS)
         let reports = view?.window != nil
         #else
         let reports = true

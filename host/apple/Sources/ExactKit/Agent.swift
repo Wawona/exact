@@ -18,13 +18,13 @@ import AppKit
 #endif
 
 public final class Agent {
-    #if os(iOS) || os(tvOS)
+    #if os(iOS) || os(visionOS) || os(tvOS)
     // An agent-issued edit awaits its actual editor's native caret reveal.
     weak var pendingTextReveal: TextArea?
     /// The held contact on a `pan` node, recognized (LLP 1057 §10.6).
     var panContact: AgentPan?
     #endif
-    #if EXACT_WIDGET_GALLERY && (os(iOS) || os(macOS))
+    #if EXACT_WIDGET_GALLERY && ((os(iOS) || os(visionOS)) || os(macOS))
     var widgetPreview: WidgetPreview?
     var activityPreview: ActivityPreview?
     #endif
@@ -36,7 +36,7 @@ public final class Agent {
         // scene's, from the agent's first operation; on the Mac the app's,
         // from launch (`Agent.systemAppearance`). Reduced motion and
         // transparency start at no-preference (`DisplayPreferences.agent`).
-        #if os(iOS) || os(tvOS)
+        #if os(iOS) || os(visionOS) || os(tvOS)
         if ExactEnv.agentMode { systemScheme(dark: false) }
         #endif
     }
@@ -49,7 +49,7 @@ public final class Agent {
         let bounds: CGRect
         if let id = request["id"] as? UInt32, let run = presenter.inlineText(id) {
             let fragments = node.inlineRects(run).filter { !$0.isEmpty }.map { box(node, region: $0) }
-            #if os(iOS) || os(tvOS)
+            #if os(iOS) || os(visionOS) || os(tvOS)
             let reach = presenter.reach(of: node)
             #else
             let reach = CGRect(origin: .zero, size: presenter.viewportSize)
@@ -227,13 +227,13 @@ public final class Agent {
             }
         }
         if req["widget"] != nil || req["activity"] != nil {
-            #if EXACT_WIDGET_GALLERY && (os(iOS) || os(macOS))
+            #if EXACT_WIDGET_GALLERY && ((os(iOS) || os(visionOS)) || os(macOS))
             if op != "clock" {
                 Agent.reply(req["activity"] != nil ? ActivityAgent.answer(op, request: req, agent: self) : WidgetGallery.answer(op, request: req, agent: self))
                 return
             }
             #else
-            #if os(iOS)
+            #if os(iOS) || os(visionOS)
             Agent.reply(["error": "widget gallery is unavailable; rebuild: bun host/apple/build.mjs --ios --widget-gallery"])
             #else
             Agent.reply(["error": "widget gallery is unavailable; rebuild: bun host/apple/build.mjs --widget-gallery"])
@@ -374,7 +374,7 @@ public final class Agent {
         case "screenshot": Agent.reply(tagged(screenshot(req)))
         // What is wrong with the presented screen, as observations the driver judges (LLP 1116.003 D8).
         case "check":
-            #if os(iOS) || os(tvOS)
+            #if os(iOS) || os(visionOS) || os(tvOS)
             Agent.reply(tagged(check(req)))
             #else
             Agent.reply(["error": "check: the web and iOS hosts carry it, not macOS yet"])
@@ -746,7 +746,7 @@ public final class Agent {
     /// `rows` (each at least 1), `gap` (points, 0 by default). Each refusal
     /// names its fact (LLP 1078 D10); nothing applies unless all are known.
     private func preferFold(_ fold: [String: Any]) -> [String: Any]? {
-        #if os(iOS) || os(tvOS)
+        #if os(iOS) || os(visionOS) || os(tvOS)
         // The hinge interaction reports after the view attaches, a turn or two
         // after boot; a drive's first `prefer` can arrive before it. Give it a
         // bounded moment on a 27.1 device so the answer is the device's.
@@ -778,7 +778,7 @@ public final class Agent {
             // The window's segments, as the host sends them (LLP 1075.003 §9.11).
             do { next.rects = try Segments.even(viewport: session.screenSize ?? presenter.viewportSize, cols: next.cols, rows: next.rows, gap: gap) } catch { return ["error": "prefer: \(error)"] }
         }
-        #if os(iOS) || os(tvOS)
+        #if os(iOS) || os(visionOS) || os(tvOS)
         if let view = session.view { return view.prefer(next).map { ["error": "prefer: \($0)"] } }
         #endif
         return session.segments(next).map { ["error": "prefer: \($0)"] }
@@ -891,7 +891,7 @@ public final class Agent {
         guard var to = target, to.isFinite else { return ["malformed": true, "error": "clock needs \"to\" (ms) or \"settle\": true"] }
         guard to >= from else { return ["error": "the clock cannot go backwards (\(from) → \(to))"] }
         var rounds = 0, hatchDrains = 0
-        #if os(iOS) || os(tvOS)
+        #if os(iOS) || os(visionOS) || os(tvOS)
         var wallDeadline: Date?, scrollDeadline: Date?
         #endif
         var world = WorldClock()
@@ -937,7 +937,7 @@ public final class Agent {
             // source's ask it made lands first (LLP 1133.009 D10 item 7).
             guard settle else {
                 waitForPolls(until: deadline)
-                #if os(iOS) || os(tvOS)
+                #if os(iOS) || os(visionOS) || os(tvOS)
                 // The app's own native motion on the wall clock has as long as
                 // the whole jump (`jump`: the driver's seek in steps), up to
                 // 1.5 s, once: after its last step (`step` marks the others);
@@ -976,7 +976,7 @@ public final class Agent {
                 continue
             }
             if next <= landed && !world.pending {
-                #if os(iOS) || os(tvOS)
+                #if os(iOS) || os(visionOS) || os(tvOS)
                 // The app's own native motion on the wall clock ends first,
                 // within 1.5 s for the whole call, or the call is not settled;
                 // what its completion starts is checked below.
@@ -1001,7 +1001,7 @@ public final class Agent {
                 let nativeDeadline = Date(timeIntervalSinceNow: 2)
                 var wasBusy = nativeInFlight()
                 while true {
-                    #if !(os(iOS) || os(tvOS))
+                    #if !(os(iOS) || os(visionOS) || os(tvOS))
                     if !wasBusy { break }
                     #endif
                     RunLoop.main.run(until: Date(timeIntervalSinceNow: 0.02))
@@ -1206,7 +1206,7 @@ public final class Agent {
 
     /// How many requests the runner and the presenter's pictures have in flight.
     func pendingCount() -> Int {
-        #if os(iOS) || os(tvOS)
+        #if os(iOS) || os(visionOS) || os(tvOS)
         let pictures = SvgFilterLive.inFlight
         #else
         let pictures = 0
@@ -1266,7 +1266,7 @@ public extension ExactEnv {
     /// neither, as a grader's `simctl launch` arming only the fault table
     /// (`EXACT_AGENT_FAIL_FETCH`) is, has no driver to read painted chrome:
     /// it shows what a person sees.
-    #if os(iOS) || os(tvOS)
+    #if os(iOS) || os(visionOS) || os(tvOS)
     static let agentDriven = agentMode && (environment["EXACT_AGENT_SOCKET"] != nil || environment["EXACT_AGENT_CONNECT"] != nil)
     #else
     static let agentDriven = agentMode
@@ -1307,7 +1307,7 @@ extension ExactSession {
         #endif
         frames.run(frames.motion || frames.timerSoon || canvases.wantsFrames)
     }
-    #if os(iOS) || os(tvOS)
+    #if os(iOS) || os(visionOS) || os(tvOS)
     /// A hardware keyboard's Tab (or Shift-Tab) when no node of this session
     /// holds the focus: an app's last responder forwards it here, as macOS's
     /// window starts its key-view loop at the view.

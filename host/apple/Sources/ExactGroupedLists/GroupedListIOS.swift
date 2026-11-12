@@ -13,14 +13,14 @@ import ExactKit
 /// nodes, and installing it does nothing.
 public enum ExactGroupedLists {
     public static func install() {
-        #if os(iOS) || os(tvOS)
+        #if os(iOS) || os(visionOS) || os(tvOS)
         GroupedListsLink.make = { GroupedListHost($0) }
         GroupedListsLink.part = GroupedListHost.part
         #endif
     }
 }
 
-#if os(iOS) || os(tvOS)
+#if os(iOS) || os(visionOS) || os(tvOS)
 import CExact
 import UIKit
 
@@ -28,7 +28,7 @@ extension Runtime {
     /// A grouped list's sections and rows (LLP 1084 D4), as the kernel's
     /// JSON. The model is read on iOS; tvOS shows a grouped list's authored nodes.
     func groupedList(_ view: UInt32) -> Data? {
-        #if os(iOS)
+        #if os(iOS) || os(visionOS)
         return on(busy: nil) {
             let len = exact_grouped_list(rt, view)
             return Data(bytes: exact_out(rt), count: Int(len))
@@ -212,7 +212,7 @@ final class GroupedListHost: GroupedLists {
     init(_ presenter: Presenter) { self.presenter = presenter }
 
     func rows(for id: UInt32) -> [[UInt32]]? {
-        #if os(iOS)
+        #if os(iOS) || os(visionOS)
         return model(id)?.sections.map { $0.rows.map(\.view) }
         #else
         return nil
@@ -526,7 +526,7 @@ final class GroupedListView: NSObject, UICollectionViewDelegate {
     private var unsized: Set<UInt32> = []
     /// Each custom row's marked leading symbol and line start (`GroupedCustomRowsIOS.swift`).
     var customLooks: [UInt32: CustomLook] = [:]
-    #if os(iOS)
+    #if os(iOS) || os(visionOS)
     /// The list's background past the viewport's edges (`hem`), and the
     /// list's colours it was painted from.
     private var skirt: UIView?
@@ -534,7 +534,7 @@ final class GroupedListView: NSObject, UICollectionViewDelegate {
     #endif
     /// Whether `view` is this list's background past the viewport's edges.
     func owns(skirt view: UIView) -> Bool {
-        #if os(iOS)
+        #if os(iOS) || os(visionOS)
         return skirt === view
         #else
         return false
@@ -599,7 +599,7 @@ final class GroupedListView: NSObject, UICollectionViewDelegate {
         return model.appearance == .plain ? ThemeRoles.color("background", in: root) ?? ThemeRoles.color("Canvas", in: root)
             : ThemeRoles.color("grouped-background", in: root)
     }
-    #if os(iOS)
+    #if os(iOS) || os(visionOS)
     /// The ground where none is written: the theme's, else UIKit's for the list's appearance.
     private var platformGround: UIColor { themeGround ?? (model.appearance == .plain ? .systemBackground : .systemGroupedBackground) }
     #endif
@@ -634,7 +634,7 @@ final class GroupedListView: NSObject, UICollectionViewDelegate {
                 return separator
             }
             #endif
-            #if os(iOS)
+            #if os(iOS) || os(visionOS)
             // A row that names swipe actions swipes as a hand-built list's
             // cell does (LLP 1116.001 D1): UIKit's actions, a full swipe the first.
             c.leadingSwipeActionsConfigurationProvider = { [weak self] path in self?.swipeActions(at: path, leading: true) }
@@ -680,7 +680,7 @@ final class GroupedListView: NSObject, UICollectionViewDelegate {
         }
     }
 
-    #if os(iOS)
+    #if os(iOS) || os(visionOS)
     /// A custom row's swipe actions on one side, as the swipe host offers
     /// them (`swipeContent`, LLP 1008 §9); nil for any other row.
     func swipeActions(at path: IndexPath, leading: Bool) -> UISwipeActionsConfiguration? {
@@ -734,7 +734,7 @@ final class GroupedListView: NSObject, UICollectionViewDelegate {
             }
         }
         snapshot.reconfigureItems(changed.filter { $0 != flipping })
-        #if os(iOS)
+        #if os(iOS) || os(visionOS)
         // Sections each headed by one letter (Contacts' A to Z) have UIKit's section index at the trailing edge, as a
         // hand-built list of them does (`indexTitles(for:)`); a jump lands on a section's first row. Sections above
         // the letters (Favorites) are left out of it.
@@ -748,7 +748,7 @@ final class GroupedListView: NSObject, UICollectionViewDelegate {
             || !recarded.isEmpty // separators are the section layout's
         let regapped = previous.sections.map(\.spaceAbove) != next.sections.map(\.spaceAbove) || previous.spaceBelow != next.spaceBelow
         if restyled { collection.setCollectionViewLayout(layout(), animated: false) }
-        #if os(iOS)
+        #if os(iOS) || os(visionOS)
         // The collection view's own background shows through a clear section ground and below a short list, and UIKit
         // gives it the appearance's ground only for a layout with none of its own, so it is set here.
         let ground = writesGround ? .clear : platformGround
@@ -809,7 +809,7 @@ final class GroupedListView: NSObject, UICollectionViewDelegate {
         assign(collection, \.bounces, owner.style["overscroll_behavior_y"]?.string != "none")
         // With the page's bands it reaches (LLP 1130 D3), and the side safe
         // areas its edges meet, where UIKit insets the cards by its own rule.
-        #if os(iOS)
+        #if os(iOS) || os(visionOS)
         reach = sideReach()
         (collection as? GroupedCollectionView)?.sideSafeArea = reach
         #endif
@@ -835,7 +835,7 @@ final class GroupedListView: NSObject, UICollectionViewDelegate {
             section.isHidden = true
         }
         remeasure()
-        #if os(iOS)
+        #if os(iOS) || os(visionOS)
         hem()
         #endif
         if resized { resized = false; collection.collectionViewLayout.invalidateLayout() }
@@ -893,7 +893,7 @@ final class GroupedListView: NSObject, UICollectionViewDelegate {
         return whole
     }
 
-    #if os(iOS)
+    #if os(iOS) || os(visionOS)
     /// LLP 1116.004 D2 (chat-rooms, round 6): where the list's box meets an
     /// edge of a viewport the safe area keeps short of the screen's — a page
     /// with no navigation container keeps its content inside the safe area —
@@ -962,7 +962,7 @@ final class GroupedListView: NSObject, UICollectionViewDelegate {
         source.indexPath(for: id).flatMap { collection.cellForItem(at: $0) }
     }
 
-    #if os(iOS)
+    #if os(iOS) || os(visionOS)
     /// How far past each side the list's edge meets the collection reaches,
     /// a safe area there, where nothing between the list and the window
     /// transforms or clips it away. The window's side safe area: Exact's
@@ -1161,7 +1161,7 @@ final class GroupedListView: NSObject, UICollectionViewDelegate {
         // Settings has it (LLP 1115.000 D13.2); UIKit has no radio.
         case "radio": return row.checked ? [.checkmark()] : []
         case "detail":
-            #if os(iOS)
+            #if os(iOS) || os(visionOS)
             return [cell.detailAccessory(enabled: !row.disabled) { [weak self, weak cell] in
                 if let id = cell?.row { _ = self?.detail(id) }
             }]
@@ -1351,7 +1351,7 @@ final class GroupedListView: NSObject, UICollectionViewDelegate {
         restore()
         for id in Array(customLooks.keys) { forgetLook(id) }
         owner.mountNativeScrollView(nil)
-        #if os(iOS)
+        #if os(iOS) || os(visionOS)
         skirt?.removeFromSuperview()
         #endif
         collection.removeFromSuperview()
@@ -1421,7 +1421,7 @@ final class GroupedListView: NSObject, UICollectionViewDelegate {
         assign(cell, \.isUserInteractionEnabled, !inert)
         assign(cell, \.accessibilityElementsHidden, inert)
         let node = host.presenter.views[id]
-        #if os(iOS)
+        #if os(iOS) || os(visionOS)
         if let cell = cell as? GroupedCell {
             cell.menuSource = rows[id]?.custom == false ? node : nil
             host.presenter.syncGroupedMenu(on: cell)

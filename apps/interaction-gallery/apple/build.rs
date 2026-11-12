@@ -22,7 +22,7 @@ fn main() {
     let target = std::env::var("TARGET").unwrap_or_default();
     let platform = match std::env::var("CARGO_CFG_TARGET_OS").as_deref() {
         // tvOS and watchOS reuse the manifest's iOS policy, including interpreted Rust updates.
-        Ok("ios" | "tvos" | "watchos") => "ios",
+        Ok("ios" | "tvos" | "visionos" | "watchos") => "ios",
         _ => "macos",
     };
     let manifest = contract::Manifest::read(&app_dir).unwrap_or_else(|e| panic!("app.json: {e}"));

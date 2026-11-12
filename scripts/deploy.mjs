@@ -55,8 +55,8 @@ import { filesystemLock, removePrivateTree } from './filesystem.mjs';
 import { entryPlans, listBuildFiles, listPublicFiles, readStaticCandidate } from '../host/web/serve.mjs';
 import { BESIDE, STAGE } from '../host/web/beside.mjs';
 const ROOT = resolve(new URL('..', import.meta.url).pathname);
-const PLATFORMS = ['web', 'ios', 'macos', 'linux'];
-const USAGE = 'usage: bun scripts/deploy.mjs <app> [--origin <dir|url>] [--channel <name>] [--only bundle|origin] [--platform <web|ios|macos|linux>]... [--snapshot <sha>] [--dirty] [--release <id>] [--keys <dir>] [--json] [--yes]\n       bun scripts/deploy.mjs keygen <id> [--keys <dir>] [--json]';
+const PLATFORMS = ['web', 'ios', 'macos', 'linux', 'windows'];
+const USAGE = 'usage: bun scripts/deploy.mjs <app> [--origin <dir|url>] [--channel <name>] [--only bundle|origin] [--platform <web|ios|macos|linux|windows>]... [--snapshot <sha>] [--dirty] [--release <id>] [--keys <dir>] [--json] [--yes]\n       bun scripts/deploy.mjs keygen <id> [--keys <dir>] [--json]';
 // ------------------------------------------------------------------ arguments
 function parseArgs(argv) {
   const opts = { platform: [], _: [] };
@@ -666,6 +666,8 @@ function readBundle(web, app) {
  * launchable production sequence; publication returns the receipt for a
  * subsequent strict release bake. */
 function buildFor(app, platform, sourceRoot, run) {
+  // The MSVC target, and so the compatibility id a Windows binary carries, builds only on Windows.
+  if (platform === 'windows' && process.platform !== 'win32') refuse('a Windows stream bakes on Windows, where the MSVC target builds: deploy it there, or pass --platform for the others');
   const target = bakeTarget(platform);
   const env = sealedSourceEnv(sourceRoot, { CARGO_TARGET_DIR: app.target, EXACT_UPDATE_TRUST: 'production', EXACT_BAKE_OUTPUT:resolve(run,'bake') });
   // By target, not platform: on a Mac the Linux host builds for this Mac's

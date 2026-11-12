@@ -1,7 +1,7 @@
 // @ref LLP 1021 D3 — a bar item's popover on iOS: a menu (or a
 // confirmation) is the item's pull-down; any other popover opens as itself,
 // lifted and anchored on the item.
-#if os(iOS) || os(tvOS)
+#if os(iOS) || os(visionOS) || os(tvOS)
 import UIKit
 
 extension MenuHost {

@@ -25,7 +25,7 @@
 // spelling and wins on a node that has both, on every host.
 import CExact
 import CoreGraphics
-#if os(iOS) || os(tvOS)
+#if os(iOS) || os(visionOS) || os(tvOS)
 import UIKit
 #else
 import AppKit
@@ -34,7 +34,7 @@ import AppKit
 /// `backgroundMaterial`'s vocabulary (LLP 1053.000 D4): the schema's table,
 /// read through `exact_material_platform`, as this platform's own names.
 enum Materials {
-    #if os(iOS) || os(tvOS)
+    #if os(iOS) || os(visionOS) || os(tvOS)
     static let platformCode: UInt8 = 0
     #else
     static let platformCode: UInt8 = 1
@@ -75,7 +75,7 @@ enum Materials {
         return ["name": name, "drawn": apple, "standIn": standIn]
     }
 
-    #if os(iOS) || os(tvOS)
+    #if os(iOS) || os(visionOS) || os(tvOS)
     /// A `UIBlurEffect.Style` by its Swift name.
     static func blurStyle(_ apple: String) -> UIBlurEffect.Style? {
         switch apple {
@@ -166,7 +166,7 @@ extension NodeView {
     var defaultSurfaceRadius: CGFloat? {
         guard props["defaultSurface"] == "true", props["popover"] != nil, props["accessibilityRole"] != "menu",
               let radius = props["defaultSurfaceRadius"].flatMap(Double.init) else { return nil }
-        #if os(iOS)
+        #if os(iOS) || os(visionOS)
         if let id = props["id"], presenter?.carrying("contextPopover").contains(where: { $0.props["contextPopover"] == id }) == true { return nil }
         #endif
         return CGFloat(radius)
@@ -174,7 +174,7 @@ extension NodeView {
 
     /// The corners actually painted, including the platform's unsaid popover surface.
     func effectiveCornerSizes(in rect: CGRect) -> [CGSize] {
-        #if os(iOS) || os(tvOS)
+        #if os(iOS) || os(visionOS) || os(tvOS)
         if materialView != nil, !writesCorner, let radius = defaultSurfaceRadius {
             return BorderPaint.reduced(Array(repeating: CGSize(width: radius, height: radius), count: 4), in: rect)
         }
@@ -182,7 +182,7 @@ extension NodeView {
         return cornerSizes(in: rect)
     }
 
-    #if os(iOS) || os(tvOS)
+    #if os(iOS) || os(visionOS) || os(tvOS)
     /// A scrolling popover's children are its scroll view's, not the glass's
     /// content view's: the scroll view takes the default surface's corner
     /// while that applies, and gives it up when it no longer does.
@@ -223,7 +223,7 @@ extension NodeView {
     }
 }
 
-#if os(iOS) || os(tvOS)
+#if os(iOS) || os(visionOS) || os(tvOS)
 /// The system material approximation, remembering its authored functions.
 final class BackdropEffectView: UIVisualEffectView {
     var operations: [BackdropOperation] = []
@@ -240,11 +240,14 @@ extension NodeView {
     func materialEffect(_ kind: String, interactive: Bool) -> UIVisualEffect {
         let apple = Materials.resolve(kind) { [weak self] in self?.presenter?.session?.log($0) }
         if apple == "glass" || apple == "glassClear" {
+            // visionOS has no UIGlassEffect: its windows are glass already.
+            #if !os(visionOS)
             if #available(iOS 26.0, tvOS 26.0, *) {
                 let glass = UIGlassEffect(style: apple == "glass" ? .regular : .clear)
                 glass.isInteractive = interactive
                 return glass
             }
+            #endif
             #if os(tvOS)
             // tvOS has no system materials; .regular is its nearest blur.
             return UIBlurEffect(style: .regular)

@@ -37,7 +37,7 @@ package protocol MarkdownCapability: AnyObject {
     func restyle(_ node: NodeView)
     /// The `formatElement` command (LLP 1045 D6).
     func formatElement(_ presenter: Presenter, _ args: [Any])
-    #if os(iOS) || os(tvOS)
+    #if os(iOS) || os(visionOS) || os(tvOS)
     /// The edit menu's Markdown items for `textView`.
     func menu(_ node: NodeView, _ textView: UITextView, range: NSRange, suggested: [UIMenuElement]) -> UIMenu?
     #endif
@@ -259,7 +259,7 @@ extension NodeView {
     }
 }
 
-#if os(iOS) || os(tvOS)
+#if os(iOS) || os(visionOS) || os(tvOS)
 extension NodeView {
     /// The edit menu, with Markdown's items for a Markdown editor (UITextViewDelegate).
     package func textView(_ textView: UITextView, editMenuForTextIn range: NSRange, suggestedActions: [UIMenuElement]) -> UIMenu? {

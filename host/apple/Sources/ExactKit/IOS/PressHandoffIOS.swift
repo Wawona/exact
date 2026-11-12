@@ -6,7 +6,7 @@
 // autofocuses) may take the focus the press left on its control, as a click
 // that shows a field hands it the focus on the web host (host/web-js/focus.js,
 // host/web/navigation.js's `pointerTarget`).
-#if os(iOS) || os(tvOS)
+#if os(iOS) || os(visionOS) || os(tvOS)
 import UIKit
 
 /// A press's permission to hand the focus it left on its control to an

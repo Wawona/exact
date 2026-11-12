@@ -7,7 +7,7 @@
 // a plain view). The viewport stays the document's coordinate space; the
 // mount takes its place, frame and bounds alike, so every conversion
 // through the viewport holds.
-#if os(iOS) || os(tvOS)
+#if os(iOS) || os(visionOS) || os(tvOS)
 import UIKit
 
 /// The document's mount while a native container owns the screen: in the

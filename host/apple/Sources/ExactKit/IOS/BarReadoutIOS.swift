@@ -10,7 +10,7 @@
 // changing readout does not rebuild the bar's items. VoiceOver reads it as
 // static text, by its `aria-label` or its texts, and speaks a change
 // politely, as ARIA's `status` asks.
-#if os(iOS) || os(tvOS)
+#if os(iOS) || os(visionOS) || os(tvOS)
 import UIKit
 
 /// What a readout's view shows besides its face: its padding, direction,

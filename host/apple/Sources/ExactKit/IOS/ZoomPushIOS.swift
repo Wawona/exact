@@ -5,7 +5,7 @@
 // iOS 18's `preferredTransition` applies to a push as to a presentation
 // (UIKit, "UIViewController.Transition.zoom"); the swipe back is the
 // zoom's own, which `transitionEnded` dispatches as any interactive pop.
-#if os(iOS)
+#if os(iOS) || os(visionOS)
 import UIKit
 
 extension NavigationHost {

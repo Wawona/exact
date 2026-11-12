@@ -28,7 +28,12 @@ struct Slot {
     contents: Option<std::ptr::NonNull<u8>>,
     size: usize,
     /// Keeps the Metal buffer, and so `contents`, alive with the slot.
-    #[cfg(any(target_os = "macos", target_os = "ios", target_os = "tvos"))]
+    #[cfg(any(
+        target_os = "macos",
+        target_os = "ios",
+        target_os = "tvos",
+        target_os = "visionos"
+    ))]
     _raw: Option<objc2::rc::Retained<objc2::runtime::ProtocolObject<dyn objc2_metal::MTLBuffer>>>,
 }
 
@@ -39,7 +44,12 @@ impl FrameUniform {
 
     /// A uniform of `size` bytes, labelled `label`.
     pub fn new(device: &wgpu::Device, size: usize, label: &str) -> FrameUniform {
-        #[cfg(any(target_os = "macos", target_os = "ios", target_os = "tvos"))]
+        #[cfg(any(
+            target_os = "macos",
+            target_os = "ios",
+            target_os = "tvos",
+            target_os = "visionos"
+        ))]
         if let Some(slots) = shared(device, size, label) {
             return FrameUniform { slots, next: 0 };
         }
@@ -47,6 +57,7 @@ impl FrameUniform {
             target_os = "macos",
             target_os = "ios",
             target_os = "tvos",
+            target_os = "visionos",
             target_arch = "wasm32"
         )))]
         if let Some(slots) = mapped(device, size, label) {
@@ -63,7 +74,12 @@ impl FrameUniform {
                 buffer,
                 contents: None,
                 size,
-                #[cfg(any(target_os = "macos", target_os = "ios", target_os = "tvos"))]
+                #[cfg(any(
+                    target_os = "macos",
+                    target_os = "ios",
+                    target_os = "tvos",
+                    target_os = "visionos"
+                ))]
                 _raw: None,
             }],
             next: 0,
@@ -106,7 +122,12 @@ impl FrameUniform {
 }
 
 /// The ring on Metal: shared-storage buffers wgpu binds as uniforms.
-#[cfg(any(target_os = "macos", target_os = "ios", target_os = "tvos"))]
+#[cfg(any(
+    target_os = "macos",
+    target_os = "ios",
+    target_os = "tvos",
+    target_os = "visionos"
+))]
 fn shared(device: &wgpu::Device, size: usize, label: &str) -> Option<Vec<Slot>> {
     use objc2_metal::{MTLBuffer, MTLDevice, MTLResourceOptions};
     // SAFETY: only reads the raw device to allocate from it.
@@ -149,6 +170,7 @@ fn shared(device: &wgpu::Device, size: usize, label: &str) -> Option<Vec<Slot>> 
     target_os = "macos",
     target_os = "ios",
     target_os = "tvos",
+    target_os = "visionos",
     target_arch = "wasm32"
 )))]
 fn mapped(device: &wgpu::Device, size: usize, label: &str) -> Option<Vec<Slot>> {

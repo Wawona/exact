@@ -19,7 +19,7 @@
 // that reaches into one selects the element, not a word. A tap selects
 // nothing, as on a `UITextView`: a click's selection is the web's, not
 // UIKit's. A shared input expands the selection across the element's paragraphs.
-#if os(iOS)
+#if os(iOS) || os(visionOS)
 import CoreText
 import UIKit
 

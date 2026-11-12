@@ -1,4 +1,4 @@
-#if os(iOS)
+#if os(iOS) || os(visionOS)
 import UIKit
 
 /// A textarea's `resize` grip (`ResizeGrip.swift`): above its text view, a

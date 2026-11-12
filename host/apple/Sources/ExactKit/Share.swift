@@ -78,7 +78,7 @@ extension ExactSession {
             }
         }
         let (view, rect) = presenter.shareAnchor(source)
-        #if os(iOS)
+        #if os(iOS) || os(visionOS)
         let barItem = source.flatMap { presenter.navigation.shownBarItem($0) }
         #else
         let barItem: AnyObject? = nil
@@ -249,7 +249,7 @@ enum ShareSheet {
         if let barItem = barItem as? UIBarButtonItem {
             // The sheet grows out of its button, as a hand-built bar's does (iOS 26).
             sheet.popoverPresentationController?.sourceItem = barItem
-            if #available(iOS 26.0, *) { sheet.preferredTransition = .zoom(sourceBarButtonItemProvider: { _ in barItem }) }
+            if #available(iOS 26.0, visionOS 26.0, *) { sheet.preferredTransition = .zoom(sourceBarButtonItemProvider: { _ in barItem }) }
         } else {
             sheet.popoverPresentationController?.sourceView = view
             sheet.popoverPresentationController?.sourceRect = rect

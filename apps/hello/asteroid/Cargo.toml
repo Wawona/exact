@@ -1,0 +1,25 @@
+# Hello on AsteroidOS: smallest Contract app, headless agent seam first.
+[package]
+name = "hello-asteroid"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Hello on the AsteroidOS host"
+publish = false
+build = "build.rs"
+
+[[bin]]
+name = "hello-asteroid"
+path = "src/main.rs"
+test = false
+bench = false
+
+[dependencies]
+hello-data = { path = "../data" }
+exact-asteroid = { path = "../../../host/asteroid" }
+exact-linux = { path = "../../../host/linux" }
+
+[build-dependencies]
+hello-data = { path = "../data" }
+contract = { path = "../../../contract/cli" }
+exact-bake = { path = "../../../bake" }

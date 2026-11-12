@@ -10,7 +10,7 @@ extension ExactSession {
         rasters.trimCold()
         text.dropColdShaped()
         if let m = text.measurer { Owner.shared.post { m.dropColdShaped() } }
-        #if os(iOS) || os(tvOS)
+        #if os(iOS) || os(visionOS) || os(tvOS)
         presenter.textRasters.dropKept()
         #endif
         DispatchQueue.global(qos: .utility).async { malloc_zone_pressure_relief(nil, 0) }

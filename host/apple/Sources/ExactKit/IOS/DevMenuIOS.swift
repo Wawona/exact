@@ -8,7 +8,7 @@
 // Screen; ⇧⌘R gets through). EXACT_DEV_MENU=0 removes all of it. The
 // standalone adapter installs it (LLP 1031 D11); an embedder installs
 // nothing.
-#if os(iOS) || os(tvOS)
+#if os(iOS) || os(visionOS) || os(tvOS)
 import UIKit
 import UIKit.UIGestureRecognizerSubclass
 import ExactCore
@@ -227,7 +227,7 @@ public enum DevMenu {
 
     static func show() {
         guard controller != nil else { return }
-        #if os(iOS)
+        #if os(iOS) || os(visionOS)
         let menu = DevMenuController.navigation()
         sheet = menu
         present(menu)
@@ -236,7 +236,7 @@ public enum DevMenu {
         let a = UIAlertController(title: "Exact", message: text, preferredStyle: .actionSheet)
         a.addAction(UIAlertAction(title: "Reload", style: .default) { _ in reload() })
         a.addAction(UIAlertAction(title: "Open Project…", style: .default) { _ in openProject() })
-        #if EXACT_WIDGET_GALLERY && os(iOS)
+        #if EXACT_WIDGET_GALLERY && (os(iOS) || os(visionOS))
         if WidgetGallery.available { a.addAction(UIAlertAction(title: "Widgets…", style: .default) { _ in WidgetGallery.show() }) }
         #endif
         #if !os(tvOS)

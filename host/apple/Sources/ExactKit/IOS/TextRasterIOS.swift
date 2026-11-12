@@ -1,7 +1,7 @@
 // UIKit paragraph layers consume pixels from the same workers and paint routine
 // as AppKit. Native views, inline links and accessibility keep their identities.
 // @ref LLP 1044.000 §6 S5
-#if os(iOS) || os(tvOS)
+#if os(iOS) || os(visionOS) || os(tvOS)
 import UIKit
 import CoreText
 

@@ -4,7 +4,7 @@
 // first (scroll always wins).
 import ExactKit
 import CExact
-#if os(iOS) || os(tvOS)
+#if os(iOS) || os(visionOS) || os(tvOS)
 import UIKit
 import QuartzCore
 

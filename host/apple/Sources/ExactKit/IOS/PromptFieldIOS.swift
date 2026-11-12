@@ -14,7 +14,7 @@
 // does by the field's delegate, which refuses the edit or Return of a key a
 // handler prevented. A software keyboard's Backspace is the delegate's
 // deletion before the caret.
-#if os(iOS) || os(tvOS)
+#if os(iOS) || os(visionOS) || os(tvOS)
 import UIKit
 
 final class PromptField: NSObject, UITextFieldDelegate {

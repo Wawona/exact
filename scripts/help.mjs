@@ -53,7 +53,7 @@ const DRIVE_INTERNAL = ['--app <name>', '--session <label>', '--pid <pid>', '--o
 const NATIVE_PORTS = 'iOS simulator: a Unix socket; --device: a free TCP port; macOS, Linux, Android: stdio.';
 
 // host/apple/build.mjs's flags, which `ios` and `mac` both run: each documents its own, and takes the rest.
-const APPLE = ['--painted-benchmark', '--watchos', '--watch-sim <udid>', '--ios', '--tvos', '--device', '--run', '--no-install', '--prebuild', '--release', '--host', '--embed', '--bundle', '--distribution', '--unsigned', '--test', '--only <Class,…>',
+const APPLE = ['--painted-benchmark', '--watchos', '--watch-sim <udid>', '--ios', '--tvos', '--visionos', '--device', '--run', '--no-install', '--prebuild', '--release', '--host', '--embed', '--bundle', '--distribution', '--unsigned', '--test', '--only <Class,…>',
   '--archive <out.ipa>', '--sim <udid|name>', '--phone <udid|name>', '--url <url>', '--optimize <speed|size>', '--link <plan>', '--widget-gallery'];
 const appleRest = (documented) => APPLE.filter((spec) => !documented.some(([row]) => specs(row).some((d) => name(d) === name(spec))));
 const OPTIMIZE = ['--optimize speed|size', 'the Rust archive\'s (default speed, or app.json host.ios|macos.optimize)'];
@@ -243,6 +243,7 @@ Ports    none to choose: test's and agent's (headless Chrome over a pipe; a simu
       ['--archive <out.ipa>', 'with --device: an .ipa to distribute (EXACT_IDENTITY, EXACT_PROFILE), no phone; production trust, so with an update store EXACT_UPDATE_RECEIPT or EXACT_UPDATE_GENESIS=1'],
       ['--unsigned', 'with --archive: ad-hoc signed, for a service that re-signs it'],
       ['--tvos', 'an Apple TV simulator instead (with --device, an Apple TV)'],
+      ['--visionos', 'an Apple Vision Pro simulator instead'],
       ['--url <url>', 'connect the client to that dev server (web\'s URL) for live reload'],
       OPTIMIZE,
     ],
@@ -302,12 +303,23 @@ anywhere, macOS included, with no display.
 Ports    none. Runs to completion.`,
     example: 'bun exact.mjs linux && bun exact.mjs test linux',
   },
+  asteroid: {
+    line: 'build the AsteroidOS host (agent asteroid drives it headless at 240x240)',
+    usage: 'bun exact.mjs asteroid | bun scripts/build-asteroid.mjs <app>',
+    flags: [],
+    body: `A development build of the app's asteroid crate (cargo profile host-dev). Prints the
+binary path. Headless on the build machine; cross armv7 uses host/asteroid/build.mjs and
+AsteroidOS-SDK. agent asteroid defaults the viewport to 240x240.
+Ports    none. Runs to completion.`,
+    example: 'bun scripts/build-asteroid.mjs hello && bun scripts/agent.mjs asteroid --app hello tree',
+  },
   android: {
     line: 'build the APK and install it (test, agent and verify android drive it)',
-    usage: 'bun exact.mjs android [--run] [--headless]',
+    usage: 'bun exact.mjs android [--run] [--headless] [--aab]',
     flags: [
       ['--run', 'launch it once installed'],
       ['--headless', 'build the Linux host for Android instead (agent android --headless runs it under adb shell)'],
+      ['--aab', 'build a release Android App Bundle for Google Play instead, signed with the upload key EXACT_ANDROID_UPLOAD_KEYSTORE names (else the debug key); installs nothing'],
     ],
     // `--apk --install` are the verb's own; --release builds the release profile, for measuring; --write-locks writes
     // the Gradle lock and verification files of an app whose modules name Maven libraries.

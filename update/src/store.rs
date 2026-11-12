@@ -40,7 +40,7 @@ mod disk;
 
 use crate::envelope::{resolve_url, safe_name, sha256_hex, Card, Envelope, FileCard};
 use disk::{
-    read_bounded, read_card, regular_file, sweep, sync_dir, temporary_name, write_atomic,
+    read_bounded, read_card, regular_file, rename, sweep, sync_dir, temporary_name, write_atomic,
     write_file, Blobs,
 };
 use std::collections::BTreeMap;
@@ -472,10 +472,7 @@ impl Store {
     /// a record from another cohort is reset to this one's;
     /// a record from another store codec freezes the store (LLP 1030 D9) and
     /// nothing here writes.
-    /// Windows durable storage is not qualified: opening refuses before any
-    /// filesystem access or mutation (LLP 1026 D11a).
     pub fn open(dir: &Path, embedded: Embedded) -> Result<Store, String> {
-        disk::require_durable_store()?;
         std::fs::create_dir_all(dir).map_err(|e| format!("cannot make {}: {e}", dir.display()))?;
         // Lock before reading, recovering or sweeping anything. An atomic rename
         // alone cannot protect the signed floor from a second stale owner.
@@ -1300,16 +1297,16 @@ impl Store {
                 std::fs::remove_dir_all(&assets).map_err(|e| e.to_string())?;
             }
             if tmp.join("assets").exists() {
-                std::fs::rename(tmp.join("assets"), &assets).map_err(|e| e.to_string())?;
+                rename(tmp.join("assets"), &assets).map_err(|e| e.to_string())?;
             }
             sync_dir(&target)?;
-            std::fs::rename(tmp.join("app.plan"), target.join("app.plan"))
+            rename(tmp.join("app.plan"), target.join("app.plan"))
                 .map_err(|e| e.to_string())?;
             sync_dir(&target)?;
             let _ = std::fs::remove_dir_all(&tmp);
             return Ok(());
         }
-        std::fs::rename(&tmp, &target).map_err(|e| {
+        rename(&tmp, &target).map_err(|e| {
             let _ = std::fs::remove_dir_all(&tmp);
             format!("cannot put {} in place: {e}", target.display())
         })?;

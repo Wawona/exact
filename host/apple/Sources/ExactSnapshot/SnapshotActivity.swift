@@ -318,7 +318,7 @@ private struct RegionClip: Shape {
 private struct Tinted: ViewModifier {
     let color: Color?
     func body(content: Content) -> some View {
-        #if os(iOS)
+        #if os(iOS) || os(visionOS)
         content.activityBackgroundTint(color)
         #else
         content

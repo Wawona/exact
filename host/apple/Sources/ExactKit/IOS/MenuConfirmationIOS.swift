@@ -1,4 +1,4 @@
-#if os(iOS) || os(tvOS)
+#if os(iOS) || os(visionOS) || os(tvOS)
 import UIKit
 
 extension MenuHost {
@@ -113,7 +113,7 @@ extension MenuHost {
         }
         func owns(_ node: NodeView) -> Bool { actions.contains { $0.node === node } }
         func adaptivePresentationStyle(for controller: UIPresentationController) -> UIModalPresentationStyle { .none }
-        #if !os(tvOS)
+        #if os(iOS)
         func popoverPresentationControllerDidDismissPopover(_ controller: UIPopoverPresentationController) {
             host?.cancelled(self)
         }

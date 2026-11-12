@@ -2,7 +2,7 @@
 // goes when it does (`GroupedListView.restore`, `sendHome`); and the rows a
 // scroll to a row passes, sized before it aims (`measure`).
 import ExactKit
-#if os(iOS) || os(tvOS)
+#if os(iOS) || os(visionOS) || os(tvOS)
 import UIKit
 
 extension GroupedListHost {

@@ -103,7 +103,7 @@ extension Presenter {
         supersedePress()
         #endif
         let prevented = keyEvent("key", at: target, KeyPress(held + name, code: code, repeats: repeats, composing: composing))
-        #if os(iOS)
+        #if os(iOS) || os(visionOS)
         if !prevented, (name == "ContextMenu" && held.isEmpty || name == "F10" && held == "Shift+"), contextMenuKey() { return true }
         #endif
         #if canImport(UIKit)
@@ -171,7 +171,7 @@ extension Presenter {
             if let node = view as? NodeView, views[node.id] === node, !node.formDisabled, !silenced {
                 path.append((node.id, node.handlers))
             }
-            #if os(iOS) || os(tvOS)
+            #if os(iOS) || os(visionOS) || os(tvOS)
             // Keys leave the sheet; eventParent's inertness walks stay inside it.
             if let node = view as? NodeView, let parent = menus.sheets.authoredParent(of: node) { next = parent }
             else { next = menus.logicalParent(of: view) ?? eventParent(of: view) }

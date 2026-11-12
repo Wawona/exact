@@ -236,9 +236,20 @@ fn hosts_without_box_lowering_sample_them() {
     )
     .unwrap();
     // LLP 1126 D10: watchOS samples box motion; it has no Core Animation presenter.
-    assert!(!host.svg.box_motion || cfg!(any(target_os = "ios", target_os = "tvos")));
+    assert!(
+        !host.svg.box_motion
+            || cfg!(any(
+                target_os = "ios",
+                target_os = "tvos",
+                target_os = "visionos"
+            ))
+    );
     let on = host.dispatch_at(id(&host, "go"), Event::Press, 100.0);
-    if !cfg!(any(target_os = "ios", target_os = "tvos")) {
+    if !cfg!(any(
+        target_os = "ios",
+        target_os = "tvos",
+        target_os = "visionos"
+    )) {
         assert!(keys(&on, id(&host, "sweep")).is_empty(), "{on}");
         assert!(on.contains("\"motion\":true"));
     }

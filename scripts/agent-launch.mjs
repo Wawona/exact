@@ -183,8 +183,8 @@ export function netOptions(environment = process.env) {
  * this machine. The store lock's key (`exclusiveNativeStore`). */
 export function resolveDevice(host, flags, appId) {
   if ((host === 'ios' || host === 'host-ios') && flags.device) { const ph = phone(flags.phone); flags.phone = ph.udid; return `phone ${ph.udid}`; }
-  if (host === 'ios' || host === 'host-ios') {
-    const sim = chooseSimulator(undefined, { app: host === 'host-ios' ? `${appId}.host` : appId, dir: resolveApp(flags.app).dir, hint: '--sim <udid|name> (or EXACT_SIM)' });
+  if (host === 'ios' || host === 'host-ios' || host === 'tvos') {
+    const sim = chooseSimulator(undefined, { app: host === 'host-ios' ? `${appId}.host` : appId, dir: resolveApp(flags.app).dir, tv: host === 'tvos', hint: '--sim <udid|name> (or EXACT_SIM)' });
     process.env.EXACT_SIM = sim.udid;
     return `simulator ${sim.udid}`;
   }
@@ -195,7 +195,7 @@ export function resolveDevice(host, flags, appId) {
  * to the next as the app keeps them from one launch to the next (`--reset-storage` empties it, `--storage <name>`
  * names another). On the web a named store is a Chrome profile emptied each drive, so a web drive names its own. */
 export function defaultStore(host, flags) {
-  return flags.storage ?? (['ios', 'macos', 'mac', 'linux'].includes(host) && !flags.url ? 'default' : undefined);
+  return flags.storage ?? (['ios', 'tvos', 'macos', 'mac', 'linux'].includes(host) && !flags.url ? 'default' : undefined);
 }
 /** Says, at the first drive from the app's directory `dir` on `device` that keeps `defaultStore`, that it is kept.
  * A drive that compares starts empty and a plain one does not, so a plain drive can show what an earlier one stored

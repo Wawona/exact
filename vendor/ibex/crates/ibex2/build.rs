@@ -14,7 +14,14 @@ fn main() {
     }
 
     println!("cargo:rerun-if-env-changed=EXACT_JS_ENGINE");
-    if std::env::var("EXACT_JS_ENGINE").as_deref() == Ok("stub") {
+    let target = std::env::var("TARGET").expect("Cargo supplies TARGET");
+    let scoped = format!("EXACT_JS_ENGINE_{}", target.replace(['-', '.'], "_"));
+    println!("cargo:rerun-if-env-changed={scoped}");
+    // The scoped form stubs one target (hermes-lean-sys's `stub_engine`).
+    if ["EXACT_JS_ENGINE", scoped.as_str()]
+        .iter()
+        .any(|name| std::env::var(name).as_deref() == Ok("stub"))
+    {
         let out_dir = PathBuf::from(std::env::var("OUT_DIR").expect("OUT_DIR"));
         for name in [
             "headers",

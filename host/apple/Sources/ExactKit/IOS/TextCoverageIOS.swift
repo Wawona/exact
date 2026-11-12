@@ -1,5 +1,5 @@
 // Single-color text keeps shape and profiled color separate on UIKit.
-#if os(iOS) || os(tvOS)
+#if os(iOS) || os(visionOS) || os(tvOS)
 import UIKit
 
 final class TextCoverage {

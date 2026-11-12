@@ -7,7 +7,7 @@
 // @ref LLP 1115.000 D5.2, D5.3 — which routes show the bar (`routeShowsBar`,
 // by `NavigationRules.bar`): each route's own header, the system Back alone
 // on a pushed route with none, and no bar where the route says so.
-#if os(iOS) || os(tvOS)
+#if os(iOS) || os(visionOS) || os(tvOS)
 import UIKit
 
 /// The heading's group in a header-shaped route: the element around the
@@ -165,7 +165,7 @@ struct HeaderTitle: Equatable {
     /// subtitle before iOS 26, which has no `navigationItem.subtitle`.
     var drawn: Bool {
         var subtitled = false
-        if #available(iOS 26.0, *) { subtitled = true }
+        if #available(iOS 26.0, visionOS 26.0, *) { subtitled = true }
         return avatar != nil || tap != nil || !glyphs.isEmpty || !titleGlyphs.isEmpty || !subtitled
     }
 
@@ -515,8 +515,8 @@ extension NavigationHost {
         let item = c.navigationItem
         let group = HeaderShape.presented(shape?.group, segments: shape?.segments)
         let drawn = group?.drawn ?? false
-        // tvOS's navigation item has no subtitle.
-        #if !os(tvOS)
+        // tvOS's and visionOS's navigation items have no subtitle.
+        #if os(iOS)
         if #available(iOS 26.0, *) {
             let subtitle = drawn ? nil : group?.subtitle
             if subtitle != c.subtitle {
@@ -641,7 +641,7 @@ extension NavigationHost {
     /// lead's ruling, 2026-10-19). An interactive pop that is cancelled shows
     /// its source again, and so its wish.
     func followFloatingBar(_ nav: UINavigationController, for c: UIViewController, animated: Bool) {
-        #if os(iOS)
+        #if os(iOS) || os(visionOS)
         // The selected tab's stack only: another's late transition is not what shows.
         guard #available(iOS 18.0, *), let tabs = tabController, tabs.selectedViewController === nav else { return }
         // A cancelled pop's source comes back before it is in the stack again.
@@ -671,7 +671,7 @@ extension NavigationHost {
     /// iPadOS 18's floating one (a phone, a compact width, iOS 17, an
     /// authored or hatched tab bar), where UIKit's own flag does it.
     func floatingStackHides(_ nav: UINavigationController, through stack: [UIViewController]? = nil) -> Bool? {
-        #if os(iOS)
+        #if os(iOS) || os(visionOS)
         guard #available(iOS 18.0, *), !ExactEnv.authoredChrome, tabBarShows, let tabs = tabController, nav.tabBarController === tabs,
               tabs.traitCollection.userInterfaceIdiom == .pad, tabs.traitCollection.horizontalSizeClass == .regular else { return nil }
         return (stack ?? nav.viewControllers).dropFirst().contains { $0.hidesBottomBarWhenPushed }

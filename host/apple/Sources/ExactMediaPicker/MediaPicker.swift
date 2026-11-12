@@ -11,13 +11,13 @@ import ExactKit
 
 public enum ExactMediaPicker {
     public static func install() {
-        #if os(iOS)
+        #if os(iOS) || os(visionOS)
         MediaPickerLink.installed = MediaPicker()
         #endif
     }
 }
 
-#if os(iOS)
+#if os(iOS) || os(visionOS)
 import PhotosUI
 import UIKit
 import UniformTypeIdentifiers

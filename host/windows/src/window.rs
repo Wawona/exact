@@ -23,6 +23,7 @@ use winit::{
 
 struct App<D: DataSource> {
     service_causes: u8,
+    check: crate::delivery::Check,
     proxy: EventLoopProxy<crate::accessibility::Event>,
     accessibility: Option<crate::accessibility::Access>,
     name: String,
@@ -200,10 +201,9 @@ pub(super) fn run<D: DataSource + Default + 'static>(
         eprintln!("exact-windows: {why}");
         return 1;
     }
-    if exact_runner::Delivery::default().with_compat(compat).store != '0' {
-        eprintln!("exact-windows: update-store delivery is not implemented; bake store level 0");
+    let Some(open_store) = crate::delivery::opener(compat, composed.updates) else {
         return 1;
-    }
+    };
     let device = std::env::var("EXACT_INK_DEVICE").ok();
     let direct = direct_device(
         exact_linux::presenter::PainterChoice::from_env(
@@ -250,6 +250,7 @@ pub(super) fn run<D: DataSource + Default + 'static>(
     // The presenter makes the hatches' value after its first frame is shown.
     config.hatches = composed.hatches;
     config.packages = composed.packages;
+    crate::delivery::attach(&mut config, open_store, compat, plan);
     // Config has already stripped EXACT_AGENT_* for a production bake.
     let frame_limit = match std::env::var("EXACT_AGENT_WINDOW_FRAMES") {
         Ok(value) => match value.parse::<u64>() {
@@ -314,6 +315,7 @@ pub(super) fn run<D: DataSource + Default + 'static>(
     });
     let mut state = App::<D> {
         service_causes: 0,
+        check: Default::default(),
         proxy,
         accessibility: None,
         name: name.to_owned(),
@@ -684,6 +686,7 @@ impl<D: DataSource + Default + 'static> App<D> {
         // Activation can leave the baked picture unchanged. A clean frame need
         // not present again just to acknowledge that its data source is ready.
         p.first_pixel();
+        self.check.presented();
         let activated_at = frame_started.elapsed().as_secs_f64() * 1000.;
         // A screen's ready marker can exclude background requests that do not
         // contribute to it. Shelf's library-count appears with its seeded books.
@@ -1365,6 +1368,7 @@ impl<D: DataSource + Default + 'static> App<D> {
         for fired in self.timers.take_due(now) {
             self.deliver_timer(fired, now);
         }
+        let mut delivery_due = None;
         if let Some(p) = self.presenter.as_mut() {
             p.windows_field_edits(self.started.elapsed().as_secs_f64() * 1000.);
             p.timer_visibility(self.minimized || self.occluded);
@@ -1378,6 +1382,7 @@ impl<D: DataSource + Default + 'static> App<D> {
             if let Some(e) = p.pump(self.started.elapsed().as_secs_f64() * 1000.0) {
                 eprintln!("exact-windows: {e}");
             }
+            delivery_due = self.check.service(p);
             p.run_commands(D::default);
             crate::orientation::apply(p);
             p.hatch_turn();
@@ -1453,27 +1458,22 @@ impl<D: DataSource + Default + 'static> App<D> {
                     window.request_redraw();
                 }
             }
-            if !matches!(events.control_flow(), ControlFlow::WaitUntil(t) if t <= due) {
-                events.set_control_flow(ControlFlow::WaitUntil(due));
-            }
+            wait_until(events, due);
         }
         if let Some(due) = self.timers.next_delivery() {
             let deadline = self.started + Duration::from_secs_f64(due / 1000.0);
-            if !matches!(events.control_flow(), ControlFlow::WaitUntil(t) if t <= deadline) {
-                events.set_control_flow(ControlFlow::WaitUntil(deadline));
-            }
+            wait_until(events, deadline);
         }
         if let Some(due) = retirement {
-            if !matches!(events.control_flow(), ControlFlow::WaitUntil(t) if t <= due) {
-                events.set_control_flow(ControlFlow::WaitUntil(due));
-            }
+            wait_until(events, due);
+        }
+        if let Some(due) = delivery_due {
+            wait_until(events, due);
         }
         // Only an app with an input canvas needs controller discovery wakes.
         if pads_active {
             let soon = self.pads.next_poll(Instant::now());
-            if !matches!(events.control_flow(), ControlFlow::WaitUntil(t) if t <= soon) {
-                events.set_control_flow(ControlFlow::WaitUntil(soon));
-            }
+            wait_until(events, soon);
         }
         if self.focused
             && !self.occluded
@@ -1483,15 +1483,20 @@ impl<D: DataSource + Default + 'static> App<D> {
             && !p.needs_animation_frame()
         {
             if let Some(soon) = self.caret.deadline() {
-                if !matches!(events.control_flow(), ControlFlow::WaitUntil(t) if t <= soon) {
-                    events.set_control_flow(ControlFlow::WaitUntil(soon));
-                }
+                wait_until(events, soon);
             }
         }
         self.modal.wait_until(match events.control_flow() {
             ControlFlow::WaitUntil(deadline) => Some(deadline),
             _ => None,
         });
+    }
+}
+
+/// Wake the loop by `due` unless it already wakes sooner.
+fn wait_until(events: &ActiveEventLoop, due: Instant) {
+    if !matches!(events.control_flow(), ControlFlow::WaitUntil(t) if t <= due) {
+        events.set_control_flow(ControlFlow::WaitUntil(due));
     }
 }
 

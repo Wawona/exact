@@ -1,9 +1,9 @@
-#if os(iOS) || os(tvOS)
+#if os(iOS) || os(visionOS) || os(tvOS)
 import UIKit
 
 extension NodeView {
     private var needsContextRecognizer: Bool {
-        #if os(iOS)
+        #if os(iOS) || os(visionOS)
         handlers.contains("contextmenu") || hasInlineContextMenu
         #else
         handlers.contains("contextmenu")
@@ -39,7 +39,7 @@ extension NodeView {
     @objc func openContext(_ gesture: UILongPressGestureRecognizer) {
         guard gesture.state == .began, !formDisabled else { return }
         let point = gesture.location(in: self)
-        #if os(iOS)
+        #if os(iOS) || os(visionOS)
         let run = inlineContextTarget(at: point)
         guard run != nil || hasOwnContextMenu else { return }
         deliverContext(at: point, inline: run?.id)
@@ -55,7 +55,7 @@ extension NodeView {
         DispatchQueue.main.async { [weak self, token = incarnation] in if let self, self.incarnation == token, !self.disabled, self.presenter?.views[self.id] === self { self.presenter?.dblclick(self.id) } }
     }
 
-    #if os(iOS)
+    #if os(iOS) || os(visionOS)
     var hasOwnContextMenu: Bool { handlers.contains("contextmenu") || props["contextPopover"]?.isEmpty == false }
     var hasInlineContextMenu: Bool { inlineText.contains { $0.handlers.contains("contextmenu") || $0.props["contextPopover"]?.isEmpty == false } }
     var hasInlinePlainContextMenu: Bool { inlineText.contains { $0.handlers.contains("contextmenu") && $0.props["contextPopover"]?.isEmpty != false } }

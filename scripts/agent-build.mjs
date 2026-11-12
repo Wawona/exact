@@ -31,7 +31,9 @@ import { bakeOutput, bakeTarget, claimLive, developmentBuildEnv, executableName,
 import { bakeTool, linkedBakeDir } from './linked-plan.mjs';
 
 const ROOT = resolve(fileURLToPath(new URL('..', import.meta.url)));
-const label = host => host === 'ios' ? 'iOS' : host === 'windows' ? 'Windows' : 'macOS';
+const label = host => host === 'ios' ? 'iOS' : host === 'tvos' ? 'tvOS' : host === 'windows' ? 'Windows' : 'macOS';
+/** The simulator destination a drive on `host` launches, or undefined for the Mac's binary. */
+const simulatorDestination = host => ({ ios: 'ios-simulator', tvos: 'tvos-simulator' })[host];
 /** A path as receiptChanges names it, from the app's directory when it is in it. */
 const near = (app, path) => { const at = resolve(ROOT, path); return app?.dir && at.startsWith(`${app.dir}${sep}`) ? relative(app.dir, at) : path; };
 const named = (app, paths) => paths.slice(0, 3).map(path => near(app, path)).join(', ') + (paths.length > 3 ? ` and ${paths.length - 3} more` : '');
@@ -45,8 +47,8 @@ const shown = file => relative(process.cwd(), file).startsWith('..') ? file : re
  * (`buildFirst`, run first by an app's exact.mjs) has just hashed: the same
  * receipt's are not hashed twice (LLP 1012.001.000 D1: once a drive). */
 export function nativeBuild(host, app, { sample = false, checked = null } = {}) {
-  const ios = host === 'ios';
-  const built = ios ? appleArtifacts(app, { destination: 'ios-simulator', host: sample }).bundle : appleRunBinary(app, sample);
+  const destination = simulatorDestination(host), ios = !!destination;
+  const built = ios ? appleArtifacts(app, { destination, host: sample }).bundle : appleRunBinary(app, sample);
   if (!existsSync(built)) return { built, missing: true, changed: [] };
   const receipt = receiptPath(host, app, { sample });
   const changed = receipt ? receiptChanges(receipt, app, { hashed: !!checked && checked === digestOf(receipt) }) : [];
@@ -64,7 +66,8 @@ export function nativeBuild(host, app, { sample = false, checked = null } = {}) 
 
 /** The receipt of the build a drive of `app` on `host` (`ios`, else macOS) launches, or undefined without one. */
 export function receiptPath(host, app, { sample = false } = {}) {
-  if (host === 'ios') return [resolve(appleArtifacts(app, { destination: 'ios-simulator', host: sample }).bundle, 'receipt.json')].find(existsSync);
+  const destination = simulatorDestination(host);
+  if (destination) return [resolve(appleArtifacts(app, { destination, host: sample }).bundle, 'receipt.json')].find(existsSync);
   return [resolve(appleArtifacts(app, { host: sample }).products, 'receipt.json'), resolve(appleArtifacts(app, { host: sample }).bundle, 'Contents/Resources/receipt.json')].find(existsSync);
 }
 
@@ -99,9 +102,16 @@ export function ownVerb(app, verb) {
 
 /** The command that builds `app`'s Linux host for a drive: an `exact new` app's own verb, else exact2's build. */
 export const linuxRebuild = (app) => ownVerb(app, 'linux') ?? linuxBuild(app).join(' ');
+/** Build command for an AsteroidOS headless drive. */
+export const asteroidRebuild = (app) => ownVerb(app, 'asteroid') ?? `bun scripts/build-asteroid.mjs ${app.name}`;
 
 /** The driver's refusal (LLP 1012.001.000 D1) on what `nativeBuild` found. */
 export function refuseBuild(host, state, app, { sample = false } = {}) {
+  if (host === 'tvos') {
+    const command = `bun host/apple/build.mjs --tvos ${app.crate('apple')} --no-install`;
+    if (state.missing) throw new Error(`run ${command} first`);
+    return refuseStale('tvos', state.receipt, state.changed, command);
+  }
   const ios = host === 'ios';
   const command = sample ? `bun host/apple/build.mjs${ios ? ' --ios' : ''} ${app.crate('apple')} --host` : rebuildCommand(app, ios ? 'ios' : 'mac');
   if (state.missing) throw new Error(`run ${command} first`);
@@ -277,7 +287,7 @@ export async function makeOverride(host, app, state, { bake = bakePlan, log } = 
 
 // ---------------------------------------------------------------- a background build's end
 
-const prebuildHost = args => args.includes('--tvos') ? 'tvos' : args.includes('--ios') || args.includes('--device') ? 'ios' : 'macos';
+const prebuildHost = args => args.includes('--visionos') ? 'visionos' : args.includes('--tvos') ? 'tvos' : args.includes('--ios') || args.includes('--device') ? 'ios' : 'macos';
 /** Where `prebuild` records the build it started: its `id`, its arguments, its
  * start, the pid of the shell running it, and, once it has ended, its exit code
  * and how much of the log it wrote. Written whole (`publish`), and only by the
@@ -383,14 +393,12 @@ export async function buildFirst(host, app, { say = line => console.error(line),
 }
 
 /** What a Windows drive of `app` launches, `dist-windows/<name>.exe`, and its changes since the build that packaged it
- * (`changed`, null when there is none): what the build's receipt records (agent-launch.mjs `packagedBuildChanges`, on
- * which the driver refuses it), and the app's own files edited since, which that receipt does not name (the plan's
- * sources and the crate's), other hosts' crates aside. */
+ * (`changed`, null when there is none): what the build's receipt records, the plan's sources among them
+ * (agent-launch.mjs `packagedBuildChanges`, on which the driver refuses it). */
 export function windowsBuild(app) {
   const bin = resolve(app.dir, 'dist-windows', `${executableName(app)}.exe`);
   if (!existsSync(bin)) return { bin, changed: null };
-  const own = newerThan(statSync(bin).mtimeMs, [app.dir], path => /[\\/](apple|ios|macos|linux|web|android)$/.test(path) && dirname(path) === app.dir);
-  return { bin, changed: [...packagedBuildChanges(resolve(bakeOutput(app), `windows-${bakeTarget('windows')}.build.json`), dirname(bin), app), ...own] };
+  return { bin, changed: packagedBuildChanges(resolve(bakeOutput(app), `windows-${bakeTarget('windows')}.build.json`), dirname(bin), app) };
 }
 
 /** `buildFirst` for Windows: host/windows/build.mjs when the packaged build is missing or stale, said in one line, its

@@ -1,0 +1,17 @@
+[package]
+name = "wawona-data"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Wawona Exact chrome data source (M1: empty; M3 domain seam later)"
+publish = false
+
+[lib]
+name = "wawona_data"
+crate-type = ["rlib"]
+test = false
+bench = false
+
+[dependencies]
+exact-plan = { path = "../../../plan" }
+exact-runner = { path = "../../../runner" }

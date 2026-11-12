@@ -11,7 +11,7 @@
 // before its rows or preview are read (D1's "both fire"), so a popover a
 // list's rows share shows the row pressed. While the agent paints, this host
 // is off and the popover opens painted (D4, `MenuHost.agentContext`).
-#if os(iOS)
+#if os(iOS) || os(visionOS)
 import AVFoundation
 import UIKit
 
@@ -756,7 +756,7 @@ final class ContextMenuHost: NSObject, UIContextMenuInteractionDelegate, UIEditM
                     padding.addSubview(live)
                 } else {
                     live.frame = frame.offsetBy(dx: -within.frame.minX, dy: -within.frame.minY)
-                    if #available(iOS 26.0, *) { live.cornerConfiguration = material.cornerConfiguration } else { (live.layer.cornerRadius, live.clipsToBounds) = (material.layer.cornerRadius, true) }
+                    if #available(iOS 26.0, visionOS 26.0, *) { live.cornerConfiguration = material.cornerConfiguration } else { (live.layer.cornerRadius, live.clipsToBounds) = (material.layer.cornerRadius, true) }
                     within.addSubview(live)
                 }
             }
@@ -851,7 +851,7 @@ final class ContextMenuHost: NSObject, UIContextMenuInteractionDelegate, UIEditM
     /// `copy` asks for the dynamic range `layer` asks for, with its headroom
     /// and tone mapping (`applyDynamicRange`, `mapsExtendedRange`)
     private static func takeRange(of layer: CALayer, into copy: CALayer) {
-        if #available(iOS 26.0, *) {
+        if #available(iOS 26.0, visionOS 26.0, *) {
             (copy.preferredDynamicRange, copy.contentsHeadroom) = (layer.preferredDynamicRange, layer.contentsHeadroom)
         } else {
             copy.wantsExtendedDynamicRangeContent = layer.wantsExtendedDynamicRangeContent
@@ -987,7 +987,7 @@ final class ContextMenuHost: NSObject, UIContextMenuInteractionDelegate, UIEditM
 
     private static func effect(of view: UIVisualEffectView) -> Effect {
         if view.effect is UIBlurEffect { return .material }
-        if #available(iOS 26.0, *), view.effect is UIGlassEffect { return .material }
+        if #available(iOS 26.0, visionOS 26.0, *), view.effect is UIGlassEffect { return .material }
         return view.effect is UIVibrancyEffect ? .vibrancy : .container
     }
 
@@ -1038,7 +1038,10 @@ final class ContextMenuHost: NSObject, UIContextMenuInteractionDelegate, UIEditM
     /// effect view's own filters never get here (`effect(of:)`).
     private static func drawnByRenderServer(_ layer: CALayer) -> Bool {
         if let node = layer.delegate as? NodeView, ["iframe", "native", "video"].contains(node.kind) { return true }
-        return layer is CAMetalLayer || layer is AVPlayerLayer || layer is AVSampleBufferDisplayLayer || layer is AVCaptureVideoPreviewLayer
+        #if !os(visionOS)
+        if layer is AVCaptureVideoPreviewLayer { return true }
+        #endif
+        return layer is CAMetalLayer || layer is AVPlayerLayer || layer is AVSampleBufferDisplayLayer
             || layer.filters?.isEmpty == false || layer.backgroundFilters?.isEmpty == false || layer.compositingFilter != nil
             || !CATransform3DIsAffine(layer.transform)
     }

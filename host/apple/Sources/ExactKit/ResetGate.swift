@@ -206,12 +206,12 @@ extension ExactSession {
             switch replay {
             case .advance: advanceIfDue()
             case .covers:
-                #if os(iOS) || os(tvOS)
+                #if os(iOS) || os(visionOS) || os(tvOS)
                 presenter.navigation.reportCovers()
                 #endif
                 // (AppKit's presentations report the new tree's covers as they present it: `CoversMac`.)
             case .fit:
-                #if os(iOS) || os(tvOS)
+                #if os(iOS) || os(visionOS) || os(tvOS)
                 view?.fit()
                 #else
                 view?.needsLayout = true

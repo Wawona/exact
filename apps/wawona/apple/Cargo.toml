@@ -1,0 +1,24 @@
+[package]
+name = "wawona-apple"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Wawona on Apple platforms: Exact Contract chrome (Machines, Settings, Present stub)"
+publish = false
+build = "build.rs"
+
+[lib]
+name = "wawona_apple"
+crate-type = ["rlib"]
+test = false
+bench = false
+
+[dependencies]
+exact-logic = { path = "../../../logic" }
+exact-apple = { path = "../../../host/apple" }
+wawona-data = { path = "../data" }
+
+[build-dependencies]
+contract = { path = "../../../contract/cli" }
+exact-bake = { path = "../../../bake" }
+wawona-data = { path = "../data" }

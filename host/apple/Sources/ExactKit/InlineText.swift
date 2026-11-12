@@ -92,7 +92,7 @@ extension Presenter {
     func forgetParagraph(_ node: NodeView) {
         for run in node.inlineText where inlineOwners[run.id]?.owner == node.id { inlineOwners.removeValue(forKey: run.id) }
         node.inlineText.removeAll()
-        #if os(iOS)
+        #if os(iOS) || os(visionOS)
         node.updateContextGestures()
         textSelection.remove(node) // its text interaction and selection go with it
         #endif
@@ -121,7 +121,7 @@ extension Presenter {
         node.invalidateText()
         node.updateInlineInteraction()
         node.updateTextAccessibility()
-        #if os(iOS)
+        #if os(iOS) || os(visionOS)
         node.updateContextGestures()
         #endif
         #if os(macOS)
@@ -220,7 +220,7 @@ extension NodeView {
     func activateInline(_ id: UInt32) -> Bool {
         guard canActivateInline(id), let presenter, let run = presenter.inlineText(id) else { return false }
         if run.handlers.contains("press") {
-            #if os(iOS)
+            #if os(iOS) || os(visionOS)
             if presenter.activationButton(from: self, inline: id) != nil {
                 presenter.menus.activating(from: self, pressing: nil) { presenter.press(id) }
             } else { presenter.press(id) }

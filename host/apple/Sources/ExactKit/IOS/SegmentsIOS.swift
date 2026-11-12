@@ -5,7 +5,7 @@
 // fills the tablist's box and reports its native minimum height to layout.
 // @ref LLP 1116.004 D5.2 — a radio group of radios (a value chosen from a
 // few) is the same segmented control, its selection `aria-checked`.
-#if os(iOS) || os(tvOS)
+#if os(iOS) || os(visionOS) || os(tvOS)
 import UIKit
 
 /// A segmented control whose segments carry their tabs' names and test ids
@@ -191,7 +191,7 @@ final class SegmentHost: NSObject, UIGestureRecognizerDelegate, UITabBarDelegate
     /// tabs hidden for it, and the tablist hidden for a tab container's bar.
     func inspectionOwns(_ view: UIView) -> Bool { bars.values.contains { $0 === view } || controls.values.contains { $0 === view } }
     func hides(_ node: NodeView) -> Bool { members.values.contains { $0.contains(node.id) } || node === adoptedList }
-    #if EXACT_INSPECT && os(iOS)
+    #if EXACT_INSPECT && (os(iOS) || os(visionOS))
     /// The tab a point in `view` (a segmented control or tab bar standing in
     /// for a tablist) is over: inspect mode selects it (InspectIOS.swift).
     func tab(at point: CGPoint, in view: UIView) -> UInt32? {
@@ -240,7 +240,7 @@ final class SegmentHost: NSObject, UIGestureRecognizerDelegate, UITabBarDelegate
         // UIKit cancels the pending segment tap. Opening a context action must
         // not first navigate to that tab, nor commit selection when lifted.
         control.cancelTracking(with: nil)
-        #if !os(tvOS)
+        #if os(iOS)
         UIImpactFeedbackGenerator(style: .light).impactOccurred()
         #endif
         presenter.contextmenu(tab.id)

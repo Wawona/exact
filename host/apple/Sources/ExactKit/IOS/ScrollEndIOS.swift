@@ -2,7 +2,7 @@
 // a drag that throws nothing, of its deceleration, and of an animation; a
 // move none of them holds ends once still. A pooled view's owed end is
 // dropped when it goes to another node (`NodePool`).
-#if os(iOS) || os(tvOS)
+#if os(iOS) || os(visionOS) || os(tvOS)
 import UIKit
 
 extension NodeView {

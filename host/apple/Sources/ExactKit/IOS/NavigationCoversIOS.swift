@@ -1,7 +1,7 @@
 // @ref LLP 1075.003 §3.5 — what Exact's containers cover of each route, told
 // to the kernel as covers, and the development check of what Exact owns on
 // the objects it handed a hatch.
-#if os(iOS) || os(tvOS)
+#if os(iOS) || os(visionOS) || os(tvOS)
 import UIKit
 
 extension NavigationHost {
@@ -54,8 +54,8 @@ extension NavigationHost {
     func reportCovers() {
         var changes: [(UInt32, HostCover?)] = []
         var wanted: [UInt32: HostCover] = [:]
-        #if os(iOS)
-        if #available(iOS 27.1, *) {
+        #if os(iOS) || os(visionOS)
+        if #available(iOS 27.1, visionOS 27.1, *) {
             for id in presenter.arrangements.hiddenPanes { wanted[id] = .whole }
         }
         #endif
@@ -141,7 +141,7 @@ extension NavigationHost {
                     let peerTop = topPeers.contains { $0 === node }, peerBottom = bottomPeers.contains { $0 === node }
                     let reach = node === c.edgeScroll || peerBottom ? c.bottomClearance : 0
                     let ownsTop = node === c.collapseScroll || peerTop
-                    #if os(iOS)
+                    #if os(iOS) || os(visionOS)
                     if peerTop, let scroll = node.scrollView {
                         if c.navigationItem.largeTitleDisplayMode == .always { node.scrollOrigin = max(node.scrollOrigin, scroll.adjustedContentInset.top) }
                         else { node.scrollOrigin = scroll.adjustedContentInset.top }
@@ -253,7 +253,7 @@ extension NavigationHost {
             if nav.viewControllers.map(ObjectIdentifier.init) != stack.written { say("navigation \(stack.label)", "viewControllers") }
             #if !os(tvOS)
             if let pop = nav.interactivePopGestureRecognizer, pop.delegate !== self { say("navigation \(stack.label)", "the pop gesture's delegate") }
-            if #available(iOS 26.0, tvOS 26.0, *), let pop = nav.interactiveContentPopGestureRecognizer, pop.delegate !== self {
+            if #available(iOS 26.0, tvOS 26.0, visionOS 26.0, *), let pop = nav.interactiveContentPopGestureRecognizer, pop.delegate !== self {
                 say("navigation \(stack.label)", "the content pop gesture's delegate")
             }
             #endif
@@ -285,7 +285,9 @@ extension NavigationHost {
         }
         if s.contentInsetAdjustmentBehavior != (insetByUIKit ? .automatic : .never) { out.append("contentInsetAdjustmentBehavior") }
         if s !== node.scrollView || !node.ownsScrollDelegate { out.append("delegate") }
+        #if !os(visionOS)
         if s.keyboardDismissMode != node.keyboardDismissal { out.append("keyboardDismissMode") }
+        #endif
         return out
     }
 }

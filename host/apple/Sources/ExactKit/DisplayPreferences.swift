@@ -93,7 +93,7 @@ enum DisplayPreferences {
     /// iPadOS answers.
     static var input: Preferences {
         if let agentInput { return agentInput }
-        #if os(iOS)
+        #if os(iOS) || os(visionOS)
         return touchScreenInput(mouse: mouse.flatMap { ($0 as AnyObject).perform(NSSelectorFromString("current"))?.takeUnretainedValue() })
         #else
         return .platformInput
@@ -185,7 +185,7 @@ enum DisplayPreferences {
         return names.map { center.addObserver(forName: $0, object: nil, queue: .main) { _ in changed() } }
         #endif
     }
-    #if os(iOS)
+    #if os(iOS) || os(visionOS)
     /// Whether a trackpad or mouse can point in this app: on an iPad, or on
     /// a Mac (an iPad app there, or Catalyst in either idiom). An iPhone's
     /// (AssistiveTouch) only sends touches, as WebKit answers there, and

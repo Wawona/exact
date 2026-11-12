@@ -20,7 +20,7 @@
 // an element on the web.
 // `GCKeyboard` cannot tell when to skip this: the simulator reports a
 // keyboard while UIKit shows its software one.
-#if os(iOS) || os(tvOS)
+#if os(iOS) || os(visionOS) || os(tvOS)
 import UIKit
 
 final class MenuFocus {
@@ -96,7 +96,7 @@ final class MenuFocus {
         suspended = false
         waitsForTouch = false
         untilNextTouch = false
-        #if os(iOS)
+        #if os(iOS) || os(visionOS)
         defer { presenter?.session?.view?.syncKeyboardFocus(afterMenu: true) }
         #endif
         guard let responder = held else { return }
@@ -142,7 +142,7 @@ final class BarTouch: UIGestureRecognizer, UIGestureRecognizerDelegate {
 }
 #endif
 
-#if os(iOS)
+#if os(iOS) || os(visionOS)
 /// An invoker's pull-down (`MenuHost` overlays): the focus set aside while its
 /// menu shows.
 final class MenuButton: InvokerButton {

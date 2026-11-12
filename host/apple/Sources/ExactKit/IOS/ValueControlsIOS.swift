@@ -4,10 +4,10 @@
 // from the kernel. Contract owns the value: the control moves at once,
 // reports HTML's `input` then `change`, and shows the bound value when it
 // changes, keeping the person's choice until then (D4, amended 2026-10-04).
-#if os(iOS) || os(tvOS)
+#if os(iOS) || os(visionOS) || os(tvOS)
 import UIKit
 
-#if os(iOS)
+#if os(iOS) || os(visionOS)
 private final class SelectButtonIOS: UIButton {
     var valueAlignment = UIControl.ContentHorizontalAlignment.left {
         didSet { if oldValue != valueAlignment { setNeedsLayout() } }
@@ -52,7 +52,7 @@ extension ControlHost {
         #else
         config.contentInsets = .zero
         #endif
-        #if os(iOS)
+        #if os(iOS) || os(visionOS)
         let button = SelectButtonIOS(configuration: config)
         button.contentHorizontalAlignment = .fill
         #else
@@ -76,7 +76,7 @@ extension ControlHost {
         #endif
         guard let button = control as? UIButton else { return }
         assign(button, \.tintColor, accent)
-        #if os(iOS)
+        #if os(iOS) || os(visionOS)
         if let select = button as? SelectButtonIOS {
             select.valueAlignment = valueAlignment(owner)
             let direction: UISemanticContentAttribute = owner.style["direction"]?.string == "rtl" ? .forceRightToLeft : .forceLeftToRight
@@ -96,7 +96,7 @@ extension ControlHost {
         install(button, menu, id: owner.id, showing: menu.chosen)
     }
 
-    #if os(iOS)
+    #if os(iOS) || os(visionOS)
     /// Align closed select and date values; logical edges follow the computed direction.
     func valueAlignment(_ owner: NodeView) -> UIControl.ContentHorizontalAlignment {
         let rtl = owner.style["direction"]?.string == "rtl"
@@ -181,7 +181,7 @@ extension ControlHost {
         return size == .zero ? button.intrinsicContentSize : CGSize(width: ceil(size.width), height: ceil(size.height))
     }
 
-    #if os(iOS)
+    #if os(iOS) || os(visionOS)
     /// The select's height at `width`, its shown title wrapped there (a
     /// frame-sized button's Auto Layout fitting answers its one-line size).
     func selectHeight(_ button: UIButton, width: CGFloat) -> CGFloat {

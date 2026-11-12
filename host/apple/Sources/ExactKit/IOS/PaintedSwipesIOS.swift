@@ -19,7 +19,7 @@
 // its hit test, before UIKit gathers the touch's recognizers), as a native
 // row's cell does: a list of such rows builds no `UIScrollView` a row as it
 // scrolls, and a row that was never touched parks in the node pool.
-#if os(iOS)
+#if os(iOS) || os(visionOS)
 import UIKit
 
 final class PaintedSwipes {
@@ -158,7 +158,9 @@ final class PaintedSwipes {
     func scrolled(_ owner: NodeView) {
         guard let row = rows[owner.id], let sv = owner.scrollView, sv.isTracking else { return }
         let past = full(row, sv).map { !$0.disabled } ?? false
+        #if !os(visionOS)
         if past, armed != owner.id { UIImpactFeedbackGenerator(style: .medium).impactOccurred() }
+        #endif
         armed = past ? owner.id : (armed == owner.id ? nil : armed)
     }
     /// Released: past the full swipe, the outermost action is pressed and the
