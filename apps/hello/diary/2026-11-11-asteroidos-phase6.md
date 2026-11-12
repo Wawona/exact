@@ -12,18 +12,25 @@
 ## Proof (macOS agent host)
 
 - `cargo build --profile host-dev -p exact-asteroid`: green.
-- `bun scripts/build-asteroid.mjs hello`: green (Bun 1.4.2).
+- `bun scripts/build-asteroid.mjs hello`: green (Bun 1.4.2). Binary:
+  `target/host-dev/hello-asteroid`.
 - `EXACT_AGENT=1 bun scripts/agent.mjs asteroid --app hello tree state`: green.
   Tree: `Text#1 "Hello world"` at 240×240 headless cpu painter.
+- `scripts/help.mjs` gained an `asteroid` verb so `guardFlags('asteroid', …)` works.
+- `host/asteroid/build.mjs` uses `nix build --print-out-paths` (Determinate Nix 2.35).
 
 ## Cross / QEMU
 
-- `nix build ../AsteroidOS-SDK#cross-qemu-smoke`: macOS path verifies armv7 ELF
-  only (no qemu-arm in nixpkgs on Darwin per SDK README).
+- `bun host/asteroid/build.mjs hello` with `ASTEROIDOS_SDK`: nixpkgs cross
+  `toolchain` still compiling on Darwin (gettext and friends for armv7hf).
+- macOS path verifies armv7 ELF with `file` once linked (no qemu-arm on Darwin).
 - Full watch image / Qt6/QML presenter still planned (`host/asteroid/qt/README.md`).
 
 ## Exit criteria status
 
-Phase 6 exit is a hello Contract on an AsteroidOS image or device. Headless agent
-proof on the build machine is landed; armv7 cross binary next when SDK toolchain
-builds; Qt on-device UI follows the image.
+Issue #246 exit is a hello Contract on an AsteroidOS image or device. This
+machine's deliverable is the headless agent seam (tree/state green). Armv7
+cross and on-image Qt remain follow-ups when the SDK toolchain finishes.
+
+Recheck 2026-11-11 evening: `EXACT_AGENT=1 bun scripts/agent.mjs asteroid
+--app hello tree state` still prints `Text#1 "Hello world"` at 240×240.
