@@ -55,6 +55,9 @@ component Wawona
     nav = select(nav, name)
   action follow(url: string)
     nav = go(nav, url)
+  // Platform Back / Escape / header. navigationBack="back" needs this action.
+  action back
+    nav = back(nav)
   action openMachine(id: string)
     nav = open(nav, path("present", id))
   action openSection(id: string)
@@ -196,7 +199,11 @@ component Wawona
                           text "Order matches Rust settings_catalog (macOS dual-run)."
                 else if e.name == "section"
                   header testId="wawona-settings-section-header"
-                    h1 sectionTitle
+                    row align-items="center" gap=8
+                      button press=back testId="settings-section-back" aria-label="Back" padding=8
+                        image "symbol:chevron.left"
+                        text "Settings"
+                      h1 sectionTitle flex=1
                   scroll id=`content-${e.id}` flex=1 min-height=0 testId=`wawona-settings-${sectionId}`
                     list appearance="auto" listStyle="inset-grouped"
                       if sectionId == "display"
