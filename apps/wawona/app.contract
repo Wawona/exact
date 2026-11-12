@@ -1,71 +1,362 @@
-// Wawona Exact chrome (M1 vertical slice): Machines list, one Settings page,
-// Present stub. Parent: Wawona/Wawona#227 / #229.
-// Dual-run beside SwiftUI until Present (M2) and domain seam (M3) land.
+// Wawona Exact chrome: Machines + Global Settings catalog.
+// Catalog mirrors Rust `settings_catalog` / `docs/settings.md` (Wawona/Wawona#227).
+// Prefs persist in Exact storage until M3 domain seam wires `wawona.pref.*`.
 
 routes nav
   tab machines "/"
     present "/machine/:id"
   tab settings "/settings"
+    section "/settings/:id"
 
 component Wawona
-  derive machineId = top(nav).params.id
-  derive route = top(nav).name
-  derive title = machineId == "" ? "Machines" : machineId
+  // Display
+  state colorOperations = true persist
+  state forceSsd = false persist
+  state respectSafeArea = true persist
+  state compositorBackend = "auto" persist
+  state nestedCompositors = true persist
+  state multipleClients = true persist
+  // Input
+  state touchInputType = "multi-touch" persist
+  state showVirtualCursor = false persist
+  state touchPointerEmulation = false persist
+  state touchpadMode = false persist
+  state swapCmdWithAlt = true persist
+  state universalClipboard = true persist
+  state shakeToClose = true persist
+  state swipeBackToClose = true persist
+  // Graphics
+  state vulkanDriver = "kosmickrisp" persist
+  state openglDriver = "angle" persist
+  state sessionThumbnails = true persist
+  // iCloud / Desktop / About
+  state iCloudSync = true persist
+  state iCloudDriveHome = false persist
+  state desktopReplacement = false persist
+  state logLevel = "info" persist
+  // Waypipe
+  state waypipeCompress = "lz4" persist
+  state waypipeUseSsh = true persist
+  state waypipeDebug = false persist
+  state waypipeNoGpu = false persist
+  // SSH
+  state sshHost = "" persist
+  state sshUser = "" persist
+  state sshPort = "22" persist
+  state sshAuthMethod = "password" persist
+  state sshEnabled = true persist
 
+  derive machineId = top(nav).params.id
+  derive sectionId = top(nav).params.id
+  derive title = machineId == "" ? "Machines" : machineId
+  derive sectionTitle = sectionId == "display" ? "Display" : sectionId == "input" ? "Input" : sectionId == "graphics" ? "Graphics" : sectionId == "environment" ? "Env Vars" : sectionId == "icloudSync" ? "iCloud Sync" : sectionId == "desktop" ? "Desktop" : sectionId == "waypipe" ? "Waypipe" : sectionId == "ssh" ? "SSH" : sectionId == "about" ? "About" : sectionId == "dependencies" ? "Dependencies" : "Settings"
+
+  action pickTab(name: string)
+    nav = select(nav, name)
+  action follow(url: string)
+    nav = go(nav, url)
   action openMachine(id: string)
     nav = open(nav, path("present", id))
+  action openSection(id: string)
+    nav = open(nav, path("section", id))
 
-  action goSettings()
-    nav = open(nav, path("settings"))
-
-  action goMachines()
-    nav = open(nav, path("machines"))
+  action setColorOperations(on: bool)
+    colorOperations = on
+  action setForceSsd(on: bool)
+    forceSsd = on
+  action setRespectSafeArea(on: bool)
+    respectSafeArea = on
+  action setCompositorBackend(v: string)
+    compositorBackend = v
+  action setNestedCompositors(on: bool)
+    nestedCompositors = on
+  action setMultipleClients(on: bool)
+    multipleClients = on
+  action setTouchInputType(v: string)
+    touchInputType = v
+  action setShowVirtualCursor(on: bool)
+    showVirtualCursor = on
+  action setTouchPointerEmulation(on: bool)
+    touchPointerEmulation = on
+  action setTouchpadMode(on: bool)
+    touchpadMode = on
+  action setSwapCmdWithAlt(on: bool)
+    swapCmdWithAlt = on
+  action setUniversalClipboard(on: bool)
+    universalClipboard = on
+  action setShakeToClose(on: bool)
+    shakeToClose = on
+  action setSwipeBackToClose(on: bool)
+    swipeBackToClose = on
+  action setVulkanDriver(v: string)
+    vulkanDriver = v
+  action setOpenglDriver(v: string)
+    openglDriver = v
+  action setSessionThumbnails(on: bool)
+    sessionThumbnails = on
+  action setICloudSync(on: bool)
+    iCloudSync = on
+  action setICloudDriveHome(on: bool)
+    iCloudDriveHome = on
+  action setDesktopReplacement(on: bool)
+    desktopReplacement = on
+  action setLogLevel(v: string)
+    logLevel = v
+  action setWaypipeCompress(v: string)
+    waypipeCompress = v
+  action setWaypipeUseSsh(on: bool)
+    waypipeUseSsh = on
+  action setWaypipeDebug(on: bool)
+    waypipeDebug = on
+  action setWaypipeNoGpu(on: bool)
+    waypipeNoGpu = on
+  action setSshHost(v: string)
+    sshHost = v
+  action setSshUser(v: string)
+    sshUser = v
+  action setSshPort(v: string)
+    sshPort = v
+  action setSshAuthMethod(v: string)
+    sshAuthMethod = v
+  action setSshEnabled(on: bool)
+    sshEnabled = on
 
   view
-    column width="100%" min-height="100%"
-      if route == "machines"
-        column testId="wawona-machines" width="100%" min-height="100%" box-sizing="border-box" display="flex" flex-direction="column"
-          header
-            h1 "Wawona"
-            button press=goSettings() testId="wawona-open-settings" "Settings"
-          list appearance="auto" testId="wawona-machine-list" flex=1
-            section
-              button press=openMachine("Native Shell") testId="machine-native-shell" width="100%"
-                column align-items="flex-start" gap=2 padding=12
-                  text "Native Shell"
-                  text font="-exact-footnote" color="-exact-secondary-label" "zsh · Wayland · local"
-              button press=openMachine("Weston") testId="machine-weston" width="100%"
-                column align-items="flex-start" gap=2 padding=12
-                  text "Weston"
-                  text font="-exact-footnote" color="-exact-secondary-label" "Nested compositor"
-              button press=openMachine("Relay Wasm") testId="machine-relay-wasm" width="100%"
-                column align-items="flex-start" gap=2 padding=12
-                  text "Relay Wasm"
-                  text font="-exact-footnote" color="-exact-secondary-label" "WASI · wpm"
-      else if route == "present"
-        column testId="wawona-present" width="100%" min-height="100%" box-sizing="border-box" display="flex" flex-direction="column"
-          header
-            h1 title
-            button press=goMachines() testId="wawona-back-machines" "Machines"
-          column flex=1 justify-content="center" align-items="center" gap=8 padding=24 testId="wawona-present-stub"
-            text role="heading" aria-level=2 "Present"
-            text color="-exact-secondary-label" "iland Present stub (M2). Wayland surface mounts here."
-            text font="-exact-footnote" color="-exact-secondary-label" machineId
-      else if route == "settings"
-        column testId="wawona-settings" width="100%" min-height="100%" box-sizing="border-box" display="flex" flex-direction="column"
-          header
-            h1 "Settings"
-            button press=goMachines() testId="wawona-back-machines" "Machines"
-          list appearance="auto" testId="wawona-settings-list" flex=1
-            section
-              column padding=12 gap=4 testId="settings-display"
-                text "Display"
-                text font="-exact-footnote" color="-exact-secondary-label" "Backend: Wayland · Present: Exact native view (planned)"
-              column padding=12 gap=4 testId="settings-input"
-                text "Input"
-                text font="-exact-footnote" color="-exact-secondary-label" "Touch Input Type · host keymap bridge"
-              column padding=12 gap=4 testId="settings-about"
-                text "About"
-                text font="-exact-footnote" color="-exact-secondary-label" "Exact Contract chrome · Wawona/Wawona#229"
-      else
-        text "Unknown route"
+    main testId="wawona-root" navigationKey=`${top(nav).id}` navigationBack="back" navigate=follow
+      width="100%" height="100%" display="flex" flex-direction="column" box-sizing="border-box"
+      column flex=1 min-height=0 position="relative"
+        for t in nav.tabs key=t.name
+          column role="tabpanel" id=`panel-${t.name}` position="absolute" inset=0
+            for e in t.stack key=e.id
+              column navigationKey=`${e.id}` navigationScroll=`content-${e.id}` position="absolute" inset=0 display="flex" flex-direction="column"
+                if e.name == "machines"
+                  header testId="wawona-machines-header"
+                    h1 "Wawona"
+                  scroll id=`content-${e.id}` flex=1 min-height=0 testId="wawona-machines"
+                    list appearance="auto" listStyle="inset-grouped" testId="wawona-machine-list"
+                      section
+                        button press=openMachine("Native Shell") testId="machine-native-shell" width="100%"
+                          column align-items="flex-start" gap=2 padding=12
+                            text "Native Shell"
+                            text font="-exact-footnote" color="-exact-secondary-label" "zsh · Wayland · local"
+                        button press=openMachine("Weston") testId="machine-weston" width="100%"
+                          column align-items="flex-start" gap=2 padding=12
+                            text "Weston"
+                            text font="-exact-footnote" color="-exact-secondary-label" "Nested compositor"
+                        button press=openMachine("Niri") testId="machine-niri" width="100%"
+                          column align-items="flex-start" gap=2 padding=12
+                            text "Niri"
+                            text font="-exact-footnote" color="-exact-secondary-label" "Nested compositor"
+                        button press=openMachine("Relay Wasm") testId="machine-relay-wasm" width="100%"
+                          column align-items="flex-start" gap=2 padding=12
+                            text "Relay Wasm"
+                            text font="-exact-footnote" color="-exact-secondary-label" "WASI · wpm"
+                      section
+                        button press=openMachine("Add New Machine") testId="machine-add" width="100%"
+                          column align-items="flex-start" gap=2 padding=12
+                            text "Add New Machine"
+                            text font="-exact-footnote" color="-exact-secondary-label" "Native Shell · Virtual Machine · Container"
+                else if e.name == "present"
+                  header
+                    h1 title
+                  scroll id=`content-${e.id}` flex=1 min-height=0 testId="wawona-present"
+                    column flex=1 justify-content="center" align-items="center" gap=8 padding=24 testId="wawona-present-stub"
+                      text role="heading" aria-level=2 "Present"
+                      text color="-exact-secondary-label" "iland Present stub (M2). Wayland surface mounts here."
+                      text font="-exact-footnote" color="-exact-secondary-label" machineId
+                else if e.name == "settings"
+                  header testId="wawona-settings-header"
+                    h1 "Settings"
+                  scroll id=`content-${e.id}` flex=1 min-height=0 testId="wawona-settings"
+                    list appearance="auto" listStyle="inset-grouped" testId="wawona-settings-catalog"
+                      section
+                        header
+                          text "Catalog"
+                        link href=path("section", "display") testId="settings-section-display"
+                          text "Display"
+                        link href=path("section", "input") testId="settings-section-input"
+                          text "Input"
+                        link href=path("section", "graphics") testId="settings-section-graphics"
+                          text "Graphics"
+                        link href=path("section", "environment") testId="settings-section-environment"
+                          text "Env Vars"
+                        link href=path("section", "icloudSync") testId="settings-section-icloudSync"
+                          text "iCloud Sync"
+                        link href=path("section", "desktop") testId="settings-section-desktop"
+                          text "Desktop"
+                        link href=path("section", "waypipe") testId="settings-section-waypipe"
+                          text "Waypipe"
+                        link href=path("section", "ssh") testId="settings-section-ssh"
+                          text "SSH"
+                        link href=path("section", "about") testId="settings-section-about"
+                          text "About"
+                        link href=path("section", "dependencies") testId="settings-section-dependencies"
+                          text "Dependencies"
+                        footer
+                          text "Order matches Rust settings_catalog (macOS dual-run)."
+                else if e.name == "section"
+                  header testId="wawona-settings-section-header"
+                    h1 sectionTitle
+                  scroll id=`content-${e.id}` flex=1 min-height=0 testId=`wawona-settings-${sectionId}`
+                    list appearance="auto" listStyle="inset-grouped"
+                      if sectionId == "display"
+                        section
+                          header
+                            text "Display"
+                          PrefSwitch(id="colorOperations", title="Color Operations / HDR", on=colorOperations, set=setColorOperations)
+                          PrefSwitch(id="forceSsd", title="Force Server-Side Decorations", on=forceSsd, set=setForceSsd)
+                          PrefSwitch(id="respectSafeArea", title="Respect Safe Area", on=respectSafeArea, set=setRespectSafeArea)
+                          PrefSelect(id="compositorBackend", title="Display Backend", value=compositorBackend, set=setCompositorBackend)
+                            option "Auto" value="auto"
+                            option "Wayland" value="wayland"
+                            option "DRM" value="drm"
+                          PrefSwitch(id="nestedCompositors", title="Nested Compositors", on=nestedCompositors, set=setNestedCompositors)
+                          PrefSwitch(id="multipleClients", title="Multiple Clients", on=multipleClients, set=setMultipleClients)
+                          footer
+                            text "No Advanced row. Nested compositors and Display Backend live here."
+                      else if sectionId == "input"
+                        section
+                          header
+                            text "Input"
+                          PrefSelect(id="touchInputType", title="Touch Input Type", value=touchInputType, set=setTouchInputType)
+                            option "Multi-Touch" value="multi-touch"
+                            option "Touchpad" value="touchpad"
+                          PrefSwitch(id="showVirtualCursor", title="Show Virtual Cursor", on=showVirtualCursor, set=setShowVirtualCursor)
+                          PrefSwitch(id="touchPointerEmulation", title="Pointer Emulation for Touch", on=touchPointerEmulation, set=setTouchPointerEmulation)
+                          PrefSwitch(id="touchpadMode", title="Touchpad Mode", on=touchpadMode, set=setTouchpadMode)
+                          PrefSwitch(id="swapCmdWithAlt", title="Swap CMD with ALT", on=swapCmdWithAlt, set=setSwapCmdWithAlt)
+                          PrefSwitch(id="universalClipboard", title="Universal Clipboard", on=universalClipboard, set=setUniversalClipboard)
+                          PrefSwitch(id="shakeToClose", title="Shake to Exit Machine", on=shakeToClose, set=setShakeToClose)
+                          PrefSwitch(id="swipeBackToClose", title="Swipe Back to Exit Machine", on=swipeBackToClose, set=setSwipeBackToClose)
+                          footer
+                            text "Host keymap bridge. No layout picker."
+                      else if sectionId == "graphics"
+                        section
+                          header
+                            text "Graphics"
+                          PrefSelect(id="vulkanDriver", title="Vulkan Driver", value=vulkanDriver, set=setVulkanDriver)
+                            option "KosmicKrisp" value="kosmickrisp"
+                            option "MoltenVK" value="moltenvk"
+                            option "SwiftShader" value="swiftshader"
+                            option "System" value="system"
+                            option "None" value="none"
+                          PrefSelect(id="openglDriver", title="OpenGL Driver", value=openglDriver, set=setOpenglDriver)
+                            option "ANGLE" value="angle"
+                            option "System" value="system"
+                            option "None" value="none"
+                          PrefSwitch(id="sessionThumbnails", title="Session Thumbnails", on=sessionThumbnails, set=setSessionThumbnails)
+                      else if sectionId == "environment"
+                        section
+                          header
+                            text "Env Vars"
+                          row padding=16
+                            text color="-exact-secondary-label" "Environment variable inventory (New / Edit / Reset) wires through wawona-data in M3."
+                          footer
+                            text "Full table editor lands with the domain seam."
+                      else if sectionId == "icloudSync"
+                        section
+                          header
+                            text "iCloud Sync"
+                          PrefSwitch(id="iCloudSync", title="iCloud Sync", on=iCloudSync, set=setICloudSync)
+                          PrefSwitch(id="iCloudDriveHome", title="iCloud Drive HOME", on=iCloudDriveHome, set=setICloudDriveHome)
+                          row padding=16
+                            text color="-exact-secondary-label" "Status / Sync Now need CloudKit transport (Swift WWNCloudSync)."
+                          footer
+                            text "Apple only. Hidden on Android / Linux / Windows when domain seam lands."
+                      else if sectionId == "desktop"
+                        section
+                          header
+                            text "Desktop"
+                          PrefSwitch(id="desktopReplacement", title="Enable Desktop Replacement", on=desktopReplacement, set=setDesktopReplacement)
+                          row padding=16
+                            text color="-exact-secondary-label" "Replace now / Desktop Machine picker need Mode B host + SIP / IOMFB."
+                          footer
+                            text "macOS + Android planned. App Store iOS forbidden."
+                      else if sectionId == "waypipe"
+                        section
+                          header
+                            text "Waypipe"
+                          PrefSelect(id="waypipeCompress", title="Compression", value=waypipeCompress, set=setWaypipeCompress)
+                            option "None" value="none"
+                            option "lz4" value="lz4"
+                            option "zstd" value="zstd"
+                          PrefSwitch(id="waypipeUseSsh", title="Use SSH Config", on=waypipeUseSsh, set=setWaypipeUseSsh)
+                          PrefSwitch(id="waypipeDebug", title="Debug Mode", on=waypipeDebug, set=setWaypipeDebug)
+                          PrefSwitch(id="waypipeNoGpu", title="Disable GPU", on=waypipeNoGpu, set=setWaypipeNoGpu)
+                      else if sectionId == "ssh"
+                        section
+                          header
+                            text "SSH"
+                          PrefSwitch(id="sshEnabled", title="Enable SSH", on=sshEnabled, set=setSshEnabled)
+                          row box-sizing="border-box" align-items="center" min-height=44 padding="10px 16px" gap=12 testId="pref-sshHost"
+                            text "SSH Host" flex=1
+                            input type="text" value=sshHost change=setSshHost aria-label="SSH Host" testId="input-sshHost" flex-shrink=0
+                          row box-sizing="border-box" align-items="center" min-height=44 padding="10px 16px" gap=12 testId="pref-sshUser"
+                            text "SSH User" flex=1
+                            input type="text" value=sshUser change=setSshUser aria-label="SSH User" testId="input-sshUser" flex-shrink=0
+                          row box-sizing="border-box" align-items="center" min-height=44 padding="10px 16px" gap=12 testId="pref-sshPort"
+                            text "SSH Port" flex=1
+                            input type="text" value=sshPort change=setSshPort aria-label="SSH Port" testId="input-sshPort" flex-shrink=0
+                          PrefSelect(id="sshAuthMethod", title="Auth Method", value=sshAuthMethod, set=setSshAuthMethod)
+                            option "Password" value="password"
+                            option "Public Key" value="public-key"
+                      else if sectionId == "about"
+                        section
+                          header
+                            text "About"
+                          PrefSelect(id="logLevel", title="Log Level", value=logLevel, set=setLogLevel)
+                            option "Error" value="error"
+                            option "Warn" value="warn"
+                            option "Info" value="info"
+                            option "Debug" value="debug"
+                          row padding=16
+                            text color="-exact-secondary-label" "Exact Contract chrome · Wawona/Wawona#227 · dual-run until M8"
+                      else if sectionId == "dependencies"
+                        section
+                          header
+                            text "Dependencies"
+                          row padding=16
+                            text color="-exact-secondary-label" "Dependencies detail ports with M3. Open product Settings for live slice status."
+                          footer
+                            text "Slice inventory stays product-side (cargo xtask deps)."
+                      else
+                        section
+                          row padding=16
+                            text "Unknown section"
+                else
+                  text "Unknown route"
+      row role="tablist" testId="wawona-tabs" appearance="none"
+        button role="tab" aria-controls="panel-machines" aria-selected=(nav.tab == "machines") press=pickTab("machines")
+          testId="tab-machines" flex=1
+          image "symbol:layers"
+          text "Machines"
+        button role="tab" aria-controls="panel-settings" aria-selected=(nav.tab == "settings") press=pickTab("settings")
+          testId="tab-settings" flex=1
+          image "symbol:settings"
+          text "Settings"
+
+// One Settings switch row: title | platform switch (docs/settings.md row layout).
+component PrefSwitch
+  props
+    id: string
+    title: string
+    on: bool
+    set: action
+  view
+    row box-sizing="border-box" align-items="center" min-height=44 padding="10px 16px" gap=12 testId=`pref-${id}`
+      text title flex=1 min-width=0 line-clamp=1
+      input type="checkbox" switch checked=on change=set testId=`switch-${id}` aria-label=title margin=0 flex-shrink=0
+
+// One Settings picker row: title | select (macOS pop-up / iOS disclosure).
+component PrefSelect
+  props
+    id: string
+    title: string
+    value: string
+    set: action
+  slot
+  view
+    row box-sizing="border-box" align-items="center" min-height=44 padding="10px 16px" gap=12 testId=`pref-${id}`
+      text title flex=1 min-width=0 line-clamp=1
+      select value=value change=set aria-label=title testId=`select-${id}` flex-shrink=0
+        children

@@ -7,7 +7,7 @@ M0 exit: [Wawona/Wawona#228](https://github.com/Wawona/Wawona/issues/228).
 
 | Layer | Owns | Does not own |
 |---|---|---|
-| Exact Contract (`apps/wawona`) | Machines list, Settings chrome, Welcome, editors shell | Wayland protocol, Smithay seat |
+| Exact Contract (`apps/wawona`) | Machines tab + Global Settings catalog (sections from Rust `settings_catalog`), Welcome, editors shell | Wayland protocol, Smithay seat. M3 wires `wawona.pref.*` through `wawona-data` |
 | Exact native hosts | Platform controls, bars, type, Present native view | Compositor policy |
 | Rust `wawona-data` (M3+) | Machine profiles, prefs allowlist, launch validation | Pixel present |
 | Smithay + iLand | Wayland compositor + userspace DRM present | Product chrome |
