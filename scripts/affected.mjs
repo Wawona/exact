@@ -74,7 +74,7 @@ const WHOLE = new Set(['scripts/caps.mjs', 'scripts/metrics.mjs']);
 const WORKSPACES = ['Cargo.toml', 'game/Cargo.toml'];
 
 /** The hosts an app's crate directory serves; the directory is the platform's name. */
-const APP_HOSTS = { web: ['web'], apple: ['macos', 'ios'], linux: ['linux'], windows: ['windows'], android: ['android'] };
+const APP_HOSTS = { web: ['web'], apple: ['macos', 'ios'], linux: ['linux'], windows: ['windows'], android: ['android'], asteroid: ['asteroid'] };
 
 /**
  * The changed files that select each suite: `[{ suite, because: [file, …], only? }]`, in catalogue order. `changed`

@@ -60,7 +60,7 @@
           "propertyNames": { "pattern": "^[a-z][a-z0-9]*(-[a-z][a-z0-9]*)*$" },
           "additionalProperties": {
             "type": "array",
-            "items": { "enum": ["ios", "tvos", "macos", "web", "linux", "windows", "android"] }
+            "items": { "enum": ["ios", "tvos", "macos", "web", "linux", "windows", "android", "asteroid"] }
           }
         }
       ]
@@ -70,7 +70,7 @@
       "type": "object",
       "additionalProperties": {
         "type": "object",
-        "propertyNames": { "enum": ["ios", "tvos", "macos", "web", "linux", "windows", "android"] },
+        "propertyNames": { "enum": ["ios", "tvos", "macos", "web", "linux", "windows", "android", "asteroid"] },
         "additionalProperties": { "type": "string" }
       }
     },
@@ -79,7 +79,7 @@
       "type": "object",
       "additionalProperties": {
         "type": "object",
-        "propertyNames": { "enum": ["ios", "tvos", "macos", "web", "linux", "windows", "android"] },
+        "propertyNames": { "enum": ["ios", "tvos", "macos", "web", "linux", "windows", "android", "asteroid"] },
         "additionalProperties": {
           "type": "object",
           "additionalProperties": {
@@ -941,6 +941,11 @@
               "description": "Opt into ink (LLP 1149 D12); absent: the GPU painter when available, otherwise the CPU, with `EXACT_PAINTER` overriding the choice."
             }
           },
+          "additionalProperties": false
+        },
+        "asteroid": {
+          "description": "AsteroidOS: headless Linux presenter today; Qt6/QML shell planned.",
+          "type": "object",
           "additionalProperties": false
         },
         "windows": {

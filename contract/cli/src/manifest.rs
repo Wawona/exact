@@ -34,7 +34,7 @@ impl Manifest {
     pub fn rust_mode(&self, platform: &str, development: bool) -> Result<&'static str, String> {
         if !matches!(
             platform,
-            "web" | "ios" | "macos" | "linux" | "android" | "windows"
+            "web" | "ios" | "macos" | "linux" | "android" | "windows" | "asteroid"
         ) {
             return Err(format!("unknown Rust replacement platform: {platform}"));
         }
@@ -438,7 +438,7 @@ fn validate_rust_policy(value: &serde_json::Value, depth: u8) -> Result<(), Stri
                         for (platform, policy) in platforms {
                             if !matches!(
                                 platform.as_str(),
-                                "web" | "ios" | "macos" | "linux" | "android" | "windows"
+                                "web" | "ios" | "macos" | "linux" | "android" | "windows" | "asteroid"
                             ) {
                                 return Err(format!(
                                     "unknown Rust replacement platform: {platform}"
@@ -506,7 +506,7 @@ fn validate_placement_policy(value: &serde_json::Value) -> Result<(), String> {
                 for (platform, policy) in platforms {
                     if !matches!(
                         platform.as_str(),
-                        "web" | "ios" | "macos" | "linux" | "android" | "windows"
+                        "web" | "ios" | "macos" | "linux" | "android" | "windows" | "asteroid"
                     ) {
                         return Err(format!("unknown placement platform: {platform}"));
                     }

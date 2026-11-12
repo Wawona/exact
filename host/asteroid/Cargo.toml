@@ -1,0 +1,19 @@
+# AsteroidOS host (Phase 6): runner and kernel through exact-linux today; Qt6/QML
+# presenter is a separate artifact (host/asteroid/qt/README.md).
+#
+# @ref Wawona/Wawona#246
+[package]
+name = "exact-asteroid"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "AsteroidOS host: headless agent seam and Linux presenter until Qt/QML lands"
+publish = false
+
+[lib]
+name = "exact_asteroid"
+crate-type = ["rlib"]
+
+[dependencies]
+exact-linux = { path = "../linux" }
+exact-runner = { path = "../../runner" }

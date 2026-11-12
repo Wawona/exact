@@ -1386,6 +1386,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "exact-asteroid"
+version = "0.1.0"
+dependencies = [
+ "exact-linux",
+ "exact-runner",
+]
+
+[[package]]
 name = "exact-bake"
 version = "0.1.0"
 dependencies = [
@@ -2600,6 +2608,17 @@ dependencies = [
  "exact-apple",
  "exact-bake",
  "exact-logic",
+ "hello-data",
+]
+
+[[package]]
+name = "hello-asteroid"
+version = "0.1.0"
+dependencies = [
+ "contract",
+ "exact-asteroid",
+ "exact-bake",
+ "exact-linux",
  "hello-data",
 ]
 

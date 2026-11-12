@@ -102,6 +102,8 @@ export function ownVerb(app, verb) {
 
 /** The command that builds `app`'s Linux host for a drive: an `exact new` app's own verb, else exact2's build. */
 export const linuxRebuild = (app) => ownVerb(app, 'linux') ?? linuxBuild(app).join(' ');
+/** Build command for an AsteroidOS headless drive. */
+export const asteroidRebuild = (app) => ownVerb(app, 'asteroid') ?? `bun scripts/build-asteroid.mjs ${app.name}`;
 
 /** The driver's refusal (LLP 1012.001.000 D1) on what `nativeBuild` found. */
 export function refuseBuild(host, state, app, { sample = false } = {}) {

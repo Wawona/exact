@@ -9,7 +9,9 @@ use std::path::Path;
 /// Why `wide` is not available on `platform`, or `None` when it is.
 pub fn unavailable(wide: &Wide, platform: &str) -> Option<&'static str> {
     match platform {
-        "linux" if !wide.in_srgb() => Some("is outside sRGB, and Linux draws sRGB only"),
+        "linux" | "asteroid" if !wide.in_srgb() => {
+            Some("is outside sRGB, and Linux draws sRGB only")
+        }
         "web" if wide.space.is_hdr() => {
             Some("is in a CSS Color HDR space, which no browser draws yet")
         }
@@ -179,7 +181,7 @@ pub(crate) fn check_plan(
     }
     for text in &literals {
         for (written, name, count) in profiled_colors(text) {
-            if platform == "linux" || platform == "web" {
+            if platform == "linux" || platform == "asteroid" || platform == "web" {
                 return Err(format!(
                     "app.contract: `{written}` is in a color profile's space, which only the platform converts and {platform} does not \
                      (LLP 1100 D3): write a CSS color, or choose this one where the platform has it"
@@ -209,7 +211,7 @@ pub(crate) fn check_plan(
     }
     // @ref LLP 1100 D12a, D10 — Linux's canvases are 8-bit sRGB; a setting
     // computed at run time is sRGB there (`Runner::canvas_settings`).
-    if platform == "linux" {
+    if platform == "linux" || platform == "asteroid" {
         for b in plan
             .bindings
             .iter()

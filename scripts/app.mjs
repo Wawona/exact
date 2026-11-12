@@ -786,7 +786,7 @@ export function developmentBuildEnv() {
 /** Rust replacement capability baked into this platform/environment, independent
  * of release cadence and rebuild triggers. @ref LLP 1029.000 §2. */
 export function rustPolicy(manifest, platform, environment = 'dev') {
-  if (!['web', 'ios', 'macos', 'linux', 'android', 'windows'].includes(platform)) throw new Error(`unknown Rust replacement platform: ${platform}`);
+  if (!['web', 'ios', 'macos', 'linux', 'android', 'windows', 'asteroid'].includes(platform)) throw new Error(`unknown Rust replacement platform: ${platform}`);
   if (!['dev', 'prod'].includes(environment)) throw new Error(`unknown Rust replacement environment: ${environment}`);
   const policy = manifest.rust;
   if (policy !== undefined) {
@@ -957,6 +957,8 @@ export const linuxBinary = (app, bin = app.crate('linux')) => resolve(app.target
 /** The command that builds it. An app outside this repo gets the root's
  * profiles on the command line, as its Apple build does (injectedProfiles). */
 export const linuxBuild = (app, bin = null) => ['cargo', 'build', ...injectedProfiles(app), '--profile', HOST_DEV, '-p', app.crate('linux'), ...(bin ? ['--bin', bin] : [])];
+export const asteroidBinary = (app, bin = app.crate('asteroid')) => resolve(app.target, HOST_DEV, bin);
+export const asteroidBuild = (app, bin = null) => ['cargo', 'build', ...injectedProfiles(app), '--profile', HOST_DEV, '-p', app.crate('asteroid'), ...(bin ? ['--bin', bin] : [])];
 /** The executable (and Apple bundle) as Xcode and Visual Studio name a project's: the app's name, less what a file name cannot carry (LLP 1030 D2); `windowsFile` is a Windows build's name for a Cargo product. */
 export const executableName = (app) => app.displayName.replace(/[<>:"/\\|?*\x00-\x1f]/g, '-').replace(/^[. ]+|[. ]+$/g, '') || app.id.split('.').pop();
 export const windowsFile = (app, path) => basename(path) === `${app.crate('windows')}.exe` ? `${executableName(app)}.exe` : basename(path);

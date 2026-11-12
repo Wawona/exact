@@ -44,7 +44,7 @@ export { MalformedOperation, resizeArguments, postCommand, cdpKey, browserKey, n
 import { appleRunBinary, appleArtifacts, assertAppleIdentity, bundleId, install } from '../host/apple/build.mjs';
 import { crashReports, crashWatch, developmentLaunchEnvironment, forwardedEnv, keepInstalledRelease, phone, showSimulator, simulator, displayAsIs, withDisplay, withMaterials, withSoftwareKeyboard } from '../host/apple/devices.mjs';
 import { builtAppMatches, jsTargetBuild, serveBuildTree, serveStatic } from '../host/web/serve.mjs'; import { bootedGeneration, leaseGeneration } from '../host/web/generations.mjs';
-import { bakeOutput, bakeTarget, executableName, linuxBinary, linuxBuild, resolveApp, webDist as defaultWebDist } from './app.mjs'; import { androidBinary, androidBuild, androidDeploy } from './agent-android.mjs';
+import { bakeOutput, bakeTarget, asteroidBinary, executableName, linuxBinary, linuxBuild, resolveApp, webDist as defaultWebDist } from './app.mjs'; import { androidBinary, androidBuild, androidDeploy } from './agent-android.mjs';
 const ROOT = resolve(fileURLToPath(new URL('..', import.meta.url)));
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 // web
@@ -738,7 +738,7 @@ export async function open({onProcess, host = 'web', browser, plan, world, size,
     if (host === 'web') url = webShareLocation(target, share);
     else { env = { ...(env ?? {}), EXACT_AGENT_SHARE: JSON.stringify({ target, share }) }; url = undefined; }
   }
-  if (url !== undefined && ['macos', 'mac', 'ios', 'tvos', 'linux', 'android', 'windows', 'host', 'host-ios'].includes(host)) {
+  if (url !== undefined && ['macos', 'mac', 'ios', 'tvos', 'linux', 'android', 'windows', 'asteroid', 'host', 'host-ios'].includes(host)) {
     // @ref LLP 1038 D5/D11 — a native scheme/path is a launch location;
     // HTTP(S) keeps the existing development-plan locator form.
     if (/^https?:\/\//i.test(url)) {
@@ -752,7 +752,7 @@ export async function open({onProcess, host = 'web', browser, plan, world, size,
     : host === 'macos' || host === 'mac' ? await openStdio({ host: 'macos', plan, size: size ?? VIEWPORT, env, app, session, documents, onProcess })
     : host === 'host' ? await openStdio({ host: 'host', plan, env, app, session, onProcess })
     : host === 'host-ios' ? await openIOS({ plan, app, env, session, hostFixture: true, touch, onProcess })
-    : host === 'linux' || host === 'android' ? await openStdio({ host, plan, size: size ?? VIEWPORT, env, app, onProcess })
+    : host === 'linux' || host === 'android' || host === 'asteroid' ? await openStdio({ host, plan, size: size ?? (host === 'asteroid' ? [240, 240] : VIEWPORT), env, app, onProcess })
     : host === 'windows' ? await openStdio({ host: 'windows', plan, size: size ?? VIEWPORT, env, app, onProcess })
     : host === 'ios' ? await openIOS({ plan, env, app, size, touch, onProcess })
     : host === 'tvos' ? await openIOS({ plan, env, app, size, tv: true, onProcess })
@@ -763,7 +763,9 @@ export async function open({onProcess, host = 'web', browser, plan, world, size,
   // Without a plan of the drive's own, a native host runs its bake's: the maps a development bake left (LLP 1012.001.000 D6).
   const baked = () => { const a = resolveApp(app); const bin = host === 'windows'
     ? process.env.EXACT_WINDOWS_BIN ?? resolve(a.dir, 'dist-windows', `${executableName(a)}.exe`)
-    : host === 'android' ? process.env.EXACT_ANDROID_BIN ?? androidBinary(a) : process.env.EXACT_LINUX_BIN ?? linuxBinary(a); return bakedPlans(bin, bakeOutput(a)); };
+    : host === 'android' ? process.env.EXACT_ANDROID_BIN ?? androidBinary(a)
+    : host === 'asteroid' ? process.env.EXACT_ASTEROID_BIN ?? asteroidBinary(a)
+    : process.env.EXACT_LINUX_BIN ?? linuxBinary(a); return bakedPlans(bin, bakeOutput(a)); };
   const sourceMaps = sourceMapReaders(mapLocator ? [mapLocator] : carrier.host !== 'web' ? baked() : []);
   const s = {
     carrier,

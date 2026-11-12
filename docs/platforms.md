@@ -18,7 +18,7 @@ in the commit that changes it.
 | visionOS | early: the iOS presenter boots on the Apple Vision Pro simulator; no device build, agent target, smoke or delivery | `bun host/apple/build.mjs --visionos --run` | none | 2.0 | [2](https://github.com/Wawona/Wawona/issues/242) |
 | watchOS | snapshot complications and a live entry (`ExactWatch`, LLP 1126); a TypeScript app's entry runs on a paired simulator when it reaches no `app.ts` source; no device run | `bun host/apple/build.mjs --watchos` | none | 10 | [3](https://github.com/Wawona/Wawona/issues/243) |
 | WearOS | absent: the phone APK runs unadapted; a host proposal below | | none | | [5](https://github.com/Wawona/Wawona/issues/245) |
-| AsteroidOS | absent: fork goal, a Qt6/QML host | | none | | [6](https://github.com/Wawona/Wawona/issues/246) |
+| AsteroidOS | in progress: `exact-asteroid` + hello headless on macOS; Qt6/QML presenter planned; armv7 cross via AsteroidOS-SDK | `bun host/asteroid/build.mjs <app>` or `bun scripts/build-asteroid.mjs <app>` | `asteroid` | armv7 Linux (cross) | [6](https://github.com/Wawona/Wawona/issues/246) |
 
 The Apple hosts build with Xcode 27: ExactKit calls the iOS and tvOS 27 SDKs' AVAudioSession life cycle, and
 Xcode 26's Swift does not compile it.
@@ -80,6 +80,23 @@ What a signed update stream for Android needs; nothing of it exists yet, and `sc
   ([Device and Network Abuse](https://support.google.com/googleplay/android-developer/answer/9888379)).
 - **The receipt.** As for Windows, an update-capable Android build's receipt follows the app's store rather than
   the platform's.
+
+## AsteroidOS host (Phase 6)
+
+`host/asteroid` reuses the Linux runner and presenter for layout and paint, sets a
+240×240 headless viewport, and tags agent refusals as `asteroid`. Qt6/QML lives under
+`host/asteroid/qt/` and is not linked yet: cross Qt on aarch64-darwin is partial in
+[Wawona/AsteroidOS-SDK](https://github.com/Wawona/AsteroidOS-SDK); full watch UI waits on
+device images.
+
+- **Build (host, agent):** `bun scripts/build-asteroid.mjs hello` then
+  `EXACT_AGENT=1 bun scripts/agent.mjs asteroid --app hello tree`.
+- **Cross armv7:** `bun host/asteroid/build.mjs hello` with `ASTEROIDOS_SDK` pointing at
+  the SDK flake. QEMU user-mode smoke is Linux-host only; macOS verifies the ELF with
+  `file` per the SDK `cross-qemu-smoke` check.
+
+Exit for Phase 6 remains a hello Contract app on an AsteroidOS image or device; this
+commit delivers scaffolding and headless proof on the build machine.
 
 ## WearOS host (proposal)
 

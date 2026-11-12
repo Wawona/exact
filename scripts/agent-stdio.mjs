@@ -5,8 +5,8 @@ import { basename, dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { appleRunBinary, appleArtifacts, assertAppleIdentity } from '../host/apple/build.mjs';
 import { phone, phoneBridge, forwardedEnv, crashReports } from '../host/apple/devices.mjs';
-import { resolveApp, executableName, linuxBinary, bakeOutput, bakeTarget } from './app.mjs';
-import { linuxRebuild, nativeBuild, ownVerb, planOverride, refuseBuild } from './agent-build.mjs';
+import { resolveApp, executableName, asteroidBinary, linuxBinary, bakeOutput, bakeTarget } from './app.mjs';
+import { asteroidRebuild, linuxRebuild, nativeBuild, ownVerb, planOverride, refuseBuild } from './agent-build.mjs';
 import { refuseStale, proofProductChanges, unchecked, packagedBuildChanges, depInfoChanges, depInfoNewer, newerThan, bakedSettingChanges } from './agent-launch.mjs';
 import { androidBinary, androidDeploy, apkRecord } from './agent-android.mjs';
 import { nativeKey, mouseContact } from './agent-keys.mjs';
@@ -28,27 +28,30 @@ export function apkChanges(a, apk) {
 /** One JSON-lines protocol over stdio on desktop hosts, or a phone's outbound socket. */
 export async function openStdio({ host, plan, world, size, app, env: extra = {}, session, documents = [], device = false, phone: pick, onProcess }) {
   const a = resolveApp(app);
-  const linux = host === 'linux', android = host === 'android'; // @ref LLP 1107 — Android: the Linux host on a phone, under adb
-  const windows = host === 'windows', portable = linux || windows || android;
+  const linux = host === 'linux', asteroid = host === 'asteroid', android = host === 'android'; // @ref LLP 1107 — Android: the Linux host on a phone, under adb
+  const windows = host === 'windows', portable = linux || asteroid || windows || android;
   const sample = host === 'host';
   const artifacts = portable ? null : appleArtifacts(a, { destination: device ? 'ios' : 'macos', host: sample });
   const deviceBundle = artifacts?.bundle;
   const bin = windows ? (process.env.EXACT_WINDOWS_BIN ?? resolve(a.dir, 'dist-windows', `${executableName(a)}.exe`))
-    : android ? (process.env.EXACT_ANDROID_BIN ?? androidBinary(a)) : linux ? (process.env.EXACT_LINUX_BIN ?? linuxBinary(a)) : (process.env.EXACT_MAC_BIN ?? appleRunBinary(a, sample));
+    : android ? (process.env.EXACT_ANDROID_BIN ?? androidBinary(a))
+    : asteroid ? (process.env.EXACT_ASTEROID_BIN ?? asteroidBinary(a))
+    : linux ? (process.env.EXACT_LINUX_BIN ?? linuxBinary(a))
+    : (process.env.EXACT_MAC_BIN ?? appleRunBinary(a, sample));
   // The macOS build by its own record (agent-build.mjs, which an app's exact.mjs runs first to build it, or bakes its plan-only edit).
   const macBuild = !portable && !device && !process.env.EXACT_MAC_BIN ? nativeBuild('macos', a, { sample, checked: process.env.EXACT_BUILD_CHECKED }) : null, macPlan = macBuild && !plan && !sample ? planOverride('macos', a, macBuild) : null;
   if (macPlan) plan = macPlan.plan; else if (macBuild) refuseBuild('macos', macBuild, a, { sample });
   const windowsRebuild = () => ownVerb(a, 'windows') ?? `bun host/windows/build.mjs ${a.crate('windows')}`;
-  if (!existsSync(device ? deviceBundle : bin)) throw new Error(device ? 'run bun host/apple/build.mjs --device first' : windows ? `run ${windowsRebuild()} first` : android ? `run ${androidRebuild(a, !!process.env.EXACT_ANDROID_READER)} first` : linux ? `run ${linuxRebuild(a)} first` : `EXACT_MAC_BIN names no file: ${bin}`);
+  if (!existsSync(device ? deviceBundle : bin)) throw new Error(device ? 'run bun host/apple/build.mjs --device first' : windows ? `run ${windowsRebuild()} first` : android ? `run ${androidRebuild(a, !!process.env.EXACT_ANDROID_READER)} first` : asteroid ? `run bun scripts/build-asteroid.mjs ${a.name} first` : linux ? `run ${linuxRebuild(a)} first` : `EXACT_MAC_BIN names no file: ${bin}`);
   if (!portable) assertAppleIdentity(a, device ? resolve(deviceBundle, artifacts.executable) : bin);
   if (portable && process.env.EXACT_PROOF_PRODUCTS) refuseStale(host, bin, proofProductChanges(process.env.EXACT_PROOF_PRODUCTS, bin, a), 'rerun the proof'); else if (windows && process.env.EXACT_WINDOWS_BIN) unchecked('windows', 'EXACT_WINDOWS_BIN');
   else if (windows) {
     const receipt = resolve(bakeOutput(a), `windows-${bakeTarget('windows')}.build.json`);
     refuseStale('windows', bin, packagedBuildChanges(receipt, dirname(bin), a), windowsRebuild());
   }
-  else if ((linux && process.env.EXACT_LINUX_BIN) || (android && process.env.EXACT_ANDROID_BIN)) unchecked(host, android ? 'EXACT_ANDROID_BIN' : 'EXACT_LINUX_BIN');
+  else if ((linux && process.env.EXACT_LINUX_BIN) || (asteroid && process.env.EXACT_ASTEROID_BIN) || (android && process.env.EXACT_ANDROID_BIN)) unchecked(host, android ? 'EXACT_ANDROID_BIN' : asteroid ? 'EXACT_ASTEROID_BIN' : 'EXACT_LINUX_BIN');
   else if (android && bin.endsWith('.apk')) refuseStale(host, bin, [...apkChanges(a, bin), ...bakedSettingChanges(bin, a)], androidRebuild(a, true));
-  else if (linux || android) refuseStale(host, bin, [...depInfoChanges(bin), ...bakedSettingChanges(bin, a)], android ? androidRebuild(a, false) : linuxRebuild(a));
+  else if (linux || asteroid || android) refuseStale(host, bin, [...depInfoChanges(bin), ...bakedSettingChanges(bin, a)], android ? androidRebuild(a, false) : asteroid ? asteroidRebuild(a) : linuxRebuild(a));
   else if (!device && process.env.EXACT_MAC_BIN) unchecked(host, 'EXACT_MAC_BIN');
   if (device && (plan || extra.EXACT_PLAN || extra.EXACT_ASSETS)) throw new Error('a phone cannot read host-local plan/assets paths; use --url or its embedded app');
   const ph = device ? phone(pick) : null;

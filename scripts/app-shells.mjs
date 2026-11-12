@@ -18,7 +18,7 @@ import { APPLE_BUILD_SCRIPT, appleBuildScript } from './linked-plan.mjs';
 const ROOT = resolve(fileURLToPath(new URL('..', import.meta.url)));
 
 /** The platforms a manifest can name, each with the crate that serves it. */
-export const PLATFORMS = { ios: 'apple', macos: 'apple', tvos: 'apple', linux: 'linux', android: 'android', windows: 'windows' };
+export const PLATFORMS = { ios: 'apple', macos: 'apple', tvos: 'apple', linux: 'linux', android: 'android', windows: 'windows', asteroid: 'asteroid' };
 /** The platforms that hold an update store, so a stream (scripts/deploy.mjs). A platform named later starts at "0",
  * binary-only, since an absent key reads as "A"; Windows composes its store's adapter only for a level above it. */
 const STORED = ['ios', 'macos', 'linux', 'windows'];
@@ -27,7 +27,7 @@ const STORED = ['ios', 'macos', 'linux', 'windows'];
  * every other verb. */
 export function platformOf(verb, host = 'web') {
   const word = ['test', 'agent', 'verify'].includes(verb) ? host : verb;
-  return { ios: 'ios', share: 'ios', mac: 'macos', macos: 'macos', linux: 'linux', android: 'android', windows: 'windows' }[word] ?? null;
+  return { ios: 'ios', share: 'ios', mac: 'macos', macos: 'macos', linux: 'linux', android: 'android', windows: 'windows', asteroid: 'asteroid' }[word] ?? null;
 }
 
 /** What `host.<platform>` holds when a verb names the platform: the scaffold's defaults for the two Apple platforms,
@@ -218,6 +218,24 @@ mod android {
     include!(concat!(env!("OUT_DIR"), "/hatches.rs"));
 
     exact_linux::canvas_jni!(super::AppData, hatches = crate::android::exact_hatches());
+}
+`,
+  };
+  if (kind === 'asteroid') return {
+    'Cargo.toml': `${header(`[[bin]]\nname = "${name}-asteroid"\npath = "src/main.rs"`)}exact-logic = ${dep('logic')}
+exact-asteroid = ${dep('host/asteroid')}
+exact-linux = ${dep('host/linux')}
+exact-js = ${dep('js')}
+
+${build}`,
+    'build.rs': bake('asteroid'),
+    'src/main.rs': `//! ${title} on AsteroidOS: headless agent today; Qt shell planned.
+
+${includes(true)}
+${module(false)}include!(concat!(env!("OUT_DIR"), "/logic.rs"));
+fn main() {
+    let composed = exact_linux::Composed::default();
+    std::process::exit(exact_asteroid::run_composed::<AppData>(PLAN, COMPAT, composed));
 }
 `,
   };
