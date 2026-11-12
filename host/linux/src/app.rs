@@ -724,7 +724,14 @@ pub struct Composed {
     pub hatches: Option<crate::hatches::Install>,
     /// Its packages' implementations for this platform.
     pub packages: Vec<crate::package::Entry>,
+    /// The delivery adapter's store opener, for a host whose loop attaches
+    /// it (Windows; LLP 1030 D4): `compat.json`, the baked plan and the
+    /// embedded assets' directory. Linux composes through `exact-linux-update`.
+    pub updates: Option<OpenStore>,
 }
+
+/// Opens an app's update store: see [`Composed::updates`].
+pub type OpenStore = fn(&str, &[u8], &std::path::Path) -> Result<Box<dyn Store>, String>;
 
 /// Launch an explicitly registered consumer using the ordinary environment,
 /// receipt and store preflight. No generic worker or authoring schema is added.

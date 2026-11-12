@@ -1,0 +1,30 @@
+# The Caltrain app on Windows: one executable with the runner, the kernel, the
+# data crate, the baked plan (written by build.rs, never committed), and the
+# host's window (`host/windows`). `bun host/windows/build.mjs caltrain` builds
+# and packages it on Windows.
+[package]
+name = "caltrain-windows"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Caltrain on the Windows host: the app's executable"
+publish = false
+build = "build.rs"
+
+[[bin]]
+name = "caltrain-windows"
+path = "src/main.rs"
+test = false
+bench = false
+
+[dependencies]
+exact-logic = { path = "../../../logic" }
+caltrain-data = { path = "../data" }
+exact-windows = { path = "../../../host/windows" }
+# The packages' Windows implementations name `exact_linux::package` (LLP 1133.022 D10 item 5).
+exact-linux = { path = "../../../host/linux" }
+
+[build-dependencies]
+caltrain-data = { path = "../data" }
+contract = { path = "../../../contract/cli" }
+exact-bake = { path = "../../../bake" }

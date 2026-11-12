@@ -32,8 +32,9 @@
 //! - It uses `std::fs` for the store directory and **takes the network as a
 //!   closure** (`&mut dyn FnMut(&str) -> Result<Vec<u8>, String>`), so a host
 //!   runs [`Store::check`] on its own executor thread and this crate opens no
-//!   socket and links no TLS. Windows durable storage is unqualified;
-//!   [`Store::open`] refuses there before touching any store files (LLP 1026 D11a).
+//!   socket and links no TLS. On Windows a rename that publishes is
+//!   `MoveFileExW` with write-through, and a directory is flushed through a
+//!   writable handle.
 //!   Pure envelope, signature and baked-binary operations remain available.
 //! - It never boots anything: [`Store::prepare_selected`] and
 //!   [`Store::prepare_activation`] pin verified bytes; the host accepts

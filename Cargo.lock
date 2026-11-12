@@ -620,6 +620,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "caltrain-windows"
+version = "0.1.0"
+dependencies = [
+ "caltrain-data",
+ "contract",
+ "exact-bake",
+ "exact-linux",
+ "exact-logic",
+ "exact-windows",
+]
+
+[[package]]
 name = "canvas-gallery-apple"
 version = "0.1.0"
 dependencies = [

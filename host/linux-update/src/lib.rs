@@ -7,6 +7,13 @@ use exact_runner::{DataSource, Delivery};
 use std::sync::Arc;
 pub use store::Updates;
 
+/// Open the store for a host that composes delivery itself (the Windows window
+/// loop, `exact_linux::Composed::updates`): the binary's `compat.json`, its
+/// baked plan, and the directory its embedded assets are read from.
+pub fn open_store(compat: &str, baked: &[u8], assets: &std::path::Path) -> Result<Box<dyn Store>, String> {
+    Updates::open(compat, baked, assets).map(|updates| Box::new(updates) as Box<dyn Store>)
+}
+
 /// Run the app with its update store attached before boot.
 pub fn run<D: DataSource + Default>(baked: &[u8], compat: &str) -> i32 {
     run_composed::<D>(baked, compat, Default::default())
@@ -91,6 +98,7 @@ impl Store for Updates {
     fn take_note(&mut self) -> Option<String> {
         Updates::take_note(self)
     }
+    #[cfg(unix)]
     fn fd(&self) -> std::os::unix::io::RawFd {
         Updates::fd(self)
     }

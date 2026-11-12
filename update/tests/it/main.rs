@@ -4,5 +4,3 @@ mod durability;
 mod publisher;
 mod store;
 mod support;
-#[cfg(windows)]
-mod windows;

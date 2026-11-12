@@ -1056,6 +1056,9 @@ function completeBuild(app, platform, target, graph, messages, roots, env, prepa
     if (under(app.dir,path)) return `app/${relative(app.dir,path)}`;
     if (under(ROOT,path)) return `exact/${relative(ROOT,path)}`;
     if (under(graph.metadata.workspace_root,path)) return `workspace/${relative(graph.metadata.workspace_root,path)}`;
+    // A private CARGO_TARGET_DIR outside the checkout (assertOwnTarget allows it) still
+    // holds compiler artifacts a Windows bake may list; name them under target/.
+    if (under(app.target,path)) return `target/${relative(app.target,path)}`;
     throw new Error(`compiler input has no captured source identity: ${path}`);
   };
   const inputs = new Map(), absent = new Map(), directories = new Map(), hashes = inputHashes(app, env);
@@ -1089,9 +1092,9 @@ function completeBuild(app, platform, target, graph, messages, roots, env, prepa
     const output = readFileSync([resolve(m.out_dir,'../output'), resolve(m.out_dir,'../run/stdout')].find(existsSync) ?? resolve(m.out_dir,'../output'),'utf8'); const environment = [];
     for (const line of output.split('\n')) {
       const changed = /^cargo::?rerun-if-changed=(.*)$/.exec(line);
-      // The app's plan/manifest/static watches are inputs of replaceable artifacts, but a Windows
+      // The app's plan/manifest/static watches are inputs of replaceable artifacts, but a binary-only Windows
       // executable carries its plan: there they are binary inputs, as its generated entry and typed metadata are.
-      if (changed && (pkg.id !== graph.root.id || platform === 'windows')) {
+      if (changed && (pkg.id !== graph.root.id || (platform === 'windows' && compat.inputs.store?.L === '0'))) {
         const path = resolve(dirname(pkg.manifest_path), changed[1]);
         if (!shaderRoots(app).some(root => under(root, path))) add(path, true);
       }

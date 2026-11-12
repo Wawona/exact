@@ -129,26 +129,31 @@ Windows 11 releases Microsoft still services
 ([Windows 11 lifecycle](https://learn.microsoft.com/lifecycle/products/windows-11-home-and-pro)). Nothing in the
 host requires Windows 11: where DWM refuses Mica, `host/ink`'s composition presents an opaque frame instead.
 
-## Windows delivery (sketch)
+## Windows delivery
 
-What phase 4's signed delivery builds; nothing of it exists yet.
-
-- **The store.** `host/windows-update`, a sibling of `host/linux-update` above `exact-windows`, opens an
-  `exact_update::Client` before the boot, as Linux's does. It lives in the per-user local application data
-  folder ([`FOLDERID_LocalAppData`](https://learn.microsoft.com/windows/win32/shell/knownfolderid#FOLDERID_LocalAppData),
+- **The store.** An app whose `deploy.store.windows` is not `"0"` gets a generated entry that composes
+  `host/linux-update`'s store (`exact_linux::Composed::updates`). It opens an `exact_update::Client` before the boot,
+  as on Linux, in the per-user local application data folder
+  ([`FOLDERID_LocalAppData`](https://learn.microsoft.com/windows/win32/shell/knownfolderid#FOLDERID_LocalAppData),
   `%LOCALAPPDATA%\exact\<app id>\update`): it is a cache of the origin, so it is not roamed. `EXACT_UPDATE_DIR`,
-  `EXACT_UPDATE_ORIGIN` and the agent's temporary store behave as on Linux. The check runs over rustls.
-- **The wake.** Linux wakes its display loop with one byte on a socketpair. The Windows display loop is winit's,
-  so a finished check sends an event through the `EventLoopProxy` the host already holds, and the presenter drains
-  its line as Linux's `poll_update` does.
-- **What a stream carries.** `scripts/deploy.mjs` gains `windows` in its platforms: a plan and asset update per
-  compatibility id, signed with the app's update key as the other native streams are. A changed executable is
-  not an update; it is a new install, Authenticode-signed and packaged as MSIX so that Windows verifies and
-  replaces it ([App installer](https://learn.microsoft.com/windows/msix/app-installer/app-installer-root)).
-- **The receipt.** A Windows build's receipt records the bake's watches (the Contract, `app.ts` and what it
-  imports) as binary inputs, since a binary-only executable carries its plan. An update-capable Windows app
-  replaces its plan, so once `host/windows-update` lands that rule follows the app's store (`store.L == "0"`), as
-  `scripts/app.mjs` `completeBuild` decides it today for the platform as a whole.
+  `EXACT_UPDATE_ORIGIN` and the agent's temporary store behave as on Linux, and the check runs over rustls. An
+  entry for level `"0"` links no updater, and the host refuses a bake with a store level but no adapter.
+- **Durability.** A rename that publishes is `MoveFileExW` with `MOVEFILE_WRITE_THROUGH`, which returns once the
+  move is on disk ([MoveFileExW](https://learn.microsoft.com/windows/win32/api/winbase/nf-winbase-movefileexw)). A
+  directory is flushed with `FlushFileBuffers` through a handle opened for writing with
+  `FILE_FLAG_BACKUP_SEMANTICS` ([CreateFileW](https://learn.microsoft.com/windows/win32/api/fileapi/nf-fileapi-createfilew#directories)).
+  `exact-update`'s tests run on Windows 11 ARM64.
+- **The wake.** A finished check sets one bit and posts the winit loop's wake (`exact_linux::WakeStream`). The loop
+  drains its line as Linux's `poll_update` does, and checks the stream's head two seconds after the first
+  present (`host/windows/src/delivery.rs`).
+- **What a stream carries.** `scripts/deploy.mjs` names `windows`: a plan and asset update per compatibility id,
+  signed with the app's update key as the other native streams are. The bake needs the MSVC target, so a Windows
+  stream deploys from Windows. A changed executable is not an update; it is a new install, Authenticode-signed
+  and packaged as MSIX so that Windows verifies and replaces it
+  ([App installer](https://learn.microsoft.com/windows/msix/app-installer/app-installer-root)).
+- **The receipt.** A binary-only Windows build's receipt records the bake's watches (the Contract, `app.ts` and
+  what it imports) as binary inputs, since the executable carries its plan. An update-capable build replaces its
+  plan, so there they are bundle inputs, as on the other native platforms (`scripts/app.mjs` `completeBuild`).
 
 ## Phases
 

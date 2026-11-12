@@ -149,6 +149,7 @@ fn direct_window_blinks_without_a_softbuffer_surface() {
     let due = caret.deadline().expect("system caret blink enabled");
     let mut state = App {
         service_causes: 0,
+        check: Default::default(),
         proxy: events.create_proxy(),
         accessibility: None,
         name: "Ink caret regression".into(),
@@ -281,6 +282,7 @@ fn windowless_app(events: &EventLoop<crate::accessibility::Event>, plan: &[u8]) 
     .unwrap();
     App {
         service_causes: 0,
+        check: Default::default(),
         proxy: events.create_proxy(),
         accessibility: None,
         name: "Frame scheduling regression".into(),

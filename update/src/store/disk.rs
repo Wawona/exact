@@ -9,13 +9,33 @@ use std::collections::BTreeSet;
 use std::io::{Read as _, Write as _};
 use std::path::{Path, PathBuf};
 
-/// Refuse an unqualified durable-store platform before touching its directory.
-pub(super) fn require_durable_store() -> Result<(), String> {
-    if cfg!(windows) {
-        Err("Windows durable update storage is unsupported (LLP 1026 D11a); no store files were touched".into())
-    } else {
+/// Move `from` to `to`, replacing a file there, durably: on Windows
+/// `MoveFileExW` with `MOVEFILE_WRITE_THROUGH` returns once the move is on
+/// disk ([MoveFileExW](https://learn.microsoft.com/windows/win32/api/winbase/nf-winbase-movefileexw));
+/// elsewhere the caller syncs the directory after the rename.
+#[cfg_attr(windows, allow(unsafe_code))]
+pub(super) fn rename(from: impl AsRef<Path>, to: impl AsRef<Path>) -> std::io::Result<()> {
+    let (from, to) = (from.as_ref(), to.as_ref());
+    #[cfg(windows)]
+    {
+        use std::os::windows::ffi::OsStrExt as _;
+        #[link(name = "kernel32")]
+        extern "system" {
+            fn MoveFileExW(existing: *const u16, new: *const u16, flags: u32) -> i32;
+        }
+        const MOVEFILE_REPLACE_EXISTING: u32 = 0x1;
+        const MOVEFILE_WRITE_THROUGH: u32 = 0x8;
+        let wide = |p: &Path| p.as_os_str().encode_wide().chain([0]).collect::<Vec<u16>>();
+        let (from, to) = (wide(from), wide(to));
+        let flags = MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH;
+        // SAFETY: both are NUL-terminated UTF-16 paths that outlive the call.
+        if unsafe { MoveFileExW(from.as_ptr(), to.as_ptr(), flags) } == 0 {
+            return Err(std::io::Error::last_os_error());
+        }
         Ok(())
     }
+    #[cfg(not(windows))]
+    std::fs::rename(from, to)
 }
 
 /// Remove every `.tmp-…` left in `dir` by a write that did not finish.
@@ -115,7 +135,17 @@ pub(super) fn write_file(path: &Path, bytes: &[u8]) -> Result<(), String> {
 /// Sync a directory's entries — a name added, renamed or removed in it —
 /// to disk.
 pub(super) fn sync_dir(dir: &Path) -> Result<(), String> {
-    std::fs::File::open(dir)
+    let mut open = std::fs::OpenOptions::new();
+    open.read(true);
+    // Windows opens a directory only with backup semantics, and flushes one
+    // (`FlushFileBuffers`) only through a handle that may write.
+    #[cfg(windows)]
+    {
+        use std::os::windows::fs::OpenOptionsExt as _;
+        const FILE_FLAG_BACKUP_SEMANTICS: u32 = 0x0200_0000;
+        open.write(true).custom_flags(FILE_FLAG_BACKUP_SEMANTICS);
+    }
+    open.open(dir)
         .and_then(|d| d.sync_all())
         .map_err(|e| format!("cannot sync {}: {e}", dir.display()))
 }
@@ -138,7 +168,7 @@ pub(super) fn write_atomic(path: &Path, bytes: &[u8], durable: bool) -> Result<(
     written.inspect_err(|_| {
         let _ = std::fs::remove_file(&tmp);
     })?;
-    std::fs::rename(&tmp, path).map_err(|e| {
+    rename(&tmp, path).map_err(|e| {
         let _ = std::fs::remove_file(&tmp);
         format!("cannot put {} in place: {e}", path.display())
     })?;

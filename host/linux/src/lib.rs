@@ -112,7 +112,12 @@ pub fn set_event_waker(waker: Option<std::sync::Arc<dyn Fn() + Send + Sync>>) {
     wake::install(waker);
 }
 
-pub use app::{run, run_composed, run_with_hatches, Composed};
+/// A completion wake a worker writes and the display loop drains: a socket
+/// pair on Unix, and on Windows one coalesced bit that posts the event-loop
+/// wake [`set_event_waker`] installed.
+pub use wake::Stream as WakeStream;
+
+pub use app::{run, run_composed, run_with_hatches, Composed, OpenStore};
 pub use hatches::Hatches;
 pub use host::{Host, HostError};
 pub use presenter::Presenter;

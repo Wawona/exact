@@ -19,8 +19,8 @@ const ROOT = resolve(fileURLToPath(new URL('..', import.meta.url)));
 
 /** The platforms a manifest can name, each with the crate that serves it. */
 export const PLATFORMS = { ios: 'apple', macos: 'apple', tvos: 'apple', linux: 'linux', android: 'android', windows: 'windows' };
-/** The platforms that hold an update store, so a stream (scripts/deploy.mjs), and Windows, whose host refuses every
- * store level but "0" (it has no update store yet, LLP 1115.004 D15) while an absent key reads as "A". */
+/** The platforms that hold an update store, so a stream (scripts/deploy.mjs). A platform named later starts at "0",
+ * binary-only, since an absent key reads as "A"; Windows composes its store's adapter only for a level above it. */
 const STORED = ['ios', 'macos', 'linux', 'windows'];
 
 /** A verb's platform (`ios`, `mac`, `linux`, `android`, `windows`), or a drive's host (`test ios`); null for the web and
@@ -83,7 +83,7 @@ export function shellCrates(manifest) {
 /** A host crate's files, keyed by path under the crate's directory. `dep(path)` is a dependency's path from there and
  * `app` the app directory's, as Rust strings' content; `native` attaches the factory the bake writes for a package
  * that fills the native slot. */
-function crateFiles(kind, { name, title, dep, app, native = false }) {
+function crateFiles(kind, { name, title, dep, app, native = false, updating = false }) {
   const header = (target) => `[package]
 name = "${name}-${kind}"
 version.workspace = true
@@ -224,7 +224,7 @@ mod android {
   if (kind === 'windows') return {
     'Cargo.toml': `${header(`[[bin]]\nname = "${name}-windows"\npath = "src/main.rs"\ntest = false\nbench = false`)}exact-logic = ${dep('logic')}
 exact-windows = ${dep('host/windows')}
-# The packages' Windows implementations name \`exact_linux::package\` (LLP 1133.022 D10 item 5).
+${updating ? `# The update store's adapter (LLP 1030 D4), since deploy.store.windows is not "0".\nexact-linux-update = ${dep('host/linux-update')}\n` : ''}# The packages' Windows implementations name \`exact_linux::package\` (LLP 1133.022 D10 item 5).
 exact-linux = ${dep('host/linux')}
 exact-js = ${dep('js')}
 
@@ -240,7 +240,7 @@ ${module(false)}include!(concat!(env!("OUT_DIR"), "/logic.rs"));
 // The packages' Windows implementations the build composes (exact_packages()).
 include!(concat!(env!("OUT_DIR"), "/packages.rs"));
 fn main() {
-    let composed = exact_linux::Composed { packages: exact_packages(), ..Default::default() };
+    let composed = exact_linux::Composed { packages: exact_packages(), ${updating ? 'updates: Some(exact_linux_update::open_store), ' : ''}..Default::default() };
     std::process::exit(exact_windows::run_composed::<AppData>(${JSON.stringify(title)}, window(), PLAN, COMPAT, composed));
 }
 `,
@@ -276,6 +276,8 @@ export function ensureShells(dir, manifest = readManifest(dir), name = null) {
   const shells = shellsDir(dir), title = manifest.app?.name ?? manifest.name ?? titleOf(name);
   // The package that fills the native slot (LLP 1154 D3); the bake refuses two.
   const crates = shellCrates(manifest), native = nativePackages(dir).map(p => p.name);
+  // A store level above "0" composes the Windows store's adapter; an absent key reads as "A".
+  const updating = crates.includes('windows') && (manifest.deploy?.store?.windows ?? 'A') !== '0';
   // The paths written are relative where the two trees share a directory (`pathFrom`), which reads real directories.
   for (const kind of crates) mkdirSync(resolve(shells, kind), { recursive: true });
   const copied = ['rust-toolchain.toml', '.cargo/config.toml'].map(file => [file, readFileSync(resolve(ROOT, file), 'utf8')]);
@@ -285,7 +287,7 @@ export function ensureShells(dir, manifest = readManifest(dir), name = null) {
   // the app's name and the package that fills the native slot.
   const commit = spawnSync('git', ['-C', ROOT, 'rev-parse', 'HEAD'], { encoding: 'utf8' }).stdout?.trim() ?? '';
   const stamp = {
-    exact2: ROOT, commit, name, title, crates, native,
+    exact2: ROOT, commit, name, title, crates, native, updating,
     inputs: createHash('sha256').update([readFileSync(fileURLToPath(import.meta.url), 'utf8'), APPLE_BUILD_SCRIPT, ...copied.map(([, text]) => text), ...patches, readFileSync(resolve(ROOT, 'Cargo.lock'), 'utf8')].join('\0')).digest('hex'),
   };
   const before = stampOf(shells);
@@ -309,7 +311,7 @@ ${patches.join('\n')}
 `);
   for (const [file, text] of copied) wrote = writeChanged(resolve(shells, file), text) || wrote;
   for (const kind of crates) {
-    const files = crateFiles(kind, { name, title, native: native.length > 0, app: '../../..', dep: path => `{ path = ${JSON.stringify(pathFrom(resolve(shells, kind), resolve(ROOT, path)))} }` });
+    const files = crateFiles(kind, { name, title, native: native.length > 0, updating, app: '../../..', dep: path => `{ path = ${JSON.stringify(pathFrom(resolve(shells, kind), resolve(ROOT, path)))} }` });
     for (const [file, text] of Object.entries(files)) wrote = writeChanged(resolve(shells, kind, file), text) || wrote;
   }
   // A crate for a platform no longer named goes with its platform.
