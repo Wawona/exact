@@ -1,6 +1,8 @@
-// Wawona Exact chrome: Machines + Global Settings catalog.
-// Catalog mirrors Rust `settings_catalog` / `docs/settings.md` (Wawona/Wawona#227).
-// Prefs persist in Exact storage until M3 domain seam wires `wawona.pref.*`.
+// Wawona Exact chrome: Machines configuration grid + Global Settings catalog.
+// Machines grid mirrors product `WWNMachinesGridView` / `WWNMachineCardView`.
+// Settings catalog mirrors Rust `settings_catalog` / `docs/settings.md` (#227).
+// Prefs + profiles persist in Exact storage until M3 wires `wawona.pref.*` /
+// machine profiles through `wawona-data`.
 
 routes nav
   tab machines "/"
@@ -45,6 +47,8 @@ component Wawona
   state sshPort = "22" persist
   state sshAuthMethod = "password" persist
   state sshEnabled = true persist
+  // Demo chrome notice until M3 machine-profile store lands.
+  state machinesNotice = ""
 
   derive machineId = top(nav).params.id
   derive sectionId = top(nav).params.id
@@ -60,6 +64,14 @@ component Wawona
     nav = back(nav)
   action openMachine(id: string)
     nav = open(nav, path("present", id))
+  action startMachine(id: string)
+    nav = open(nav, path("present", id))
+  action editMachine(id: string)
+    nav = open(nav, path("present", id))
+  action deleteMachine(id: string)
+    machinesNotice = `Delete ${id} waits on M3 machine profiles.`
+  action clearMachinesNotice
+    machinesNotice = ""
   action openSection(id: string)
     nav = open(nav, path("section", id))
 
@@ -134,30 +146,34 @@ component Wawona
               column navigationKey=`${e.id}` navigationScroll=`content-${e.id}` position="absolute" inset=0 display="flex" flex-direction="column"
                 if e.name == "machines"
                   header testId="wawona-machines-header"
-                    h1 "Wawona"
-                  scroll id=`content-${e.id}` flex=1 min-height=0 testId="wawona-machines"
-                    list appearance="auto" listStyle="inset-grouped" testId="wawona-machine-list"
-                      section
-                        button press=openMachine("Native Shell") testId="machine-native-shell" width="100%"
-                          column align-items="flex-start" gap=2 padding=12
-                            text "Native Shell"
-                            text font="-exact-footnote" color="-exact-secondary-label" "zsh · Wayland · local"
-                        button press=openMachine("Weston") testId="machine-weston" width="100%"
-                          column align-items="flex-start" gap=2 padding=12
-                            text "Weston"
-                            text font="-exact-footnote" color="-exact-secondary-label" "Nested compositor"
-                        button press=openMachine("Niri") testId="machine-niri" width="100%"
-                          column align-items="flex-start" gap=2 padding=12
-                            text "Niri"
-                            text font="-exact-footnote" color="-exact-secondary-label" "Nested compositor"
-                        button press=openMachine("Relay Wasm") testId="machine-relay-wasm" width="100%"
-                          column align-items="flex-start" gap=2 padding=12
-                            text "Relay Wasm"
-                            text font="-exact-footnote" color="-exact-secondary-label" "WASI · wpm"
-                      section
-                        button press=openMachine("Add New Machine") testId="machine-add" width="100%"
-                          column align-items="flex-start" gap=2 padding=12
-                            text "Add New Machine"
+                    row align-items="center" gap=12 width="100%"
+                      column flex=1 min-width=0 gap=2
+                        h1 "Machines"
+                        text font="-exact-footnote" color="-exact-secondary-label" "6 configured · Native Shell · Virtual Machine · Container"
+                      button press=openMachine("Add New Machine") testId="machine-add" aria-label="Add New Machine" padding="8px 12px"
+                        image "symbol:add"
+                        text "Add"
+                  scroll id=`content-${e.id}` flex=1 min-height=0 testId="wawona-machines" background-color="-exact-grouped-background"
+                    column padding=16 gap=16 testId="wawona-machines-grid-wrap"
+                      if machinesNotice != ""
+                        row align-items="center" gap=8 padding=12 border-radius=12 background-color="-exact-secondary-grouped-background" testId="machines-notice"
+                          text flex=1 color="-exact-secondary-label" machinesNotice
+                          button press=clearMachinesNotice aria-label="Dismiss" padding=6
+                            image "symbol:close"
+                      // Adaptive card grid (product WWNMachinesGridView LazyVGrid).
+                      column display="grid" grid-template-columns="repeat(auto-fill, minmax(min(100%, 18rem), 1fr))" gap=14 testId="wawona-machines-grid" role="grid"
+                        MachineCard(id="native-shell", name="Native Shell", subtitle="zsh · Wayland · local", kind="NATIVE", scope="LOCAL", summary="In-process zsh + Wawona Terminal. Mode A PTY on Apple mobile / Play; system login shell on macOS / Linux / Mode B.", icon="symbol:document", running=false, start=startMachine, edit=editMachine, remove=deleteMachine)
+                        MachineCard(id="weston", name="Weston", subtitle="Nested compositor", kind="NATIVE", scope="LOCAL", summary="Weston nested on Wawona Wayland. Display Backend auto to wayland. Session compositor, not a VM.", icon="symbol:layers", running=false, start=startMachine, edit=editMachine, remove=deleteMachine)
+                        MachineCard(id="niri", name="Niri", subtitle="Nested compositor", kind="NATIVE", scope="LOCAL", summary="Niri nested (NIRI_BACKEND=nested). Same Wayland client path as product Machines Start.", icon="symbol:list", running=false, start=startMachine, edit=editMachine, remove=deleteMachine)
+                        MachineCard(id="relay-wasm", name="Relay Wasm", subtitle="WASI · wpm", kind="NATIVE", scope="LOCAL", summary="Relay Runtime package via wpm. Native Shell session, not a Virtual Machine or Container kind.", icon="symbol:package", running=false, start=startMachine, edit=editMachine, remove=deleteMachine)
+                        MachineCard(id="demo-vm", name="NixOS MicroVM", subtitle="Linux · Relay", kind="VM", scope="LOCAL", summary="Virtual Machine kind (planned). NixOS prebuilt guest. Wayland into Wawona (iland). Not UTM.", icon="symbol:home", running=false, start=startMachine, edit=editMachine, remove=deleteMachine)
+                        MachineCard(id="demo-container", name="Dev Container", subtitle="OCI-in-VM", kind="CONTAINER", scope="LOCAL", summary="Container kind (planned). OCI image in a Relay VM. Same guest Wayland path as VMs.", icon="symbol:download", running=false, start=startMachine, edit=editMachine, remove=deleteMachine)
+                      // Add card spans full width under the grid.
+                      button press=openMachine("Add New Machine") testId="machine-add-card" width="100%" padding=16 border-radius=16 border-style="dashed" border-width=1 border-color="-exact-separator" background-color="-exact-secondary-grouped-background"
+                        row align-items="center" gap=12
+                          image "symbol:add" font-size=28 color="AccentColor"
+                          column align-items="flex-start" gap=2 flex=1
+                            text font-weight=600 "Add New Machine"
                             text font="-exact-footnote" color="-exact-secondary-label" "Native Shell · Virtual Machine · Container"
                 else if e.name == "present"
                   header
@@ -201,7 +217,7 @@ component Wawona
                   header testId="wawona-settings-section-header"
                     row align-items="center" gap=8
                       button press=back testId="settings-section-back" aria-label="Back" padding=8
-                        image "symbol:chevron.left"
+                        image "symbol:back"
                         text "Settings"
                       h1 sectionTitle flex=1
                   scroll id=`content-${e.id}` flex=1 min-height=0 testId=`wawona-settings-${sectionId}`
@@ -367,3 +383,43 @@ component PrefSelect
       text title flex=1 min-width=0 line-clamp=1
       select value=value change=set aria-label=title testId=`select-${id}` flex-shrink=0
         children
+
+// Machine configuration card (product WWNMachineCardView shape).
+component MachineCard
+  props
+    id: string
+    name: string
+    subtitle: string
+    kind: string
+    scope: string
+    summary: string
+    icon: string
+    running: bool
+    start: action
+    edit: action
+    remove: action
+  view
+    column testId=`wwn.machines.card.${id}` role="gridcell" gap=12 padding=16 border-radius=20 background-color="-exact-secondary-grouped-background" border-style="solid" border-width=1 border-color="-exact-separator" box-sizing="border-box" width="100%"
+      // Banner
+      row align-items="center" gap=12 padding=12 border-radius=16 background-color="AccentColor" min-height=90
+        column flex=1 min-width=0 gap=4
+          text font="-exact-title3" color="AccentColorText" line-clamp=1 name
+          text font="-exact-subheadline" color="AccentColorText" line-clamp=1 subtitle
+        image icon font-size=22 color="AccentColor" padding=8 border-radius=10 background-color="-exact-fill"
+      // Chips
+      row align-items="center" gap=6 flex-wrap="wrap"
+        text font="-exact-caption1" padding="2px 8px" border-radius=8 background-color="-exact-fill" (running ? "RUNNING" : "STOPPED")
+        text font="-exact-caption1" padding="2px 8px" border-radius=8 background-color="-exact-fill" scope
+        text font="-exact-caption1" padding="2px 8px" border-radius=8 background-color="-exact-fill" kind
+      text font="-exact-footnote" color="-exact-secondary-label" line-clamp=3 summary
+      // Actions (Start / Edit / Delete). Wrap inside the card.
+      row align-items="center" gap=8 flex-wrap="wrap" testId=`wwn.machines.actions.${id}`
+        button press=start(id) testId="wwn.machines.start" aria-label=`Start ${name}` padding="8px 12px" buttonStyle="filled"
+          image "symbol:play-fill"
+          text (running ? "Focus" : "Start")
+        button press=edit(id) testId="wwn.machines.edit" aria-label=`Edit ${name}` padding="8px 12px"
+          image "symbol:adjust"
+          text "Edit"
+        button press=remove(id) testId="wwn.machines.delete" aria-label=`Delete ${name}` padding="8px 12px" disabled=running
+          image "symbol:delete"
+          text "Delete"
